@@ -57,7 +57,12 @@ will be moved to the parent realm.")]
 
         [Description("Enables the console commands for recalling to various locations (marketplace, house, etc)")]
         [RealmPropertyBool(true)]
-        HasRecalls = 9
+        HasRecalls = 9,
+
+        [RealmPropertyBool(false)]
+        ReplaceMobs = 10,
+
+
     }
 
     public static class RealmPropertyBoolExtensions

@@ -16,10 +16,6 @@ using ACE.Server.Managers;
 using ACE.Server.Network.Structure;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
-using ACE.Server.Realms;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore.Query.Internal;
-using System.Diagnostics.Eventing.Reader;
 
 namespace ACE.Server.WorldObjects
 {
@@ -36,7 +32,7 @@ namespace ACE.Server.WorldObjects
         /// house open/closed status
         /// 0 = closed, 1 = open
         /// </summary>
-        public bool OpenStatus { get => OpenToEveryone; set => OpenToEveryone = value; }
+        public bool OpenStatus { get => true; set => OpenToEveryone = true; }
 
         /// <summary>
         /// For linking mansions
@@ -49,7 +45,7 @@ namespace ACE.Server.WorldObjects
         public HashSet<ObjectGuid> StorageAccess => Guests.Where(i => i.Value).Select(i => i.Key).ToHashSet();
         public WorldObject BootSpot => ChildLinks.FirstOrDefault(i => i.WeenieType == WeenieType.BootSpot);
 
-        public HousePortal HousePortal { get => ChildLinks.FirstOrDefault(l => l as HousePortal != null) as HousePortal;  }
+        public HousePortal HousePortal { get => ChildLinks.FirstOrDefault(l => l as HousePortal != null) as HousePortal; }
         public List<WorldObject> Linkspots => ChildLinks.Where(l => l.WeenieType == WeenieType.Generic && l.WeenieClassName.Equals("portaldestination")).ToList();
 
         /// <summary>
@@ -145,23 +141,23 @@ namespace ACE.Server.WorldObjects
             }
 
             var iid = houseGuid.Instance ?? 0;
+            if (iid == 0)
+                throw new InvalidOperationException("Uninstanced Housing Data detected");
 
             Position.ParseInstanceID(iid, out bool isEphemeral, out ushort realmId, out ushort _);
 
-            var realm = RealmManager.GetRealm(realmId, includeRulesets: false);
-            AppliedRuleset ruleset;
-            if (realm != null)
-                ruleset = realm.StandardRules;
-            else
-                ruleset = RealmManager.DefaultRealmConfigured.StandardRules;
+            // Should never happen, but if this is a problem, uncomment the line until it can be fixed
+            if (isEphemeral)
+                throw new InvalidOperationException("Housing data found in ephemeral instance!");
 
-            if (ruleset == null)
-                throw new InvalidOperationException("Could not find a default realm to fall back to for orphaned housing data.");
+            var realm = RealmManager.GetRealm(realmId, includeRulesets: false);
+            if (realm == null)
+                throw new InvalidOperationException($"Housing data found in instance ID {iid}, for which a realm could not be located.");
 
             var linkedHouses = WorldObjectFactory.CreateNewWorldObjects(
                 instances,
                 new List<ACE.Database.Models.Shard.Biota> { biota },
-                biota.WeenieClassId, iid, ruleset, landblock);
+                biota.WeenieClassId, iid, realm.StandardRules, landblock);
 
             foreach (var linkedHouse in linkedHouses)
                 linkedHouse.ActivateLinks(instances, new List<ACE.Database.Models.Shard.Biota> { biota }, linkedHouses[0]);
@@ -528,7 +524,7 @@ namespace ACE.Server.WorldObjects
             get
             {
                 //if (HouseType == ACE.Entity.Enum.HouseType.Apartment || HouseType == ACE.Entity.Enum.HouseType.Cottage)
-                    //return this;
+                //return this;
 
                 var landblock = RootGuid.StaticObjectLandblock.Value;
 
@@ -544,7 +540,7 @@ namespace ACE.Server.WorldObjects
                     // do not cache, in case permissions have changed
                     return Load(RootGuid);
                 }
-                   
+
                 var loaded = LandblockManager.GetLandblock(landblockId, RootGuid.Instance.Value, null, false);
                 return loaded.GetObject(RootGuid) as House;
             }
@@ -617,12 +613,11 @@ namespace ACE.Server.WorldObjects
             return false;
         }
 
-        public int BootAll(IPlayer booter, bool guests = true, bool allegianceHouse = false)
+        public int BootAll(Player booter, bool guests = true, bool allegianceHouse = false)
         {
             var players = PlayerManager.GetAllOnline();
 
             var booted = 0;
-
             foreach (var player in players)
             {
                 // exclude booter
@@ -634,10 +629,7 @@ namespace ACE.Server.WorldObjects
                 if (!guests && HasPermission(player, false))
                     continue;
 
-                if (booter is Player booterOnline)
-                    booterOnline.HandleActionBoot(player.Name, allegianceHouse);
-                else
-                    player.Teleport(BootSpot.Location);
+                booter.HandleActionBoot(player.Name, allegianceHouse);
                 booted++;
             }
             return booted;
@@ -687,7 +679,7 @@ namespace ACE.Server.WorldObjects
 
         public bool OpenToEveryone
         {
-            get => (GetProperty(PropertyInt.OpenToEveryone) ?? 0) == 1;
+            get => (GetProperty(PropertyInt.OpenToEveryone) ?? 1) == 1;
             set { if (!value) RemoveProperty(PropertyInt.OpenToEveryone); else SetProperty(PropertyInt.OpenToEveryone, 1); }
         }
 
@@ -755,34 +747,6 @@ namespace ACE.Server.WorldObjects
         public int GetHookGroupCurrentCount(HookGroupType hookGroupType) => Hooks.Count(h => h.HasItem && (h.Item?.HookGroup ?? HookGroupType.Undef) == hookGroupType);
 
         public int GetHookGroupMaxCount(HookGroupType hookGroupType) => HookGroupLimits[HouseType][hookGroupType];
-
-        public bool TryMoveHouseToNewRealmInstance(uint instanceId)
-        {
-            if (HouseOwner == null)
-            {
-                log.Error($"Couldn't move house to new instance, as the house has no owner");
-                return false;
-            }
-
-            // Check if a conflict exists
-            var targetGuid = new ObjectGuid(Guid.ClientGUID, instanceId);
-            var existingTargetHouse = HouseManager.GetPurchasedHouseByInstancedId(targetGuid);
-            if (existingTargetHouse != null)
-            {
-                log.Error($"Couldn't move house for player {HouseOwnerName} to new instance, as that house is owned by {existingTargetHouse.HouseOwnerName}");
-                return false;
-            }
-
-            House destHouse = HouseManager.GetHouseSynchronously(targetGuid, true);
-
-            var player = PlayerManager.FindByGuid(new ObjectGuid(HouseOwner.Value));
-
-            if (!HouseManager.ChangeOwnedHouse(player, this, destHouse))
-            {
-                log.Error($"[HOUSE] TryMoveHouseToNewRealmInstance: Error in HouseManager.ChangeOwnedHouse");
-                return false;
-            }
-            return true;
-        }
     }
 }
+

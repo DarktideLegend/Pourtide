@@ -2,6 +2,7 @@ using System;
 using System.Numerics;
 
 using ACE.Common;
+using ACE.Database;
 using ACE.Entity;
 using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
@@ -286,7 +287,13 @@ namespace ACE.Server.WorldObjects
             // ensure caster can damage target
             var sourceCreature = ProjectileSource as Creature;
             if (sourceCreature != null && !sourceCreature.CanDamage(creatureTarget))
+            {
+                if (sourceCreature is Player sourcePlayer && creatureTarget.Teleporting)
+                    sourcePlayer.SendTransientError($"You cannot attack {creatureTarget.Name}");
+
+
                 return;
+            }
 
             // if player target, ensure matching PK status
             var targetPlayer = creatureTarget as Player;
@@ -779,6 +786,9 @@ namespace ACE.Server.WorldObjects
 
                 amount = (uint)-target.UpdateVitalDelta(target.Health, (int)-Math.Round(damage));
                 target.DamageHistory.Add(ProjectileSource, Spell.DamageType, amount);
+
+                if (sourcePlayer != null && targetPlayer != null)
+                    DatabaseManager.Shard.BaseDatabase.TrackPkStatsDamage(targetPlayer.HomeRealm, Location.RealmID, (uint)sourcePlayer.Guid.Full, (uint)targetPlayer.Guid.Full, (int)amount, critical && !critDefended, (uint)CombatType.Magic);
 
                 //if (targetPlayer != null && targetPlayer.Fellowship != null)
                     //targetPlayer.Fellowship.OnVitalUpdate(targetPlayer);

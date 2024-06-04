@@ -1,24 +1,19 @@
 using System;
 using System.Threading;
-using ACE.Common;
+
 using ACE.Database;
 using ACE.Database.Models.Auth;
 using ACE.Entity;
-using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
 using ACE.Entity.Models;
-using ACE.Server.Entity.Actions;
 using ACE.Server.Realms;
 using ACE.Server.WorldObjects;
-using log4net;
 using Newtonsoft.Json.Linq;
 
 namespace ACE.Server.Entity
 {
     public class OfflinePlayer : IPlayer
     {
-        private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
         /// <summary>
         /// This is object property overrides that should have come from the shard db (or init to defaults of object is new to this instance).
         /// You should not manipulate these values directly. To manipulate this use the exposed SetProperty and RemoveProperty functions instead.

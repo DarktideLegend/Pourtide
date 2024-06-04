@@ -13,6 +13,7 @@ using ACE.Entity.Enum.Properties;
 using ACE.Entity.Models;
 using ACE.Server.WorldObjects;
 using ACE.Server.Managers;
+using ACE.Server.Features.Xp;
 using ACE.Server.Realms;
 using ACE.Common.ACRealms;
 
@@ -32,12 +33,53 @@ namespace ACE.Server.Factories
             ClientServerSkillsMismatch
         }
 
+        private static List<uint> Foci = new List<uint>()
+        {
+            15268,
+            15269,
+            15270
+        };
+
+        public static void TeachPourtideAugmentations(Player player)
+        {
+            foreach (var augtype in RealmConstants.PourtideAugmentations)
+            {
+                AugmentationDevice.DoAugmentation(player, augtype, null, false, false);
+                player.SaveBiotaToDatabase();
+            }
+        }
+
+        public static void AddStarterEssentials(Player player)
+        {
+            /*for (uint spellLevel = 1; spellLevel <= 3; spellLevel++)
+            {
+                player.LearnSpellsInBulk(MagicSchool.CreatureEnchantment, spellLevel, true);
+                player.LearnSpellsInBulk(MagicSchool.ItemEnchantment, spellLevel, true);
+                player.LearnSpellsInBulk(MagicSchool.LifeMagic, spellLevel, true);
+                player.LearnSpellsInBulk(MagicSchool.VoidMagic, spellLevel, true);
+                player.LearnSpellsInBulk(MagicSchool.WarMagic, spellLevel, true);
+            }*/
+
+            /*foreach (var id in Foci)
+            {
+                var wo = WorldObjectFactory.CreateNewWorldObject(id);
+                player.TryCreateInInventoryWithNetworking(wo);
+            }*/
+
+            /*var dailyCap = XpManager.DailyXpCap;
+            player.QuestXpDailyMax = (long)dailyCap;
+            player.MonsterXpDailyMax = (long)dailyCap;
+            player.PvpXpDailyMax = (long)dailyCap;*/
+
+            XpManager.SetPlayerXpCap(player);
+        }
+
         public static CreateResult Create(CharacterCreateInfo characterCreateInfo, Weenie weenie, ObjectGuid guid, uint accountId, WeenieType weenieType, out Player player)
         {
             var heritageGroup = DatManager.PortalDat.CharGen.HeritageGroups[(uint)characterCreateInfo.Heritage];
 
             if (weenieType == WeenieType.Admin)
-                player = new Admin(weenie, guid, accountId);
+                player = new Admin(weenie, guid, accountId, RealmManager.CurrentSeason.StandardRules);
             else if (weenieType == WeenieType.Sentinel)
                 player = new Sentinel(weenie, guid, accountId);
             else
@@ -104,35 +146,32 @@ namespace ACE.Server.Factories
             // skip over this for olthoi, use the weenie defaults
             if (!player.IsOlthoiPlayer)
             {
-                if (player.Heritage != (int)HeritageGroup.Gearknight) // Gear Knights do not get clothing (pcap verified)
+                if (characterCreateInfo.Appearance.HeadgearStyle < uint.MaxValue) // No headgear is max UINT
                 {
-                    if (characterCreateInfo.Appearance.HeadgearStyle < uint.MaxValue) // No headgear is max UINT
-                    {
-                        var hat = GetClothingObject(sex.GetHeadgearWeenie(characterCreateInfo.Appearance.HeadgearStyle), characterCreateInfo.Appearance.HeadgearColor, characterCreateInfo.Appearance.HeadgearHue);
-                        if (hat != null)
-                            player.TryEquipObject(hat, hat.ValidLocations ?? 0);
-                        else
-                            player.TryAddToInventory(CreateIOU(sex.GetHeadgearWeenie(characterCreateInfo.Appearance.HeadgearStyle)));
-                    }
-
-                    var shirt = GetClothingObject(sex.GetShirtWeenie(characterCreateInfo.Appearance.ShirtStyle), characterCreateInfo.Appearance.ShirtColor, characterCreateInfo.Appearance.ShirtHue);
-                    if (shirt != null)
-                        player.TryEquipObject(shirt, shirt.ValidLocations ?? 0);
+                    var hat = GetClothingObject(sex.GetHeadgearWeenie(characterCreateInfo.Appearance.HeadgearStyle), characterCreateInfo.Appearance.HeadgearColor, characterCreateInfo.Appearance.HeadgearHue);
+                    if (hat != null)
+                        player.TryEquipObject(hat, hat.ValidLocations ?? 0);
                     else
-                        player.TryAddToInventory(CreateIOU(sex.GetShirtWeenie(characterCreateInfo.Appearance.ShirtStyle)));
-
-                    var pants = GetClothingObject(sex.GetPantsWeenie(characterCreateInfo.Appearance.PantsStyle), characterCreateInfo.Appearance.PantsColor, characterCreateInfo.Appearance.PantsHue);
-                    if (pants != null)
-                        player.TryEquipObject(pants, pants.ValidLocations ?? 0);
-                    else
-                        player.TryAddToInventory(CreateIOU(sex.GetPantsWeenie(characterCreateInfo.Appearance.PantsStyle)));
-
-                    var shoes = GetClothingObject(sex.GetFootwearWeenie(characterCreateInfo.Appearance.FootwearStyle), characterCreateInfo.Appearance.FootwearColor, characterCreateInfo.Appearance.FootwearHue);
-                    if (shoes != null)
-                        player.TryEquipObject(shoes, shoes.ValidLocations ?? 0);
-                    else
-                        player.TryAddToInventory(CreateIOU(sex.GetFootwearWeenie(characterCreateInfo.Appearance.FootwearStyle)));
+                        player.TryAddToInventory(CreateIOU(sex.GetHeadgearWeenie(characterCreateInfo.Appearance.HeadgearStyle)));
                 }
+
+                var shirt = GetClothingObject(sex.GetShirtWeenie(characterCreateInfo.Appearance.ShirtStyle), characterCreateInfo.Appearance.ShirtColor, characterCreateInfo.Appearance.ShirtHue);
+                if (shirt != null)
+                    player.TryEquipObject(shirt, shirt.ValidLocations ?? 0);
+                else
+                    player.TryAddToInventory(CreateIOU(sex.GetShirtWeenie(characterCreateInfo.Appearance.ShirtStyle)));
+
+                var pants = GetClothingObject(sex.GetPantsWeenie(characterCreateInfo.Appearance.PantsStyle), characterCreateInfo.Appearance.PantsColor, characterCreateInfo.Appearance.PantsHue);
+                if (pants != null)
+                    player.TryEquipObject(pants, pants.ValidLocations ?? 0);
+                else
+                    player.TryAddToInventory(CreateIOU(sex.GetPantsWeenie(characterCreateInfo.Appearance.PantsStyle)));
+
+                var shoes = GetClothingObject(sex.GetFootwearWeenie(characterCreateInfo.Appearance.FootwearStyle), characterCreateInfo.Appearance.FootwearColor, characterCreateInfo.Appearance.FootwearHue);
+                if (shoes != null)
+                    player.TryEquipObject(shoes, shoes.ValidLocations ?? 0);
+                else
+                    player.TryAddToInventory(CreateIOU(sex.GetFootwearWeenie(characterCreateInfo.Appearance.FootwearStyle)));
 
                 string templateName = heritageGroup.Templates[characterCreateInfo.TemplateOption].Name;
                 player.SetProperty(PropertyString.Template, templateName);
@@ -357,7 +396,6 @@ namespace ACE.Server.Factories
 
             player.Name = characterCreateInfo.Name;
             player.Character.Name = characterCreateInfo.Name;
-
 
             // Index used to determine the starting location
             if (!ACRealmsConfigManager.Config.CharacterCreationOptions.UseRealmSelector)

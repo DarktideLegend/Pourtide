@@ -1,11 +1,12 @@
 using System;
 using System.Linq;
-
+using ACE.Common;
 using ACE.Common.Extensions;
 using ACE.DatLoader;
 using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
 using ACE.Server.Entity.Actions;
+using ACE.Server.Features.Xp;
 using ACE.Server.Managers;
 using ACE.Server.Network.GameMessages.Messages;
 
@@ -29,10 +30,16 @@ namespace ACE.Server.WorldObjects
             if (xpType == XpType.Quest)
                 modifier *= questModifier;
 
+            var playerLevelModifier = XpManager.GetPlayerLevelXpModifier((int)Level);
+
+            var realmMultiplierAll = RealmRuleset?.GetProperty(RealmPropertyFloat.ExperienceMultiplierAll) ?? 1;
+
             // should this be passed upstream to fellowship / allegiance?
             var enchantment = GetXPAndLuminanceModifier(xpType);
 
-            var m_amount = (long)Math.Round(amount * enchantment * modifier);
+            var capped = amount * enchantment * modifier * playerLevelModifier * realmMultiplierAll;
+
+            var m_amount = (long)Math.Round(capped);
 
             if (m_amount < 0)
             {
@@ -86,6 +93,56 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         private void UpdateXpAndLevel(long amount, XpType xpType)
         {
+            if (HasVitae && xpType != XpType.Allegiance)
+                UpdateXpVitae(amount);
+
+            switch (xpType)
+            {
+                case XpType.Quest:
+                    if (QuestXpDailyMax <= QuestXp)
+                        return;
+
+                    var questTotal = amount + QuestXp;
+                    if (questTotal >= QuestXpDailyMax)
+                    {
+                        amount = QuestXpDailyMax - QuestXp;
+                        QuestXp = QuestXpDailyMax;
+                    }
+                    else
+                        QuestXp = questTotal;
+                    break;
+
+                case XpType.Kill:
+                case XpType.Fellowship:
+                case XpType.Allegiance:
+                    if (MonsterXpDailyMax <= MonsterXp)
+                        return;
+
+                    var monsterTotal = amount + MonsterXp;
+                    if (monsterTotal >= MonsterXpDailyMax)
+                    {
+                        amount = MonsterXpDailyMax - MonsterXp;
+                        MonsterXp = MonsterXpDailyMax;
+                    }
+                    else
+                        MonsterXp = monsterTotal;
+                    break;
+
+                case XpType.Pvp:
+                    if (PvpXpDailyMax <= PvpXp)
+                        return;
+
+                    var pvpTotal = amount + PvpXp;
+                    if (pvpTotal > PvpXpDailyMax)
+                    {
+                        amount = PvpXpDailyMax - PvpXp;
+                        PvpXp = PvpXpDailyMax;
+                    }
+                    else
+                        PvpXp = pvpTotal;
+                    break;
+            }
+
             // until we are max level we must make sure that we send
             var xpTable = DatManager.PortalDat.XpTable;
 
@@ -109,12 +166,16 @@ namespace ACE.Server.WorldObjects
 
                 CheckForLevelup();
             }
+            if (xpType == XpType.Kill)
+                Session.Network.EnqueueSend(new GameMessageSystemChat($"You've earned {amount:N0} experience. You have {Formatting.FormatIntWithCommas((ulong)(MonsterXpDailyMax - MonsterXp))} monster daily xp remaining", ChatMessageType.Broadcast));
+
+            if (xpType == XpType.Pvp)
+                Session.Network.EnqueueSend(new GameMessageSystemChat($"You've earned {amount:N0} experience. You have {Formatting.FormatIntWithCommas((ulong)(PvpXpDailyMax - PvpXp))} pvp daily xp remaining", ChatMessageType.Broadcast));
 
             if (xpType == XpType.Quest)
-                Session.Network.EnqueueSend(new GameMessageSystemChat($"You've earned {amount:N0} experience.", ChatMessageType.Broadcast));
+                Session.Network.EnqueueSend(new GameMessageSystemChat($"You've earned {amount:N0} experience. You have {Formatting.FormatIntWithCommas((ulong)(QuestXpDailyMax - QuestXp))} quest daily xp remaining", ChatMessageType.Broadcast));
 
-            if (HasVitae && xpType != XpType.Allegiance)
-                UpdateXpVitae(amount);
+
         }
 
         /// <summary>

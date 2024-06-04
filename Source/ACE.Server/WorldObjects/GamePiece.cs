@@ -20,7 +20,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// A new biota be created taking all of its values from weenie.
         /// </summary>
-        public GamePiece(Weenie weenie, ObjectGuid guid, Realms.AppliedRuleset ruleset) : base(weenie, guid, ruleset)
+        public GamePiece(Weenie weenie, ObjectGuid guid, AppliedRuleset ruleset) : base(weenie, guid, ruleset)
         {
             SetEphemeralValues();
         }

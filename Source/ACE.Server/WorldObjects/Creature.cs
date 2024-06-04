@@ -43,6 +43,8 @@ namespace ACE.Server.WorldObjects
             }
         }
 
+        public Dictionary<uint, uint> PlayerBountyMap = new Dictionary<uint, uint>();
+
         /// <summary>
         /// A table of players who currently have their targeting reticule on this creature
         /// </summary>
@@ -147,8 +149,9 @@ namespace ACE.Server.WorldObjects
                 value = 1;
             if (value > maxValue)
                 value = maxValue;
-            return  (uint)value;
+            return (uint)value;
         }
+
 
         /// <summary>
         /// Restore a WorldObject from the database.

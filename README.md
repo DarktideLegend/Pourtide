@@ -34,14 +34,12 @@ For complex changes, it is recommended to get in touch via Discord before attemp
 If you don't use Discord and want to contribute, email me and let me know what mode of communication works best for you.
 
 
-## Servers using AC Realms
+## Caveats
 
-This project has been used in three servers that I am aware of.
-1. ACRealms Alpha (late 2020)
-2. Escape From Dereth (mid 2023)
-3. Pourtide 3 (April 2024)
+1. `LandblockInstance` entities are shared across seasons. This means all static guids belonging to a `LandblockInstance` are the same no matter which realm  your character exists in. 
+2. Because all static guids are shared, housing cannot exist in multiple seasons independently. SeasonalACE only supports housing in the current active season, past seasons that are no longer active have all housing related biotas removed and housing storage cleared (characters can still be played in past seasons, just without housing).
+3. There are still unforseen bugs. ACRealms never had much exposure and is not very battle tested but there should be no serious impact on performance or player experience. 
 
-## Content Structure (differences from ACE)
 
 #### Realms.jsonc
 UPDATE May 2024: This file is now auto generated and doesn't need to be edited manually.  
@@ -53,7 +51,7 @@ New realms can still be added to the list as long as they are not changed after 
 The realm name must match the name specified in the realm file (not the filename).
 If a realm file exists, it must have a corresponding entry in this file, and vice versa. It's not the most user-friendly process but there is room for improvement.
 
-#### Realm and Ruleset JSON
+For example the default season for SeasonalACE is the `realms-pvp.jsonc` file:
 
 It is recommended to use visual studio code to edit these files, using the "Content" folder as the root. A json-schema folder exists and realm properties will be populated in this schema after successful build of the ACE.Server project.  
 This allows for autocomplete and tooltip functionality to be integrated with the editor. 
@@ -62,32 +60,18 @@ A realm file exists under `Content/json/realms/realm/xxx.jsonc`, and a ruleset f
 The key difference between a realm and a ruleset is that a realm may exist as a permanent home location for a player. A ruleset does not. Rulesets are intended to be composed on top of realms, to produce "ephemeral realms" (temporary rulesets).
 Realm definitions may also be composed in a similar manner, but the result is a permanent world
 
-Example:
 ```json
 {
-  "name": "Modern Realm",
+  "name": "Modern Realm (PvP)",
   "type": "Realm",
+  "parent": "Modern Realm",
   "properties": {
-    "Description": "The Customized Realm with the latest and greatest features.",
-    "CanBeHomeworld": true,
-    "CanInteractWithNeutralZone": true,
-    "HideoutEnabled": true
+    "Description": "The Customized PvP Realm with the latest and greatest features.",
+    "IsPKOnly": true
   }
 }
 ```
 
-Valid keys:
-- `name` (required): The name of the realm. Must be unique and must match an entry in `realms.jsonc`
-- `type` (required): "Realm" for realm, "Ruleset" for a ruleset
-- `parent` (optional): The `name` of the realm or ruleset from which to inherit properties from. A realm may only inherit from an entry with `type` = Realm. 
-- `apply_rulesets` (optional): An array of ruleset names to compose on top of this one (the properties in the current ruleset file are first applied from the result of the parent ruleset, and then the rulesets defined in `apply_rulesets` are applied afterward)
-- `apply_rulesets_random` (optional): An array where the elements may be either a hash or an array.
-  If a hash: The key is the ruleset name, and the value is either a floating point number between 0 and 1, for the probability, or "auto" to automatically assign probabilities equally.
-  If an array: The element of the array contains one or more hashes described like above, where one of the elements is chosen at random.
-  See [random-test.jsonc](https://github.com/ACRealms/ACRealms.WorldServer/blob/master/Content/json/realms/ruleset/random-test.jsonc) for an example
-- `properties` (required): A hash of properties, where the key is equal to an enum entry defined in ACE.Entity.Enum.Properties.RealmPropertyXXX.cs, and the value is either a Hash of type 'property entry' described below, or a constant scalar value deserializable to the corresponding type.
-  The realm properties in the Enum definition itself (.cs file) will also have absolute minimums and maximums. If the value is outside this range (after composition and randomization), it will be adjusted to fit the range. For example, if the range is from 0 to 50, and the composed value is 60, the effective value will be 50. No errors or warnings will be emitted, by design.
-- `properties_random_count`: An integer to specify that instead of all properties being applied, this many properties from the ruleset will be selected at random (excluding the description). This occurs during landblock load as part of the ruleset activation pipeline.
 
 Property entry hash valid keys:
 - `value`: A default value, matching the type of the corresponding property. May not be present if `low` or `high` is present. This takes precedence over the default value defined in the enum type.
@@ -151,14 +135,43 @@ AGPL v3
 
 ## Server Operator Guidelines
 
-We have the same guidelines as https://github.com/ACEmulator/ACE/, which ACRealms is forked from.
+```json
+{
+  "name": "random-test",
+  "type": "Ruleset",
+  "properties": {
+    "Description": "A test ruleset for random properties.",
+    "Spellcasting_Max_Angle": {
+      "low": "5",
+      "high": "180",
+      "reroll": "landblock" /*never, always, landblock, admin */,
+      "locked": true,
+      "probability": 0.5
+    },
+    "CreatureSpawnHPMultiplier": {
+      "low": 0.5,
+      "high": 2.0,
+      "compose": "add"
+    }
+  },
+  "apply_rulesets": ["creature-attribute-randomizer"],
+  "apply_rulesets_random": [
+    [{ "creature-hp-boost": 0.5 }, { "creature-hp-boost": 1.0 }],
+    { "pvp-ruleset": "auto" },
+    { "creature-attribute-randomizer": 0.5 }
+  ]
+}
+```
 
-> We have a NO financial solicitation and donation policy. If you solicit or accept donations or gifts in direct relation to ACRealms, your perks will be revoked and discord tags removed. If you come back into compliance with this policy, your perks and access will be restored.
-> If you are in violation of our ACRealms AGPL-3.0 license, you will be removed from our discord server. We may also petition to have your servers removed from public servers lists
+## Commands
 
-## Credits
+**Admin Commands**
+1. `/change-season <realmId>` - This command changes the current active season to a new realmId, newly created players will be created in this season, having no physical interactions with other seasoned characters. Transitioning to a new season clears housing and housing storage from the previous active season.
+2. `/exiti` - Exits the current ephemeral realm (dungeon landblock instance).
 
-- AC Emulator Team
-- gmriggs - Wrote the first proof of concept for instanced landblocks, which was the original inspiration for the project
-- Vodka (https://github.com/darktidelegend) - Early adopter, brought this project back from the dead in 2023
-- OptimShi - Brought attention to the static GUID limitations that ended up helping fix some obscure but critical bugs
+**Player Commands**
+1. `/season-info` - This command gives you information about the current active season that a player belongs to.
+2. `/season-list` - This command displays a list of all available seasons to choose from, highlighting the current active season.
+3. `/realm-list` - This command displays all realms that exist in the realms.jsonc file.
+4. `/ruleset-list` - This command displays all rulesets that exist in rulesets directory.
+5. `/realm-info` - This command displays all realm information for the current realm a player exists in (useful for dungeon landblock realms, also known as ephemeral realms).

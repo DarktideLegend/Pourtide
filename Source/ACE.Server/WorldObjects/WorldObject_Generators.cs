@@ -4,9 +4,11 @@ using System.Linq;
 
 using ACE.Common;
 using ACE.Entity.Enum;
+using ACE.Entity.Enum.Properties;
 using ACE.Entity.Models;
 using ACE.Server.Entity;
 using ACE.Server.Managers;
+using ACE.Server.Realms;
 
 namespace ACE.Server.WorldObjects
 {
@@ -25,7 +27,7 @@ namespace ACE.Server.WorldObjects
         /// (spawns other world objects)
         /// </summary>
         public bool IsGenerator { get => GeneratorProfiles != null && GeneratorProfiles.Count > 0; }
-       
+
         //public List<string> History = new List<string>();
 
         /// <summary>
@@ -308,7 +310,7 @@ namespace ACE.Server.WorldObjects
             if (numObjects == 0 && initCreate == 0)
                 log.Warn($"[GENERATOR] 0x{Guid}:{WeenieClassId} {Name}.GetSpawnObjectsForProfile(profile[{profile.LinkId}]): profile.InitCreate = {profile.InitCreate} | profile.MaxCreate = {profile.MaxCreate} | profile.WeenieClassId = {profile.WeenieClassId} | Profile Init invalid, cannot spawn.");
             else if (numObjects == 0)
-               log.Warn($"[GENERATOR] 0x{Guid}:{WeenieClassId} {Name}.GetSpawnObjectsForProfile(profile[{profile.LinkId}]): profile.InitCreate = {profile.InitCreate} | profile.MaxCreate = {profile.MaxCreate} | profile.WeenieClassId = {profile.WeenieClassId} | genSlotsAvailable = {genSlotsAvailable} | profileSlotsAvailable = {profileSlotsAvailable} | numObjects = {numObjects}, cannot spawn.");
+                log.Warn($"[GENERATOR] 0x{Guid}:{WeenieClassId} {Name}.GetSpawnObjectsForProfile(profile[{profile.LinkId}]): profile.InitCreate = {profile.InitCreate} | profile.MaxCreate = {profile.MaxCreate} | profile.WeenieClassId = {profile.WeenieClassId} | genSlotsAvailable = {genSlotsAvailable} | profileSlotsAvailable = {profileSlotsAvailable} | numObjects = {numObjects}, cannot spawn.");
 
             return numObjects;
         }
@@ -355,7 +357,7 @@ namespace ACE.Server.WorldObjects
                 case GeneratorTimeType.Day:
                     CheckTimeOfDayStatus();
                     break;
-            }            
+            }
         }
 
         /// <summary>
@@ -364,7 +366,7 @@ namespace ACE.Server.WorldObjects
         public void CheckTimeOfDayStatus()
         {
             var prevDisabled = GeneratorDisabled;
-           
+
             var isDay = Timers.CurrentInGameTime.IsDay;
             var isDayGenerator = GeneratorTimeType == GeneratorTimeType.Day;
 

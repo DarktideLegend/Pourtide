@@ -38,9 +38,17 @@ namespace ACE.Server.Managers
         private static readonly Dictionary<ReservedRealm, WorldRealm> ReservedRealms = new Dictionary<ReservedRealm, WorldRealm>();
         private static readonly Dictionary<string, RulesetTemplate> EphemeralRealmCache = new Dictionary<string, RulesetTemplate>(StringComparer.OrdinalIgnoreCase);
 
+        public static WorldRealm CurrentSeason
+        {
+            get
+            {
+                return GetRealm((ushort)PropertyManager.GetLong("current_season").Item, includeRulesets: true);
+            }
+        }
+
         //Todo: refactor
         public static WorldRealm DuelRealm;
-        
+
         private static List<ushort> RealmIDsByTopologicalSort;
 
         private static bool FirstImportCompleted;
@@ -50,10 +58,18 @@ namespace ACE.Server.Managers
 
         public static LocalPosition UltimateDefaultLocation = Player.MarketplaceDrop;
 
+        public static uint CurrentSeasonInstance
+        {
+            get
+            {
+                return CurrentSeason.StandardRules.GetDefaultInstanceID(UltimateDefaultLocation);
+            }
+        }
 
         public static void Initialize(bool liveEnvironment = true)
         {
             RealmConverter.Initialize();
+
 
             SetupReservedRealms();
 
@@ -73,7 +89,59 @@ namespace ACE.Server.Managers
                 RealmDataCommands.HandleImportRealms(null, null);
                 if (!FirstImportCompleted)
                     throw new Exception("Import of realms.jsonc did not complete successfully.");
+
+                log.Info($"The current season is Name = {CurrentSeason.Realm.Name}, Id = {CurrentSeason.Realm.Id}, Instance = {CurrentSeasonInstance}");
             }
+
+        }
+
+        public static string GetRealmList()
+        {
+            var sb = new StringBuilder();
+
+            foreach (var realm in Realms)
+            {
+                sb.AppendLine($"{realm.Realm.Id} : {realm.Realm.Name}");
+            }
+
+            sb.AppendLine("\n");
+
+            return sb.ToString().Replace("\r", "");
+        }
+
+        public static string GetSeasonList()
+        {
+            var sb = new StringBuilder();
+
+            foreach (var realm in Realms)
+            {
+                if (realm.Realm.Id > 0 && realm.Realm.Id < 1000)
+                {
+
+                    if (CurrentSeason.Realm.Id == realm.Realm.Id)
+                        sb.AppendLine($"{realm.Realm.Id} : {realm.Realm.Name} - <Active>");
+                    else 
+                        sb.AppendLine($"{realm.Realm.Id} : {realm.Realm.Name}");
+                }
+            }
+
+            sb.AppendLine("\n");
+
+            return sb.ToString().Replace("\r", "");
+        }
+
+        public static string GetRulesetsList()
+        {
+            var sb = new StringBuilder();
+
+            foreach (var realm in Rulesets)
+            {
+                sb.AppendLine($"{realm.Realm.Id} : {realm.Realm.Name}");
+            }
+
+            sb.AppendLine("\n");
+
+            return sb.ToString().Replace("\r", "");
         }
 
         private static void SetupReservedRealms()
@@ -209,22 +277,21 @@ namespace ACE.Server.Managers
 
             //Otherwise use the current location, or the exit location (or alternatively the home realm) if already in an ephemeral realm
             if (!player.Location.IsEphemeralRealm)
-                return GetRealm(player.RealmRuleset.Template.Realm.Id);
+                return GetRealm(player.Location.RealmID);
 
             return GetRealm(player.EphemeralRealmExitTo?.RealmID ?? player.HomeRealm);*/
         }
 
-        internal static Landblock GetNewEphemeralLandblock(ACE.Entity.LandblockId physicalLandblockId, Player owner, List<ACE.Entity.Models.Realm> realmTemplates)
+        internal static Landblock GetNewEphemeralLandblock(ushort realmId, ACE.Entity.LandblockId physicalLandblockId, List<ACE.Entity.Models.Realm> realmTemplates, bool permaload = false)
         {
+            var baseRealm = RealmManager.GetRealm(realmId, includeRulesets: false);
             EphemeralRealm ephemeralRealm;
+            lock (realmsLock)
+                ephemeralRealm = EphemeralRealm.Initialize(baseRealm, realmTemplates);
+            var iid = LandblockManager.RequestNewEphemeralInstanceIDv1(ephemeralRealm.RulesetTemplate.Realm.Id);
+            var landblock = LandblockManager.GetLandblock(physicalLandblockId, iid, ephemeralRealm, false, permaload);
 
-            // This used to lock on realmsLock but I doubt if it is truly needed.
-            ephemeralRealm = EphemeralRealm.Initialize(owner, realmTemplates);
-
-            var iid = LandblockManager.RequestNewEphemeralInstanceIDv1(owner.HomeRealm);
-            var landblock = LandblockManager.GetLandblock(physicalLandblockId, iid, ephemeralRealm, false, false);
-
-            log.Info($"GetNewEphemeralLandblock created for player {owner.Name}, realm ruleset {ephemeralRealm.RulesetTemplate.Realm.Id}, landcell {landblock.Id.Raw}, instance {iid}.");
+            log.Info($"GetNewEphemeralLandblock created for base realm {baseRealm.Realm.Name}, realm ruleset {ephemeralRealm.RulesetTemplate.Realm.Id}, landcell {landblock.Id.Raw}, instance {iid}.");
             return landblock;
         }
 
@@ -610,7 +677,7 @@ namespace ACE.Server.Managers
         }
 
         // This will be used for auto home realm migration from older servers, but may also be used from an admin command.
-        public static bool SetHomeRealm(OfflinePlayer offlinePlayer, WorldRealm realm)
+        public static void SetHomeRealm(OfflinePlayer offlinePlayer, WorldRealm realm)
         {
             log.Info($"Setting HomeRealm for offline character '{offlinePlayer.Name}' to '{realm.Realm.Name}' (ID {realm.Realm.Id}).");
             int oldHomeRealmInt = offlinePlayer.GetProperty(PropertyInt.HomeRealm) ?? 0;
@@ -645,21 +712,8 @@ namespace ACE.Server.Managers
                 offlinePlayer.SetPositionUnsafe(type, destPosition);
             }
 
+            //TODO: Housing
             offlinePlayer.SetProperty(PropertyInt.HomeRealm, realm.Realm.Id);
-            return TryMoveHousesToNewRealm(offlinePlayer, realm);
-        }
-
-        private static bool TryMoveHousesToNewRealm(IPlayer player, WorldRealm destinationRealm)
-        {
-            var houses = HouseManager.GetCharacterHouses(player.Guid.Full);
-            bool failed = false;
-
-            foreach (var house in houses)
-            {
-                var actualHouse = HouseManager.GetHouseSynchronously(house.Guid, true);
-                failed |= !actualHouse.TryMoveHouseToNewRealmInstance(destinationRealm.StandardRules.GetDefaultInstanceID(player, house.Location.AsLocalPosition()));
-            }
-            return !failed;
         }
 
         public static void SetHomeRealm(Player player, ushort realmId, bool settingFromRealmSelector, bool saveImmediately = true)
@@ -687,9 +741,7 @@ namespace ACE.Server.Managers
                 player.ValidateCurrentRealm();
             if (saveImmediately)
                 player.SavePlayerToDatabase();
-
-            if (!TryMoveHousesToNewRealm(player, realm))
-                player.Session.Network.EnqueueSend(new Network.GameMessages.Messages.GameMessageSystemChat("Your house was unable to be transferred to the new realm.", ChatMessageType.Broadcast));
+            
         }
     }
 }

@@ -29,6 +29,8 @@ using ACE.Server.WorldObjects.Managers;
 using Character = ACE.Database.Models.Shard.Character;
 using MotionTable = ACE.DatLoader.FileTypes.MotionTable;
 using ACE.Server.Realms;
+using System.Linq;
+using ACE.Server.Command.Handlers;
 
 namespace ACE.Server.WorldObjects
 {
@@ -60,6 +62,12 @@ namespace ACE.Server.WorldObjects
                 }
             }
         }
+
+        public DateTime PrevWho;
+        public DateTime PrevLeaderboardXPCommandRequestTimestamp;
+        public DateTime PrevLeaderboardPvPKillsCommandRequestTimestamp;
+        public DateTime PrevPersonalPvPKillsCommandRequestTimestamp;
+        public DateTime PrevLeaderboardPvPDeathsCommandRequestTimestamp;
 
         public DateTime LastJumpTime;
 
@@ -119,6 +127,18 @@ namespace ACE.Server.WorldObjects
             Account = DatabaseManager.Authentication.GetAccountById(Character.AccountId);
 
             SetEphemeralValues();
+
+            if (!string.IsNullOrEmpty(CurrentRareEnchantmentIds))
+            {
+                var list = CurrentRareEnchantmentIds.Split('|');
+                foreach (var spellIdStr in list)
+                {
+                    if (uint.TryParse(spellIdStr, out uint spellId))
+                    {
+                        RareSpellEnchantments.Add(spellId);
+                    }
+                }
+            }
 
             SortBiotasIntoInventory(inventory);
             AddBiotasToEquippedObjects(wieldedItems);
@@ -246,6 +266,15 @@ namespace ACE.Server.WorldObjects
 
         public MotionStance stance = MotionStance.NonCombat;
 
+        public void FixInvis()
+        {
+            var knownObjects = GetKnownObjects();
+            foreach (var entry in knownObjects)
+            {
+                TrackObject(entry, true);
+            }
+        }
+
         /// <summary>
         /// Called when player presses the 'e' key to appraise an object
         /// </summary>
@@ -325,6 +354,9 @@ namespace ACE.Server.WorldObjects
                     chance = 1.0f;
 
                 if ((this is Admin || this is Sentinel) && CloakStatus == CloakStatus.On)
+                    chance = 1.0f;
+
+                if (PropertyManager.GetBool("assess_creature_pve_always_succeed").Item && player == null && creature != null)
                     chance = 1.0f;
 
                 success = chance > ThreadSafeRandom.Next(0.0f, 1.0f);
@@ -497,12 +529,33 @@ namespace ACE.Server.WorldObjects
 
         public bool IsLoggingOut;
 
+        public bool VerifyPkEnemyInVicinity()
+        {
+            if (!PropertyManager.GetBool("pk_vicinity_detection").Item)
+                return false;
+
+            var knownPlayers = PhysicsObj.ObjMaint.GetKnownPlayersValuesAsPlayer();
+
+            foreach(var player in knownPlayers)
+            {
+                if (IsPK && player.IsPK && (PropertyManager.GetBool("test_server").Item || !player.IsAdmin) && player.Location.SquaredDistanceTo(Location) <= 80000 && !player.IsAlly(HomeRealm, this))
+                {
+                    UpdatePKTimer();
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         /// <summary>
         /// Do the player log out work.<para />
         /// If you want to force a player to logout, use Session.LogOffPlayer().
         /// </summary>
         public bool LogOut(bool clientSessionTerminatedAbruptly = false, bool forceImmediate = false)
         {
+            VerifyPkEnemyInVicinity();
+
             if (PKLogoutActive && !forceImmediate)
             {
                 //Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
@@ -520,6 +573,13 @@ namespace ACE.Server.WorldObjects
                 }
                 return false;
             }
+
+            Trace(new PlayerLogoutEntry()
+            {
+                PlayerName = Name,
+                Instance = Location.Instance,
+                LandblockFrom = Location.LandblockId.Landblock.ToString("X2"),
+            });
 
             LogOut_Inner(clientSessionTerminatedAbruptly);
 
@@ -580,6 +640,7 @@ namespace ACE.Server.WorldObjects
 
         private void LogOut_Final(bool skipAnimations = false)
         {
+
             if (CurrentLandblock != null)
             {
                 if (skipAnimations)

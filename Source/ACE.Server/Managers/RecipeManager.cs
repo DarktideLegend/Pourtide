@@ -23,6 +23,9 @@ using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.WorldObjects;
 using ACE.Server.Realms;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using System.Text;
+using Discord;
+using Mono.Cecil;
 
 namespace ACE.Server.Managers
 {
@@ -66,11 +69,23 @@ namespace ACE.Server.Managers
             }
 
             var recipe = GetRecipe(player, source, target);
+            var isLeather = source.ItemType == ItemType.TinkeringMaterial && source.Structure == 100 && source.MaterialType == MaterialType.Leather;
+            var isSteel = source.ItemType == ItemType.TinkeringMaterial && source.Structure == 100 && source.MaterialType == MaterialType.Steel;
+            var isArmorOrShield = target.ValidLocations != null && (target.ValidLocations & (EquipMask.Extremity | EquipMask.Armor | EquipMask.Shield)) != 0 && target.ArmorLevel < target.OriginalArmorLevel;
 
-            if (recipe == null)
+            if (isSteel && target.ArmorLevel != null && target.OriginalArmorLevel != null && target.ArmorLevel < target.OriginalArmorLevel)
+            {
+                player.SendUseDoneEvent();
+                return;
+            }
+
+            if (recipe == null || (isLeather && isArmorOrShield))
             {
                 if (TryHandleHardcodedRecipe(player, source, target))
+                {
+                    player.SendUseDoneEvent();
                     return;
+                }
                 player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {source.NameWithMaterial} cannot be used on the {target.NameWithMaterial}.", ChatMessageType.Craft));
                 player.SendUseDoneEvent();
                 return;
@@ -151,11 +166,63 @@ namespace ACE.Server.Managers
             player.NextUseTime = DateTime.UtcNow.AddSeconds(nextUseTime);
         }
 
+        private static bool ApplySlayerSkull(Player player, WorldObject source, WorldObject target)
+        {
+            if (target.ItemWorkmanship == null)
+                return false;
+
+            var isWeaponOrCaster = (target.ItemType & ItemType.WeaponOrCaster) != 0;
+            if (isWeaponOrCaster && target.SlayerCreatureType == null && source.SlayerCreatureType != null)
+            {
+                target.SlayerCreatureType = source.SlayerCreatureType;
+
+                target.SlayerDamageBonus = source.SlayerDamageBonus;
+                target.LongDesc = $"Slayer Damage Bonux: {target.SlayerDamageBonus?.ToString("0.00")}";
+                player.TryConsumeFromInventoryWithNetworking(source);
+                return true;
+            }
+
+            return false;
+
+        }
+
         private static bool TryHandleHardcodedRecipe(Player player, WorldObject source, WorldObject target)
         {
+            var isLeather = source.ItemType == ItemType.TinkeringMaterial && source.Structure == 100 && source.MaterialType == MaterialType.Leather;
+            var isArmorOrShield = target.ValidLocations != null && (target.ValidLocations & (EquipMask.Extremity | EquipMask.Armor | EquipMask.Shield)) != 0 && target.ArmorLevel < target.OriginalArmorLevel;
+
+            if (isLeather && isArmorOrShield && target.ItemWorkmanship.HasValue && target.ItemWorkmanship.Value > 0)
+                return ApplyDurability(player, source, target);
+            if (source.WeenieClassId == 604001)
+                return ApplySlayerSkull(player, source, target);
             if (target.GetProperty(PropertyBool.AllowRulesetStamp) == true && source.WeenieClassName == "realm-ruleset-stamp")
                 return ApplyRulesetStamp(player, source, target);
             return false;
+        }
+
+        public static void ApplyDurability(WorldObject target)
+        {
+            target.ArmorLevel = target.OriginalArmorLevel;
+            WorldObject.UpdateDurability(target);
+        }
+
+        private static bool ApplyDurability(Player player, WorldObject source, WorldObject target)
+        {
+            ApplyDurability(target);
+
+            var equippedItems = player.EquippedObjects.Values.ToList();
+
+            foreach (var item in equippedItems)
+            {
+                if (item.Bonded != null || item.Attuned != null || item.ItemWorkmanship == null)
+                    continue;
+
+                if (item.ArmorLevel != null)
+                    ApplyDurability(item);
+            }
+
+            player.TryConsumeFromInventoryWithNetworking(source);
+            return true;
         }
 
         private static bool ApplyRulesetStamp(Player player, WorldObject source, WorldObject target)
@@ -1568,6 +1635,8 @@ namespace ACE.Server.Managers
 
             var result = mutationScript.TryMutate(target);
 
+            if (result)
+
             if (numTimesTinkered != target.NumTimesTinkered)
                 HandleTinkerLog(source, target);
 
@@ -1580,6 +1649,11 @@ namespace ACE.Server.Managers
         {
             if (target.TinkerLog != null)
                 target.TinkerLog += ",";
+
+            if (source.MaterialType == MaterialType.Steel)
+                target.OriginalArmorLevel = target.ArmorLevel;
+
+            WorldObject.UpdateDurability(target);
 
             target.TinkerLog += (uint?)source.MaterialType ?? source.WeenieClassId;
         }

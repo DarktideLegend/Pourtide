@@ -505,7 +505,7 @@ namespace ACE.Server.Managers
                 ("acr_validate_realm_position_for_admins", new Property<bool>(false, "If enabled, admins will be booted out of realms where they are not permitted to travel to.")),
 
                 ("account_login_boots_in_use", new Property<bool>(true, "if FALSE, oldest connection to account is not booted when new connection occurs")),
-                ("advanced_combat_pets", new Property<bool>(false, "(non-retail function) If enabled, Combat Pets can cast spells")),
+                ("advanced_combat_pets", new Property<bool>(true, "(non-retail function) If enabled, Combat Pets can cast spells")),
                 ("advocate_fane_auto_bestow", new Property<bool>(false, "If enabled, Advocate Fane will automatically bestow new advocates to advocate_fane_auto_bestow_level")),
                 ("aetheria_heal_color", new Property<bool>(false, "If enabled, changes the aetheria healing over time messages from the default retail red color to green")),
                 ("allow_combat_mode_crafting", new Property<bool>(false, "If enabled, allows players to do crafting (recipes) from all stances. Forces players to NonCombat first, then continues to recipe action.")),
@@ -517,10 +517,12 @@ namespace ACE.Server.Managers
                 ("allow_pkl_bump", new Property<bool>(true, "enables retail behavior where /pkl checks for entry collisions, bumping the player position over if standing on another PKLite. This effectively enables /pkl door skipping from retail")),
                 ("allow_summoning_killtask_multicredit", new Property<bool>(true, "enables retail behavior where a summoner can get multiple killtask credits from a monster")),
                 ("assess_creature_mod", new Property<bool>(false, "(non-retail function) If enabled, re-enables former skill formula, when assess creature skill is not trained or spec'ed")),
+                ("assess_creature_pve_always_succeed", new Property<bool>(false, "enable this to bypass assess creature PvE skill checks (workaround to fix 5 second delay on vtank looting which occurs due to failed assess)")),
                 ("attribute_augmentation_safety_cap", new Property<bool>(true, "if TRUE players are not able to use attribute augmentations if the innate value of the target attribute is >= 96. All normal restrictions to these augmentations still apply.")),
+                ("block_vpn_connections", new Property<bool>(false, "enable this to block user sessions from IPs identified as VPN proxies")),
                 ("chat_disable_general", new Property<bool>(false, "disable general global chat channel")),
                 ("chat_disable_lfg", new Property<bool>(false, "disable lfg global chat channel")),
-                ("chat_disable_olthoi", new Property<bool>(false, "disable olthoi global chat channel")),
+                ("chat_disable_olthoi", new Property<bool>(true, "disable olthoi global chat channel")),
                 ("chat_disable_roleplay", new Property<bool>(false, "disable roleplay global chat channel")),
                 ("chat_disable_trade", new Property<bool>(false, "disable trade global chat channel")),
                 ("chat_echo_only", new Property<bool>(false, "global chat returns to sender only")),
@@ -545,7 +547,8 @@ namespace ACE.Server.Managers
                 ("chat_log_trade", new Property<bool>(false, "log trade chat")),
                 ("chat_log_townchans", new Property<bool>(false, "log advocate town chat")),
                 ("chat_requires_account_15days", new Property<bool>(false, "global chat privileges requires accounts to be 15 days or older")),
-                ("chess_enabled", new Property<bool>(true, "if FALSE then chess will be disabled")),
+                ("chess_enabled", new Property<bool>(false, "if FALSE then chess will be disabled")),
+                ("command_who_enabled", new Property<bool>(true, "disable this to prevent players from listing online players in their allegiance")),
                 ("use_cloak_proc_custom_scale", new Property<bool>(false, "If TRUE, the calculation for cloak procs will be based upon the values set by the server oeprator.")),
                 ("client_movement_formula", new Property<bool>(false, "If enabled, server uses DoMotion/StopMotion self-client movement methods instead of apply_raw_movement")),
                 ("container_opener_name", new Property<bool>(false, "If enabled, when a player tries to open a container that is already in use by someone else, replaces 'someone else' in the message with the actual name of the player")),
@@ -554,6 +557,8 @@ namespace ACE.Server.Managers
                 ("craft_exact_msg", new Property<bool>(false, "If TRUE, and player has crafting chance of success dialog enabled, shows them an additional message in their chat window with exact %")),
                 ("creature_name_check", new Property<bool>(true, "if enabled, creature names in world database restricts player names during character creation")),
                 ("creatures_drop_createlist_wield", new Property<bool>(false, "If FALSE then Wielded items in CreateList will not drop. Retail defaulted to TRUE but there are currently data errors")),
+                ("dispel_rares_pvp", new Property<bool>(false, "If true, disables rare gem buffs from being usable in PvP.")),
+                ("durability", new Property<bool>(false, "If true, enables durability penalties.")),
                 ("equipmentsetid_enabled", new Property<bool>(true, "enable this to allow adding EquipmentSetIDs to loot armor")),
                 ("equipmentsetid_name_decoration", new Property<bool>(false, "enable this to add the EquipmentSet name to loot armor name")),
                 ("fastbuff", new Property<bool>(true, "If TRUE, enables the fast buffing trick from retail.")),
@@ -564,8 +569,8 @@ namespace ACE.Server.Managers
                 ("fix_chest_missing_inventory_window", new Property<bool>(false, "Very non-standard fix. This fixes an acclient bug where unlocking a chest, and then quickly opening it before the client has received the Locked=false update from server can result in the chest opening, but with the chest inventory window not displaying. Bug has a higher chance of appearing with more network latency.")),
                 ("gateway_ties_summonable", new Property<bool>(true, "if disabled, players cannot summon ties from gateways. defaults to enabled, as in retail")),
                 ("gearknight_core_plating", new Property<bool>(true, "if disabled, Gear Knight players are not required to use core plating devices for armor and clothing. defaults to enabled, as in retail")),
-                ("house_15day_account", new Property<bool>(true, "if disabled, houses can be purchased with accounts created less than 15 days old")),
-                ("house_30day_cooldown", new Property<bool>(true, "if disabled, houses can be purchased without waiting 30 days between each purchase")),
+                ("house_15day_account", new Property<bool>(false, "if disabled, houses can be purchased with accounts created less than 15 days old")),
+                ("house_30day_cooldown", new Property<bool>(false, "if disabled, houses can be purchased without waiting 30 days between each purchase")),
                 ("house_hook_limit", new Property<bool>(true, "if disabled, house hook limits are ignored")),
                 ("house_hookgroup_limit", new Property<bool>(true, "if disabled, house hook group limits are ignored")),
                 ("house_per_char", new Property<bool>(false, "if TRUE, allows 1 house per char instead of 1 house per account")),
@@ -578,17 +583,30 @@ namespace ACE.Server.Managers
                 ("loot_quality_mod", new Property<bool>(true, "if FALSE then the loot quality modifier of a Death Treasure profile does not affect loot generation")),
                 ("npc_hairstyle_fullrange", new Property<bool>(false, "if TRUE, allows generated creatures to use full range of hairstyles. Retail only allowed first nine (0-8) out of 51")),
                 ("offline_xp_passup_limit", new Property<bool>(true, "if FALSE, allows unlimited xp to passup to offline characters in allegiances")),
-                ("olthoi_play_disabled", new Property<bool>(false, "if false, allows players to create and play as olthoi characters")),
+                ("olthoi_play_disabled", new Property<bool>(true, "if false, allows players to create and play as olthoi characters")),
                 ("override_encounter_spawn_rates", new Property<bool>(false, "if enabled, landblock encounter spawns are overidden by double properties below.")),
+                ("pk_vicinity_detection", new Property<bool>(false, "if enabled, pk enemies within vicinity will cause a player to be pk tagged when logging out or recalling.")),
                 ("permit_corpse_all", new Property<bool>(false, "If TRUE, /permit grants permittees access to all corpses of the permitter. Defaults to FALSE as per retail, where /permit only grants access to 1 locked corpse")),
                 ("persist_movement", new Property<bool>(false, "If TRUE, persists autonomous movements such as turns and sidesteps through non-autonomous server actions. Retail didn't appear to do this, but some players may prefer this.")),
                 ("pet_stow_replace", new Property<bool>(false, "pet stowing for different pet devices becomes a stow and replace. defaults to retail value of false")),
+
+                // tracing
+                ("player_trace", new Property<bool>(false, "Enable this for enhanced tracing of player activity.")),
+                ("player_trace_death", new Property<bool>(true, "If player_trace is enabled, toggles logging of deaths.")),
+                ("player_trace_teleport", new Property<bool>(true, "If player_trace is enabled, toggles logging of teleportation (travel) of any kind.")),
+                ("player_trace_quest", new Property<bool>(true, "If player_trace is enabled, toggles logging of quest completions.")),
+                ("player_trace_xp", new Property<bool>(true, "If player_trace is enabled, toggles logging of xp rewards.")),
+                ("player_trace_lum", new Property<bool>(true, "If player_trace is enabled, toggles logging of luminance rewards.")),
+                ("player_trace_item_reward", new Property<bool>(true, "If player_trace is enabled, toggles logging of item rewards.")),
+                ("player_trace_item_give", new Property<bool>(true, "If player_trace is enabled, toggles logging of giving of items.")),
+
+
                 ("player_config_command", new Property<bool>(false, "If enabled, players can use /config to change their settings via text commands")),
                 ("player_receive_immediate_save", new Property<bool>(false, "if enabled, when the player receives items from an NPC, they will be saved immediately")),
                 ("pk_server", new Property<bool>(false, "set this to TRUE for darktide servers")),
                 ("pk_server_safe_training_academy", new Property<bool>(false, "set this to TRUE to disable pk fighting in training academy and time to exit starter town safely")),
                 ("pkl_server", new Property<bool>(false, "set this to TRUE for pink servers")),
-                ("quest_info_enabled", new Property<bool>(false, "toggles the /myquests player command")),
+                ("quest_info_enabled", new Property<bool>(true, "toggles the /myquests player command")),
                 ("rares_real_time", new Property<bool>(true, "allow for second chance roll based on an rng seeded timestamp for a rare on rare eligible kills that do not generate a rare, rares_max_seconds_between defines maximum seconds before second chance kicks in")),
                 ("rares_real_time_v2", new Property<bool>(false, "chances for a rare to be generated on rare eligible kills are modified by the last time one was found per each player, rares_max_days_between defines maximum days before guaranteed rare generation")),
                 ("runrate_add_hooks", new Property<bool>(false, "if TRUE, adds some runrate hooks that were missing from retail (exhaustion done, raise skill/attribute")),
@@ -602,6 +620,7 @@ namespace ACE.Server.Managers
                 ("show_dot_messages", new Property<bool>(false, "enabled, shows combat messages for DoT damage ticks. defaults to disabled, as in retail")),
                 ("show_first_login_gift", new Property<bool>(false, "if TRUE, will show on first login that the player earned bonus item (Blackmoor's Favor and/or Asheron's Benediction), disabled by default because msg is kind of odd on an emulator")),
                 ("show_mana_conv_bonus_0", new Property<bool>(true, "if disabled, only shows mana conversion bonus if not zero, during appraisal of casting items")),
+                ("show_discord_chat_ingame", new Property<bool>(false, "Display messages posted to Discord in general chat")),
                 ("smite_uses_takedamage", new Property<bool>(false, "if enabled, smite applies damage via TakeDamage")),
                 ("spellcast_recoil_queue", new Property<bool>(false, "if true, players can queue the next spell to cast during recoil animation")),
                 ("spell_projectile_ethereal", new Property<bool>(false, "broadcasts all spell projectiles as ethereal to clients only, and manually send stop velocity on collision. can fix various issues with client missing target id.")),
@@ -617,17 +636,21 @@ namespace ACE.Server.Managers
                 ("use_wield_requirements", new Property<bool>(true, "disable this to bypass wield requirements. mostly for dev debugging")),
                 ("version_info_enabled", new Property<bool>(false, "toggles the /aceversion player command")),
                 ("vendor_shop_uses_generator", new Property<bool>(false, "enables or disables vendors using generator system in addition to createlist to create artificial scarcity")),
-                ("world_closed", new Property<bool>(false, "enable this to startup world as a closed to players world"))
+                ("world_closed", new Property<bool>(false, "enable this to startup world as a closed to players world")),
+                ("test_server", new Property<bool>(false, " Do not enable on live servers! Enable this to allow for server behavior to change as necessary for testing envrionments."))
                 );
 
         public static readonly ReadOnlyDictionary<string, Property<long>> DefaultLongProperties =
             DictOf(
+                ("current_season", new Property<long>(6, "Sets the current season realm id for the server. Defaults to id 6 <Season One>")),
                 ("char_delete_time", new Property<long>(3600, "the amount of time in seconds a deleted character can be restored")),
                 ("chat_requires_account_time_seconds", new Property<long>(0, "the amount of time in seconds an account is required to have existed for for global chat privileges")),
                 ("chat_requires_player_age", new Property<long>(0, "the amount of time in seconds a player is required to have played for global chat privileges")),
                 ("chat_requires_player_level", new Property<long>(0, "the level a player is required to have for global chat privileges")),
                 ("corpse_spam_limit", new Property<long>(15, "the number of corpses a player is allowed to leave on a landblock at one time")),
+                ("corpse_closed_duration", new Property<long>(10, "the number of minutes before a corpse is open to the public")),
                 ("default_subscription_level", new Property<long>(1, "retail defaults to 1, 1 = standard subscription (same as 2 and 3), 4 grants ToD pre-order bonus item Asheron's Benediction")),
+                ("discord_channel_id", new Property<long>(0, "Messages posted to this Discord channel will be shown in General Chat")),
                 ("fellowship_even_share_level", new Property<long>(50, "level when fellowship XP sharing is no longer restricted")),
                 ("mansion_min_rank", new Property<long>(6, "overrides the default allegiance rank required to own a mansion")),
                 ("max_chars_per_account", new Property<long>(11, "retail defaults to 11, client supports up to 20")),
@@ -635,8 +658,14 @@ namespace ACE.Server.Managers
                 ("player_save_interval", new Property<long>(300, "the number of seconds between automatic player saves")),
                 ("rares_max_days_between", new Property<long>(45, "for rares_real_time_v2: the maximum number of days a player can go before a rare is generated on rare eligible creature kills")),
                 ("rares_max_seconds_between", new Property<long>(5256000, "for rares_real_time: the maximum number of seconds a player can go before a second chance at a rare is allowed on rare eligible creature kills that did not generate a rare")),
+                ("rift_duration", new Property<long>(120, "the number of minutes a rift should exist for")),
+                ("rift_death_duration", new Property<long>(30, "the number of minutes a player must wait in timeout after pk death in rift")),
                 ("summoning_killtask_multicredit_cap", new Property<long>(2, "if allow_summoning_killtask_multicredit is enabled, the maximum # of killtask credits a player can receive from 1 kill")),
-                ("teleport_visibility_fix", new Property<long>(0, "Fixes some possible issues with invisible players and mobs. 0 = default / disabled, 1 = players only, 2 = creatures, 3 = all world objects"))
+                ("rift_creature_chance", new Property<long>(3, "the chance a rift creature spawns instead of a normal mob. Default is 3 or 1/3 chance")),
+                ("rift_ore_chance", new Property<long>(100, "the chance an ore node spawns instead of a normal mob. Default is 100 or 1/100 chance")),
+                ("teleport_visibility_fix", new Property<long>(0, "Fixes some possible issues with invisible players and mobs. 0 = default / disabled, 1 = players only, 2 = creatures, 3 = all world objects")),
+                ("minimum_portalspace_seconds", new Property<long>(3, "the minimum number of seconds a player must be in portal space before exiting")),
+                ("xp_average_check_duration", new Property<long>(30, "The duration in minutes the GetPlayerLevelXpModifier should be cached for"))
                 );
 
         public static readonly ReadOnlyDictionary<string, Property<double>> DefaultDoubleProperties =
@@ -653,7 +682,7 @@ namespace ACE.Server.Managers
                 ("legendary_cantrip_drop_rate", new Property<double>(1.0, "Scales the chance for legendary cantrips to drop, relative to other cantrip levels in the tier. Defaults to 1.0, as per end of retail")),
 
                 ("advocate_fane_auto_bestow_level", new Property<double>(1, "the level that advocates are automatically bestowed by Advocate Fane if advocate_fane_auto_bestow is true")),
-                ("aetheria_drop_rate", new Property<double>(1.0, "Modifier for Aetheria drop rate, 1 being normal")),
+                ("aetheria_drop_rate", new Property<double>(0.0, "Modifier for Aetheria drop rate, 1 being normal")),
                 ("chess_ai_start_time", new Property<double>(-1.0, "the number of seconds for the chess ai to start. defaults to -1 (disabled)")),
                 ("encounter_delay", new Property<double>(1800, "the number of seconds a generator profile for regions is delayed from returning to free slots")),
                 ("encounter_regen_interval", new Property<double>(600, "the number of seconds a generator for regions at which spawns its next set of objects")),
@@ -666,18 +695,18 @@ namespace ACE.Server.Managers
                 ("mob_awareness_range", new Property<double>(1.0, "Scales the distance the monsters become alerted and aggro the players")),
                 ("pk_new_character_grace_period", new Property<double>(300, "the number of seconds, in addition to pk_respite_timer, that a player killer is set to non-player killer status after first exiting training academy")),
                 ("pk_respite_timer", new Property<double>(300, "the number of seconds that a player killer is set to non-player killer status after dying to another player killer")),
-                ("quest_lum_modifier", new Property<double>(1.0, "Scale multiplier for amount of quest luminance received by players.  Quest lum is also modified by 'luminance_modifier'.")),
+                ("quest_lum_modifier", new Property<double>(0.0, "Scale multiplier for amount of quest luminance received by players.  Quest lum is also modified by 'luminance_modifier'.")),
                 ("quest_mindelta_rate", new Property<double>(1.0, "scales all quest min delta time between solves, 1 being normal")),
                 ("quest_xp_modifier", new Property<double>(1.0, "Scale multiplier for amount of quest XP received by players.  Quest XP is also modified by 'xp_modifier'.")),
-                ("rare_drop_rate_percent", new Property<double>(0.04, "Adjust the chance of a rare to spawn as a percentage. Default is 0.04, or 1 in 2,500. Max is 100, or every eligible drop.")),
-                ("spellcast_max_angle", new Property<double>(20.0, "for advanced player spell casting, the maximum angle to target release a spell projectile. retail seemed to default to value of around 20, although some players seem to prefer a higher 45 degree angle")),
+                ("rare_drop_rate_percent", new Property<double>(0.0, "Adjust the chance of a rare to spawn as a percentage. Default is 0.04, or 1 in 2,500. Max is 100, or every eligible drop.")),
+                ("spellcast_max_angle", new Property<double>(30.0, "for advanced player spell casting, the maximum angle to target release a spell projectile. retail seemed to default to value of around 20, although some players seem to prefer a higher 45 degree angle")),
                 ("trophy_drop_rate", new Property<double>(1.0, "Modifier for trophies dropped on creature death")),
                 ("unlocker_window", new Property<double>(10.0, "The number of seconds a player unlocking a chest has exclusive access to first opening the chest.")),
                 ("vendor_unique_rot_time", new Property<double>(300, "the number of seconds before unique items sold to vendors disappear")),
                 ("vitae_penalty", new Property<double>(0.05, "the amount of vitae penalty a player gets per death")),
                 ("vitae_penalty_max", new Property<double>(0.40, "the maximum vitae penalty a player can have")),
-                ("void_pvp_modifier", new Property<double>(0.5, "Scales the amount of damage players take from Void Magic. Defaults to 0.5, as per retail. For earlier content where DRR isn't as readily available, this can be adjusted for balance.")),
-                ("xp_modifier", new Property<double>(1.0, "scales the amount of xp received by players"))
+                ("void_pvp_modifier", new Property<double>(0.0, "Scales the amount of damage players take from Void Magic. Defaults to 0.5, as per retail. For earlier content where DRR isn't as readily available, this can be adjusted for balance.")),
+                ("xp_modifier", new Property<double>(0.50, "scales the amount of xp received by players"))
                 );
 
         public static readonly ReadOnlyDictionary<string, Property<string>> DefaultStringProperties =
@@ -685,11 +714,15 @@ namespace ACE.Server.Managers
                 ("content_folder", new Property<string>("Content", "for content creators to live edit weenies. defaults to Content folder found in same directory as ACE.Server.dll")),
                 ("dat_older_warning_msg", new Property<string>("Your DAT files are incomplete.\nThis server does not support dynamic DAT updating at this time.\nPlease visit https://emulator.ac/how-to-play to download the complete DAT files.", "Warning message displayed (if show_dat_warning is true) to player if client attempts DAT download from server")),
                 ("dat_newer_warning_msg", new Property<string>("Your DAT files are newer than expected.\nPlease visit https://emulator.ac/how-to-play to download the correct DAT files.", "Warning message displayed (if show_dat_warning is true) to player if client connects to this server")),
+                ("discord_login_token", new Property<string>("", "Login Token used for Discord chat integration")),
                 ("popup_header", new Property<string>("Welcome to Asheron's Call!", "Welcome message displayed when you log in")),
                 ("popup_welcome", new Property<string>("To begin your training, speak to the Society Greeter. Walk up to the Society Greeter using the 'W' key, then double-click on her to initiate a conversation.", "Welcome message popup in training halls")),
                 ("popup_welcome_olthoi", new Property<string>("Welcome to the Olthoi hive! Be sure to talk to the Olthoi Queen to receive the Olthoi protections granted by the energies of the hive.", "Welcome message displayed on the first login for an Olthoi Player")),
                 ("popup_motd", new Property<string>("", "Popup message of the day")),
-                ("server_motd", new Property<string>("", "Server message of the day"))
+                ("proxycheck_api_key", new Property<string>("", "API key for proxycheck.io service for VPN detection")),
+                ("server_motd", new Property<string>("", "Server message of the day")),
+                ("turbine_chat_webhook", new Property<string>("", "Webhook to be used for turbine chat. This is for copying ingame general chat channels to a Discord channel.")),
+                ("turbine_chat_webhook_audit", new Property<string>("", "Webhook to be used for ingame audit log."))
                 );
     }
 }

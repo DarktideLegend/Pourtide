@@ -16,6 +16,12 @@ using ACE.Server.Network.Structure;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Entity.Enum.RealmProperties;
+using ACE.Database;
+using ACE.Server.Features.Discord;
+using System.Text;
+using log4net;
+using ACE.Server.Features.HotDungeons.Managers;
+using ACE.Server.Features.Rifts;
 
 namespace ACE.Server.WorldObjects
 {
@@ -74,20 +80,28 @@ namespace ACE.Server.WorldObjects
             if (Fellowship != null)
                 Fellowship.OnDeath(this);
 
-            // if the player's lifestone is in a different landblock, also broadcast their demise to that landblock
-            if (PropertyManager.GetBool("lifestone_broadcast_death").Item && Sanctuary != null && Location.InstancedLandblock != SanctuaryEffective.InstancedLandblock)
+            try
             {
-                // ActionBroadcastKill might not work if other players around lifestone aren't aware of this player yet...
-                // this existing broadcast method is also based on the current visible objects to the player,
-                // and the player hasn't entered portal space or teleported back to the lifestone yet, so this doesn't work
-                //ActionBroadcastKill(nearbyMsg, Guid, lastDamager.Guid);
+                // if the player's lifestone is in a different landblock, also broadcast their demise to that landblock
+                if (PropertyManager.GetBool("lifestone_broadcast_death").Item && Sanctuary != null && Location.InstancedLandblock != SanctuaryEffective.InstancedLandblock)
+                {
+                    // ActionBroadcastKill might not work if other players around lifestone aren't aware of this player yet...
+                    // this existing broadcast method is also based on the current visible objects to the player,
+                    // and the player hasn't entered portal space or teleported back to the lifestone yet, so this doesn't work
+                    //ActionBroadcastKill(nearbyMsg, Guid, lastDamager.Guid);
 
-                // instead, we get all of the players in the lifestone landblock + adjacent landblocks,
-                // and possibly limit that to some radius around the landblock?
-                var lifestoneBlock = LandblockManager.GetLandblock(new LandblockId(Sanctuary.LandblockShort << 16 | 0xFFFF), SanctuaryEffective.Instance, null, true);
+                    // instead, we get all of the players in the lifestone landblock + adjacent landblocks,
+                    // and possibly limit that to some radius around the landblock?
+                    var lifestoneBlock = LandblockManager.GetLandblock(new LandblockId(Sanctuary.LandblockShort << 16 | 0xFFFF), SanctuaryEffective.Instance, null, true);
 
-                // We enqueue the work onto the target landblock to ensure thread-safety. It's highly likely the lifestoneBlock is far away, and part of a different landblock group (and thus different thread).
-                lifestoneBlock.EnqueueAction(new ActionEventDelegate(() => lifestoneBlock.EnqueueBroadcast(excludePlayers, true, SanctuaryEffective, LocalBroadcastRangeSq, broadcastMsg)));
+                    // We enqueue the work onto the target landblock to ensure thread-safety. It's highly likely the lifestoneBlock is far away, and part of a different landblock group (and thus different thread).
+                    lifestoneBlock.EnqueueAction(new ActionEventDelegate(() => lifestoneBlock.EnqueueBroadcast(excludePlayers, true, SanctuaryEffective, LocalBroadcastRangeSq, broadcastMsg)));
+                }
+            } catch (Exception ex)
+            {
+                log.Error($"Error: error OnPlayerDeath");
+                log.Error(ex.Message);
+                log.Error(ex.StackTrace);
             }
 
             return deathMessage;
@@ -95,34 +109,49 @@ namespace ACE.Server.WorldObjects
 
         public void HandlePKDeathBroadcast(DamageHistoryInfo lastDamager, DamageHistoryInfo topDamager)
         {
-            if (topDamager == null || !topDamager.IsPlayer)
-                return;
-
-            var pkPlayer = topDamager.TryGetAttacker() as Player;
-            if (pkPlayer == null)
-                return;
-
-            if (IsPKDeath(topDamager))
+            try
             {
-                pkPlayer.PkTimestamp = Time.GetUnixTime();
-                pkPlayer.PlayerKillsPk++;
+                if (topDamager == null || !topDamager.IsPlayer)
+                    return;
 
-                string globalPKDe;
-                if (pkPlayer.CurrentLandblock.RealmHelpers.IsDuel)
-                    globalPKDe = $"{lastDamager.Name} has defeated {Name} in a duel!";
-                else
+                var pkPlayer = topDamager.TryGetAttacker() as Player;
+                if (pkPlayer == null)
+                    return;
+
+                if (IsPKDeath(topDamager))
                 {
-                    globalPKDe = $"{lastDamager.Name} has defeated {Name}!";
-                    if (!Location.Indoors)
-                        globalPKDe += $" The kill occured at {Location.GetMapCoordStr()}";
+                    pkPlayer.PkTimestamp = Time.GetUnixTime();
+                    pkPlayer.PlayerKillsPk++;
+
+                    string globalPKDe;
+                    if (pkPlayer.CurrentLandblock.RealmHelpers.IsDuel)
+                        globalPKDe = $"{lastDamager.Name} has defeated {Name} in a duel!";
+                    else
+                    {
+                        globalPKDe = $"{lastDamager.Name} has defeated {Name}!";
+                        if (RiftManager.TryGetActiveRift(HomeRealm, Location.LandblockHex, out Rift ActiveRift) && Location.Instance == ActiveRift.Instance)
+                            globalPKDe += $" The kill occured at Rift {ActiveRift.Name} in realm {RealmManager.GetRealm((ushort)HomeRealm, includeRulesets: true).Realm.Name}";
+                        else if (DungeonManager.TryGetDungeonLandblock(Location.LandblockHex, out DungeonLandblock landblock))
+                            globalPKDe += $" The kill occured at Dungeon {landblock.Name} in realm {RealmManager.GetRealm((ushort)HomeRealm, includeRulesets: true).Realm.Name}";
+                        else if (!Location.Indoors)
+                            globalPKDe += $" The kill occured at {Location.GetMapCoordStr()} in realm {RealmManager.GetRealm((ushort)HomeRealm, includeRulesets: true).Realm.Name}";
+                    }
+
+                    globalPKDe += "\n[PKDe]";
+
+                    var channel = ChatType.General;
+                    Player? sender = null;
+                    var formattedMessage = $"[CHAT][{channel.ToString().ToUpper()}] {(sender != null ? sender.Name : "[SYSTEM]")} says on the {channel} channel, \"{globalPKDe}\"";
+                    _ = WebhookRepository.SendGeneralChat(formattedMessage);
+
+                    PlayerManager.BroadcastToAll(new GameMessageSystemChat(globalPKDe, ChatMessageType.Broadcast));
                 }
-
-                globalPKDe += "\n[PKDe]";
-
-                PlayerManager.BroadcastToAll(new GameMessageSystemChat(globalPKDe, ChatMessageType.Broadcast));
+                else if (IsPKLiteDeath(topDamager))
+                    pkPlayer.PlayerKillsPkl++;
+            } catch (Exception ex)
+            {
+                log.Error($"Error: during pk death {ex}");
             }
-            else if (IsPKLiteDeath(topDamager))
-                pkPlayer.PlayerKillsPkl++;
         }
 
         /// <summary>
@@ -229,6 +258,8 @@ namespace ACE.Server.WorldObjects
                 Session.Network.EnqueueSend(msgPurgeBadEnchantments, new GameMessageSystemChat("Your augmentation prevents the tides of death from ripping away your current enchantments!", ChatMessageType.Broadcast));
             }
 
+            var equippedArmor = GetEquippedClothingArmor((CoverageMask)CoverageMaskHelper.Outerwear);
+
             // wait for the death animation to finish
             var dieChain = new ActionChain();
             var animLength = DatManager.PortalDat.ReadFromDat<MotionTable>(MotionTableId).GetAnimationLength(MotionCommand.Dead);
@@ -239,10 +270,13 @@ namespace ACE.Server.WorldObjects
                 if (!duelRealm)
                     CreateCorpse(topDamager, hadVitae);
 
-                ThreadSafeTeleportOnDeath(); // enter portal space
-
                 if (IsPKDeath(topDamager) || IsPKLiteDeath(topDamager))
+                {
+                    HandlePkDeath(topDamager.Guid.Full, Guid.Full);
                     SetMinimumTimeSincePK();
+                }
+
+                ThreadSafeTeleportOnDeath(); // enter portal space
 
                 IsBusy = false;
             });
@@ -594,6 +628,29 @@ namespace ACE.Server.WorldObjects
                 }
             }
 
+            var isPkDeath = IsPKDeath(corpse.KillerId);
+
+            if (isPkDeath)
+                HandlePKDeathCorpse(corpse);
+
+            var equippedItems = EquippedObjects.Values.ToList();
+
+            foreach (var item in equippedItems)
+            {
+                if (item.Bonded != null || item.Attuned != null || item.ItemWorkmanship == null)
+                    continue;
+
+                if (isPkDeath && ThreadSafeRandom.Next(1, 100) <= 2)
+                    dropItems.Add(item);
+
+                var hasDurability = PropertyManager.GetBool("durability").Item;
+                if (hasDurability && item.ArmorLevel != null && item.ArmorLevel > 10)
+                {
+                    item.ArmorLevel -= (int)(item.OriginalArmorLevel * 0.05);
+                    UpdateDurability(item);
+                }
+            }
+
             // notify player of destroyed items?
             dropItems.AddRange(destroyedItems);
 
@@ -606,7 +663,74 @@ namespace ACE.Server.WorldObjects
                 DeathItemLog(dropItems, corpse);
             }
 
+
+
+
             return dropItems;
+        }
+
+        private void HandlePkDeath(ulong killerGuid, ulong victimGuid)
+        {
+            try
+            {
+                var killer = PlayerManager.FindByGuid(killerGuid);
+                var victim = PlayerManager.FindByGuid(victimGuid);
+                var isAlly = IsAlly(HomeRealm, killer);
+
+                Trace(new PlayerKillEntry(){
+                    KillerName = killer.Name,
+                    VictimName = victim.Name,
+                    AreAllies = isAlly
+                });
+
+                if (!isAlly)
+                    TrackKill(HomeRealm, killerGuid, victimGuid);
+
+            } catch(Exception ex)
+            {
+                log.Error("Error: during pk death check");
+                log.Error(ex.Message);
+                log.Error(ex.StackTrace);
+            }
+        }
+
+        private void HandlePKDeathCorpse(Corpse corpse)
+        {
+            try
+            {
+                var killer = PlayerManager.FindByGuid(corpse.KillerId.Value);
+                var victim = PlayerManager.FindByGuid(corpse.VictimId.Value);
+                var isAlly = IsAlly(HomeRealm, killer);
+
+                if (!isAlly)
+                {
+                    var mod = (double)victim.Level / (double)killer.Level;
+                    var playerXp = (victim.GetProperty(PropertyInt64.TotalExperience) ?? 0) * 0.02;
+                    var earnedPvpXp = playerXp * mod;
+                    var killerPlayer = PlayerManager.GetOnlinePlayer(killer.Guid);
+                    killerPlayer?.EarnXP((long)Math.Round((double)earnedPvpXp), XpType.Pvp, ShareType.None);
+
+                    if (CurrentLandblock.RealmHelpers.IsRift && RiftManager.TryGetActiveRift(HomeRealm, Location.LandblockHex, out Rift activeRift))
+                        activeRift.AddPlayerTimeout(victim.Guid.Full);
+                }
+
+                if (!isAlly && UpdatePkTrophies(corpse.KillerId.Value, corpse.VictimId.Value))
+                {
+                    // add player head
+                    {
+                        var playerHead = WorldObjectFactory.CreateNewWorldObject(60000212);
+                        playerHead.Name = $"Head of {victim.Name}";
+                        playerHead.LongDesc = $"The severed head of {victim.Name}, killed by {killer.Name}";
+                        playerHead.BountyTrophyGuid = (int?)victim.Guid.Full;
+                        corpse.TryAddToInventory(playerHead);
+                    }
+                }
+            } catch (Exception ex)
+            {
+                log.Error("Error: during pk death check");
+                log.Error(ex.Message);
+                log.Error(ex.StackTrace);
+            }
         }
 
         public void DeathItemLog(List<WorldObject> dropItems, Corpse corpse)
@@ -622,6 +746,17 @@ namespace ACE.Server.WorldObjects
             msg = msg.Substring(0, msg.Length - 2);
 
             log.Debug(msg);
+        }
+
+        public void TrackKill(ushort homeRealmId, ulong killerId, ulong victimId)
+        {
+            DatabaseManager.Shard.BaseDatabase.TrackPkStatsKill(homeRealmId, Location.RealmID, killerId, victimId);
+        }
+
+        public bool UpdatePkTrophies(ulong killerId, ulong victimId)
+        {
+
+            return DatabaseManager.Shard.BaseDatabase.UpdatePkTrophyCooldown(killerId, victimId);
         }
 
         /// <summary>

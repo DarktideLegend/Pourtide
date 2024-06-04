@@ -644,10 +644,31 @@ namespace ACE.Entity.Enum.Properties
         [ServerOnly]
         LastRebuffTimestamp                     = 42005,
 
+        [ServerOnly]
         CrossRealmPortalRealmID                 = 42006,
 
         ItemGeneratedAtRealmID                  = 42007,
         ItemLootedHomeRealmID                   = 42008,
+
+
+
+
+        // Pourtide property IDs are reserved start with 60000-69999
+
+        [ServerOnly]
+        OriginalArmorLevel                      = 60000,
+
+        [ServerOnly]
+        BountyGuid                              = 60001,
+
+        [ServerOnly]
+        BountyTrophyGuid                        = 60002,
+
+        [ServerOnly]
+        CorpsePermitOpenTimestamp               = 60003,
+
+        [ServerOnly]
+        ForgottenOreTier                        = 60004
 
     }
 

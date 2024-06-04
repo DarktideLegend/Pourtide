@@ -12,6 +12,8 @@ using ACE.Server.Entity.Actions;
 using ACE.Server.Managers;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
+using ACE.Server.Features.Rifts;
+using System.Linq;
 using ACE.Server.Realms;
 using ACE.Entity.Enum.RealmProperties;
 
@@ -131,6 +133,14 @@ namespace ACE.Server.WorldObjects
             if (player.Teleporting)
                 return new ActivationResult(false);
 
+            if (WeenieClassId == 600005)
+            {
+                if (RiftManager.ActiveRifts.Count == 0)
+                    return new ActivationResult(false);
+
+                return new ActivationResult(true);
+            }
+
             if (Destination == null)
             {
                 player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Portal destination for portal ID {WeenieClassId} not yet implemented!", ChatMessageType.System));
@@ -159,6 +169,8 @@ namespace ACE.Server.WorldObjects
                     return new ActivationResult(new GameEventWeenieError(player.Session, WeenieError.YouHaveBeenTeleportedTooRecently));
                 }
             }
+
+            //player?.VerifyPkEnemyInVicinity();
 
             if (player.PKTimerActive && !PortalIgnoresPkAttackTimer)
             {
@@ -277,8 +289,35 @@ namespace ACE.Server.WorldObjects
 
 #if DEBUG
             // player.Session.Network.EnqueueSend(new GameMessageSystemChat("Portal sending player to destination", ChatMessageType.System));
+
+
 #endif
-            var portalDest = Destination.AsInstancedPosition(player, player.RealmRuleset.PortalInstanceSelectMode);
+
+
+            InstancedPosition portalDest = null;
+
+            if (WeenieClassId == 600005) // if Rift Entry Portal
+            {
+                var realm = player.HomeRealm;
+                var rifts = RiftManager.ActiveRifts[realm].Values.ToList();
+                if (rifts.Count <= 0)
+                    return;
+
+                var roll = ThreadSafeRandom.Next(0, rifts.Count - 1);
+                var rift = rifts[roll];
+                portalDest = new InstancedPosition(rift.DropPosition);
+            }
+            else if (WeenieClassId > 607000 && WeenieClassId < 607999) // if Duel Dungeon Portal
+            {
+                var tempPosition = Destination.AsInstancedPosition(player.Location.Instance);
+                var dungeon = DuelRealmHelpers.GetDuelDungeon(tempPosition);
+                if (dungeon == null)
+                    return;
+                portalDest = new InstancedPosition(dungeon.Destination);
+            }
+            else
+                portalDest = Destination.AsInstancedPosition(player, player.RealmRuleset.PortalInstanceSelectMode);
+
             if (IsEphemeralRealmPortal)
             {
                 if (EphemeralRealmPortalInstanceID.HasValue)
@@ -289,12 +328,12 @@ namespace ACE.Server.WorldObjects
                         player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Invalid Instance ID.", ChatMessageType.System));
                         return;
                     }
-                    if (realmId != player.HomeRealm)
+                    /*if (realmId != player.HomeRealm)
                     {
                         // ephemeral realms may only be for the player's home realm until specifications exist for allowing cross-realm players to access to ephemeral realms
                         player.Session.Network.EnqueueSend(new GameMessageSystemChat($"HomeRealm must be equal to summoner HomeRealm (this will be fixed eventually).", ChatMessageType.System));
                         return;
-                    }
+                    }*/
 
                     var landblock = LandblockManager.GetEphemeralLandblockUnsafe(EphemeralRealmPortalInstanceID.Value);
                     if (landblock == null)
@@ -318,7 +357,9 @@ namespace ACE.Server.WorldObjects
 
             portalDest = AdjustDungeon(portalDest);
 
-            WorldManager.ThreadSafeTeleport(player, portalDest, false, new ActionEventDelegate(() =>
+            var fromInstance = player.Location.IsEphemeralRealm;
+
+            WorldManager.ThreadSafeTeleport(player, portalDest, fromInstance, new ActionEventDelegate(() =>
             {
                 // If the portal just used is able to be recalled to,
                 // save the destination coordinates to the LastPortal character position save table

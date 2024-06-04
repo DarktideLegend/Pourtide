@@ -2380,6 +2380,7 @@ namespace ACE.Server.Command.Handlers
             {
                 Tier = tier,
                 LootQualityMod = 0,
+                CantripAmount = MutationsManager.CantripRoll(),
                 MagicItemTreasureTypeSelectionChances = 9,  // 8 or 9?
             };
 
@@ -2871,12 +2872,15 @@ namespace ACE.Server.Command.Handlers
         {
             var slumlord = CommandHandlerHelper.GetLastAppraisedObject(session) as SlumLord;
 
+            if (!HouseManager.ValidatePourHousing(slumlord.Location.LandblockId.Landblock))
+                return;
+
             if (slumlord == null)
             {
                 session.Network.EnqueueSend(new GameMessageSystemChat("Couldn't find slumlord", ChatMessageType.Broadcast));
                 return;
             }
-            HouseManager.SetHouseOwner(session.Player, slumlord, slumlord.House, runSynchronously: false);
+            session.Player.SetHouseOwner(slumlord);
             session.Player.GiveDeed(slumlord);
         }
 

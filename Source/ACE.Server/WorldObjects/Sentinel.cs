@@ -5,7 +5,7 @@ using ACE.Entity.Enum;
 using ACE.Entity.Models;
 using ACE.Server.Managers;
 using ACE.Server.Network;
-
+using ACE.Server.Realms;
 using Character = ACE.Database.Models.Shard.Character;
 
 namespace ACE.Server.WorldObjects

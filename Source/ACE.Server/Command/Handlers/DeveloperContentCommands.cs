@@ -141,6 +141,145 @@ namespace ACE.Server.Command.Handlers.Processors
                 ImportJsonWeenie(session, json_folder, file.Name);
         }
 
+        private static List<RealmToImport> ImportJsonRealmsFromSubFolder(Session session, string json_folder)
+        {
+            var di = new DirectoryInfo(json_folder);
+
+            var files = di.Exists ? di.GetFiles($"*.jsonc") : null;
+
+            if (files == null)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"Couldn't find {json_folder}*.jsonc");
+                return null;
+            }
+
+            List<RealmToImport> list = new List<RealmToImport>();
+            foreach(var file in files)
+            {
+                var jsondata = File.ReadAllText(file.FullName);
+                var realmToImport = RealmManager.DeserializeRealmJson(session, file.FullName, jsondata);
+                if (realmToImport == null)
+                    return null;
+                list.Add(realmToImport);
+            }
+            return list;
+        }
+
+        public static List<RealmToImport> ImportJsonRealmsFolder(Session session, string json_folder)
+        {
+            var sep = Path.DirectorySeparatorChar;
+            var json_folder_realm = $"{json_folder}{sep}realm{sep}";
+            var json_folder_ruleset = $"{json_folder}{sep}ruleset{sep}";
+
+            var list = ImportJsonRealmsFromSubFolder(session, json_folder_realm).ToList();
+            if (list == null)
+                return null;
+
+            var list2 = ImportJsonRealmsFromSubFolder(session, json_folder_ruleset);
+            if (list2 != null)
+                list.AddRange(list2);
+            return list;
+        }
+
+        public static void ImportJsonRealmsIndex(Session session, string realmsIndexJsonFile, List<RealmToImport> realms)
+        {
+            Dictionary<string, RealmToImport> realmsDict = null;
+            Dictionary<ushort, RealmToImport> realmsById = new Dictionary<ushort, RealmToImport>();
+            try
+            {
+                realmsDict = realms.ToDictionary(x => x.Realm.Name);
+            }
+            catch
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"Couldn't create realms dictionary. Is there a problem with a realm name?");
+                return;
+            }
+
+            Dictionary<string, ushort> result = null;
+            try
+            {
+                var fileText = File.ReadAllText(realmsIndexJsonFile);
+                result = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, ushort>>(fileText);
+
+                //Map ids
+                foreach (var item in result)
+                {
+                    var importItem = realmsDict[item.Key];
+                    importItem.Realm.SetId(item.Value);
+                    realmsById.Add(item.Value, importItem);
+                }
+
+                //Map parents
+                foreach(var item in result)
+                {
+                    var importItem = realmsDict[item.Key];
+                    if (importItem.Realm.ParentRealmName != null)
+                    {
+                        if (!realmsDict.TryGetValue(importItem.Realm.ParentRealmName, out var parentImportItem))
+                            throw new Exception($"Couldn't find parent realm with name {importItem.Realm.ParentRealmName}");
+                        importItem.Realm.ParentRealmId = parentImportItem.Realm.Id;
+                    }
+                }
+
+                //Map descendents
+                foreach (var item in result)
+                {
+                    var importItem = realmsDict[item.Key];
+                    if (importItem.Realm.ParentRealmId == null)
+                        continue;
+
+                    var parentImportItem = realmsById[importItem.Realm.ParentRealmId.Value];
+                    parentImportItem.Realm.Descendents.Add(importItem.Realm.Id, importItem.Realm);
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Error($"Couldn't import {realmsIndexJsonFile}", ex);
+                CommandHandlerHelper.WriteOutputInfo(session, $"Couldn't import {realmsIndexJsonFile}");
+                return;
+            }
+
+            try
+            {
+                RealmManager.FullUpdateRealmsRepository(realmsDict, realmsById);
+                Console.WriteLine($"Imported {realmsById.Count} realms.");
+            }
+            catch
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"Failed to update realms repository.");
+                log.Error($"Failed to update realms repository.");
+                return;
+            }
+        }
+
+        public static void ImportJsonWeenie(Session session, string wcid)
+        {
+            DirectoryInfo di = VerifyContentFolder(session);
+            if (!di.Exists) return;
+
+            var sep = Path.DirectorySeparatorChar;
+
+            var json_folder = $"{di.FullName}{sep}json{sep}weenies{sep}";
+
+            var prefix = wcid + " - ";
+
+            if (wcid.Equals("all", StringComparison.OrdinalIgnoreCase))
+                prefix = "";
+
+            di = new DirectoryInfo(json_folder);
+
+            var files = di.Exists ? di.GetFiles($"{prefix}*.json") : null;
+
+            if (files == null || files.Length == 0)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"Couldn't find {json_folder}{prefix}*.json");
+                return;
+            }
+
+            foreach (var file in files)
+                ImportJsonWeenie(session, json_folder, file.Name);
+        }
+
         public static void ImportJsonRecipe(ISession session, string recipeId)
         {
             DirectoryInfo di = VerifyContentFolder(session);
@@ -277,12 +416,12 @@ namespace ACE.Server.Command.Handlers.Processors
                         ImportSQLWeenieWrapped(session, param, parameters.Length >= 3 ? parameters[2] : "");
                         break;
 
-                    /*case FileType.Realm:
-                        ImportSQLRealm(session, param);
-                        break;*/
+                        /*case FileType.Realm:
+                            ImportSQLRealm(session, param);
+                            break;*/
                 }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 CommandHandlerHelper.WriteOutputError(session, $"There was an error importing the SQL:\n\n{e.Message}");
             }
@@ -316,7 +455,7 @@ namespace ACE.Server.Command.Handlers.Processors
 
             foreach (var file in files)
                 ImportSQLWeenie(session, file.DirectoryName + sep, file.Name);
-                
+
         }
 
         public static void ImportSQLRecipe(ISession session, string recipeId)
@@ -1782,7 +1921,7 @@ namespace ACE.Server.Command.Handlers.Processors
             {
                 json_folder = $"{di.FullName}{sep}json{sep}weenies{sep}";
             }
-            
+
             di = new DirectoryInfo(json_folder);
 
             if (!di.Exists)
@@ -2350,7 +2489,7 @@ namespace ACE.Server.Command.Handlers.Processors
 
             if (mode.HasFlag(CacheType.WieldedTreasure))
             {
-               
+
                 CommandHandlerHelper.WriteOutputInfo(session, "Clearing wielded treasure cache");
                 DatabaseManager.World.ClearWieldedTreasureCache();
             }
@@ -2359,14 +2498,14 @@ namespace ACE.Server.Command.Handlers.Processors
         [Flags]
         public enum CacheType
         {
-            None            = 0x0,
-            Landblock       = 0x1,
-            Recipe          = 0x2,
-            Spell           = 0x4,
-            Weenie          = 0x8,
+            None = 0x0,
+            Landblock = 0x1,
+            Recipe = 0x2,
+            Spell = 0x4,
+            Weenie = 0x8,
             WieldedTreasure = 0x10,
-            Realm           = 0x16,
-            All             = 0xFFFF
+            Realm = 0x16,
+            All = 0xFFFF
         };
 
         public static FileType GetFileType(string filename)
@@ -2983,12 +3122,12 @@ namespace ACE.Server.Command.Handlers.Processors
                     {
                         CommandHandlerHelper.WriteOutputInfo(session, $"Unable to parse X ({strX}) value from line {i} in vlocDB: {vlocs[i]}");
                         continue;
-                    }    
+                    }
                     if (!float.TryParse(strY, out var y))
                     {
                         CommandHandlerHelper.WriteOutputInfo(session, $"Unable to parse Y ({strY}) value from line {i} in vlocDB: {vlocs[i]}");
                         continue;
-                    }    
+                    }
 
                     if ((objCellId >> 16) != lbid) continue;
 
@@ -3026,3 +3165,4 @@ namespace ACE.Server.Command.Handlers.Processors
         }
     }
 }
+

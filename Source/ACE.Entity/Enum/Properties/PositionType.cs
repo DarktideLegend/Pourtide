@@ -197,6 +197,6 @@ namespace ACE.Entity.Enum.Properties
 
         [ServerOnly]
         [Instanced]
-        EphemeralRealmExitTo = 42001
+        EphemeralRealmExitTo = 42001,
     }
 }

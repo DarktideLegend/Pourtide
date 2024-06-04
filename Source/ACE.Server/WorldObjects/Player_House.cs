@@ -149,7 +149,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            HouseManager.SetHouseOwner(this, slumlord, slumlord.House, runSynchronously: false);
+            SetHouseOwner(slumlord);
 
             GiveDeed(slumlord);
         }
@@ -171,10 +171,7 @@ namespace ACE.Server.WorldObjects
                     log.ErrorFormat("{0}.GiveDeed() - couldn't find location {1}", Name, slumLord.Location.ToLOCString());
             }
 
-            var realmName = slumLord.Location.WorldRealm?.Realm?.Name;
-            var realmInfo = realmName != null ? $"in the realm of {realmName}." : "in a mysterious realm.";
-
-            deed.LongDesc = $"Bought by {Name}{titleStr} on {date} at {time}\n\nPurchased at {location}, {realmInfo}";
+            deed.LongDesc = $"Bought by {Name}{titleStr} on {date} at {time}\n\nPurchased at {location}";
 
             TryCreateInInventoryWithNetworking(deed);
         }
@@ -460,7 +457,7 @@ namespace ACE.Server.WorldObjects
 
             return true;
         }
-        
+
         public void HandleActionAbandonHouse()
         {
             //Console.WriteLine($"\n{Name}.HandleActionAbandonHouse()");
@@ -566,7 +563,7 @@ namespace ACE.Server.WorldObjects
             // var rentTime = (uint)(houseOwner.HouseRentTimestamp ?? 0);
 
             if (HouseRentTimestamp != houseOwner.HouseRentTimestamp)
-                HouseRentTimestamp  = houseOwner.HouseRentTimestamp;
+                HouseRentTimestamp = houseOwner.HouseRentTimestamp;
 
             if (!House.SlumLord.InventoryLoaded)
             {
@@ -607,6 +604,81 @@ namespace ACE.Server.WorldObjects
             RemoveDeed();
 
             RemoveProperty(PropertyBool.HouseEvicted);
+        }
+
+        /// <summary>
+        /// Sets this player as the owner of a house
+        /// </summary>
+        public void SetHouseOwner(SlumLord slumlord)
+        {
+            var house = slumlord.House;
+
+            //Console.WriteLine($"Setting {Name} as owner of {house.Name}");
+            log.Info($"[HOUSE] Setting {Name} (0x{Guid}) as owner of {house.Name} (0x{house.Guid:X8})");
+
+            // set player properties
+            HouseId = house.HouseId;
+            HouseInstance = house.Guid.Full;
+
+            var housePurchaseTimestamp = Time.GetUnixTime();
+            if (house.HouseType != HouseType.Apartment)
+                HousePurchaseTimestamp = (int)housePurchaseTimestamp;
+            HouseRentTimestamp = (int)house.GetRentDue((uint)housePurchaseTimestamp);
+            houseRentWarnTimestamp = 0;
+
+            // set house properties
+            house.HouseOwner = Guid.Full;
+            house.HouseOwnerName = Name;
+            house.OpenToEveryone = true; 
+            house.OpenStatus = true; 
+            house.SaveBiotaToDatabase();
+
+            // relink
+            house.UpdateLinks();
+
+            if (house.HasDungeon)
+            {
+                var dungeonHouse = house.GetDungeonHouse();
+                if (dungeonHouse != null)
+                    dungeonHouse.UpdateLinks();
+            }
+
+            // notify client w/ HouseID
+            Session.Network.EnqueueSend(new GameMessageSystemChat("Congratulations!  You now own this dwelling.", ChatMessageType.Broadcast));
+
+            // player slumlord 'on' animation
+            slumlord.On();
+
+            // set house name
+            slumlord.SetAndBroadcastName(Name);
+
+            slumlord.ClearInventory();
+
+            slumlord.SaveBiotaToDatabase();
+
+            HouseList.RemoveFromAvailable(slumlord, house);
+
+            SaveBiotaToDatabase();
+
+            if (house.HouseType != HouseType.Apartment)
+                Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(this, PropertyInt.HousePurchaseTimestamp, HousePurchaseTimestamp ?? 0));
+
+            // set house data
+            // why has this changed? use callback?
+            var actionChain = new ActionChain();
+            actionChain.AddDelaySeconds(3.0f);
+            actionChain.AddAction(this, () =>
+            {
+                HandleActionQueryHouse();
+                house.UpdateRestrictionDB();
+
+                // boot anyone who may have been wandering around inside...
+                //HandleActionBootAll(false);
+
+                HouseManager.AddRentQueue(this, house.Guid.Full);
+                slumlord.ActOnUse(this);
+            });
+            actionChain.EnqueueChain();
         }
 
         /// <summary>
@@ -1059,7 +1131,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            house.OpenStatus = openStatus;
+            house.OpenStatus = true; 
             house.Biota.SetProperty(PropertyBool.Open, house.OpenStatus, house.BiotaDatabaseLock, out _);
             house.ChangesDetected = true;
             house.UpdateRestrictionDB();
@@ -1068,11 +1140,11 @@ namespace ACE.Server.WorldObjects
                 Session.Network.EnqueueSend(new GameMessageSystemChat("Your house is now open to the public.", ChatMessageType.Broadcast));
             else
             {
-                Session.Network.EnqueueSend(new GameMessageSystemChat("Your house is now closed to the public.", ChatMessageType.Broadcast));
+                Session.Network.EnqueueSend(new GameMessageSystemChat("Your house remains open to the public.", ChatMessageType.Broadcast));
 
                 // boot anyone not on the guest list,
                 // else they will be stuck in restricted space
-                HandleActionBootAll(false);
+                //HandleActionBootAll(false);
             }
 
             if (house.CurrentLandblock == null)
@@ -1274,6 +1346,8 @@ namespace ACE.Server.WorldObjects
 
         public void HandleActionBoot(string playerName, bool allegianceHouse = false)
         {
+            return; // disable housing barriers
+
             //Console.WriteLine($"{Name}.HandleActionBoot({playerName})");
             if (House == null && !allegianceHouse)
             {
@@ -1310,6 +1384,8 @@ namespace ACE.Server.WorldObjects
 
         public void HandleActionBootAll(bool guests = true)
         {
+            return; // disable housing barriers
+
             //Console.WriteLine($"{Name}.HandleActionBootAll()");
             if (House == null)
             {
@@ -1443,7 +1519,7 @@ namespace ACE.Server.WorldObjects
 
                 house.RemoveGuest(Allegiance.Monarch.Player);
 
-                HandleActionBootAll(false);     // boot anyone who doesn't have guest access
+                //HandleActionBootAll(false);     // boot anyone who doesn't have guest access
 
                 Session.Network.EnqueueSend(new GameMessageSystemChat($"You have revoked access to your dwelling to your monarchy.", ChatMessageType.Broadcast));
             }
@@ -1731,7 +1807,7 @@ namespace ACE.Server.WorldObjects
             var accountHouses = HouseManager.GetAccountHouses(Account.AccountId);
 
             //if (showMsg)
-                //Session.Network.EnqueueSend(new GameMessageSystemChat($"AccountHouses: {accountHouses.Count}, CharacterHouses: {characterHouses.Count}", ChatMessageType.Broadcast));
+            //Session.Network.EnqueueSend(new GameMessageSystemChat($"AccountHouses: {accountHouses.Count}, CharacterHouses: {characterHouses.Count}", ChatMessageType.Broadcast));
 
             if (PropertyManager.GetBool("house_per_char").Item)
             {
@@ -1814,3 +1890,4 @@ namespace ACE.Server.WorldObjects
         }
     }
 }
+

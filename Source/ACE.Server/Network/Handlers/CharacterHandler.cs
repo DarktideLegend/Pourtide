@@ -16,6 +16,7 @@ using ACE.Server.Managers;
 using ACE.Server.Network.Enum;
 using ACE.Server.Network.GameMessages;
 using ACE.Server.Network.GameMessages.Messages;
+using System;
 
 namespace ACE.Server.Network.Handlers
 {

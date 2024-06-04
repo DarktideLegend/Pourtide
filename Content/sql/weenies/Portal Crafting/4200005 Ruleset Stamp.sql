@@ -1,3 +1,5 @@
+use ace_world;
+
 DELETE FROM `weenie` WHERE `class_Id` = 4200005;
 
 INSERT INTO `weenie` (`class_Id`, `class_Name`, `type`, `last_Modified`)

@@ -35,8 +35,7 @@ namespace ACE.Server.Realms
 
         internal bool IsWhitelistedLandblock(ushort landblock)
         {
-            if (StandardRules.GetProperty(RealmPropertyBool.IsDuelingRealm))
-                return RealmConstants.DuelLandblocks.Contains(landblock);
+            // Todo: implement whitelisting logic
             return true;
         }
     }

@@ -90,8 +90,8 @@ namespace ACE.Database
             // https://stackoverflow.com/questions/50402015/how-to-execute-sqlquery-with-entity-framework-core-2-1
 
             // This query is ugly, but very fast.
-            var sql = "SET @available_ids=0, @rownum=0;"                                                + Environment.NewLine +
-                      "SELECT"                                                                          + Environment.NewLine +
+            var sql = "SET @available_ids=0, @rownum=0;" + Environment.NewLine +
+                      "SELECT" + Environment.NewLine +
                       " z.gap_starts_at, z.gap_ends_at_not_inclusive, @available_ids:=@available_ids+(z.gap_ends_at_not_inclusive - z.gap_starts_at) as running_total_available_ids" + Environment.NewLine +
                       "FROM ("                                                                          + Environment.NewLine +
                       " SELECT"                                                                         + Environment.NewLine +
@@ -120,8 +120,8 @@ namespace ACE.Database
 
                 while (reader.Read())
                 {
-                    var gap_starts_at               = reader.GetFieldValue<long>(0);
-                    var gap_ends_at_not_inclusive   = reader.GetFieldValue<decimal>(1);
+                    var gap_starts_at = reader.GetFieldValue<long>(0);
+                    var gap_ends_at_not_inclusive = reader.GetFieldValue<decimal>(1);
                     //var running_total_available_ids = reader.GetFieldValue<double>(2);
 
                     gaps.Add(((uint)gap_starts_at, (uint)gap_ends_at_not_inclusive - 1));
@@ -168,31 +168,31 @@ namespace ACE.Database
         [Flags]
         public enum PopulatedCollectionFlags
         {
-            BiotaPropertiesAnimPart             = 0x1,
-            BiotaPropertiesAttribute            = 0x2,
-            BiotaPropertiesAttribute2nd         = 0x4,
-            BiotaPropertiesBodyPart             = 0x8,
-            BiotaPropertiesBook                 = 0x10,
-            BiotaPropertiesBookPageData         = 0x20,
-            BiotaPropertiesBool                 = 0x40,
-            BiotaPropertiesCreateList           = 0x80,
-            BiotaPropertiesDID                  = 0x100,
-            BiotaPropertiesEmote                = 0x200,
-            BiotaPropertiesEnchantmentRegistry  = 0x400,
-            BiotaPropertiesEventFilter          = 0x800,
-            BiotaPropertiesFloat                = 0x1000,
-            BiotaPropertiesGenerator            = 0x2000,
-            BiotaPropertiesIID                  = 0x4000,
-            BiotaPropertiesInt                  = 0x8000,
-            BiotaPropertiesInt64                = 0x10000,
-            BiotaPropertiesPalette              = 0x20000,
-            BiotaPropertiesPosition             = 0x40000,
-            BiotaPropertiesSkill                = 0x80000,
-            BiotaPropertiesSpellBook            = 0x100000,
-            BiotaPropertiesString               = 0x200000,
-            BiotaPropertiesTextureMap           = 0x400000,
-            HousePermission                     = 0x800000,
-            BiotaPropertiesAllegiance           = 0x1000000,
+            BiotaPropertiesAnimPart = 0x1,
+            BiotaPropertiesAttribute = 0x2,
+            BiotaPropertiesAttribute2nd = 0x4,
+            BiotaPropertiesBodyPart = 0x8,
+            BiotaPropertiesBook = 0x10,
+            BiotaPropertiesBookPageData = 0x20,
+            BiotaPropertiesBool = 0x40,
+            BiotaPropertiesCreateList = 0x80,
+            BiotaPropertiesDID = 0x100,
+            BiotaPropertiesEmote = 0x200,
+            BiotaPropertiesEnchantmentRegistry = 0x400,
+            BiotaPropertiesEventFilter = 0x800,
+            BiotaPropertiesFloat = 0x1000,
+            BiotaPropertiesGenerator = 0x2000,
+            BiotaPropertiesIID = 0x4000,
+            BiotaPropertiesInt = 0x8000,
+            BiotaPropertiesInt64 = 0x10000,
+            BiotaPropertiesPalette = 0x20000,
+            BiotaPropertiesPosition = 0x40000,
+            BiotaPropertiesSkill = 0x80000,
+            BiotaPropertiesSpellBook = 0x100000,
+            BiotaPropertiesString = 0x200000,
+            BiotaPropertiesTextureMap = 0x400000,
+            HousePermission = 0x800000,
+            BiotaPropertiesAllegiance = 0x1000000,
         }
 
         public static void SetBiotaPopulatedCollections(Biota biota)
@@ -319,7 +319,7 @@ namespace ACE.Database
             SetBiotaPopulatedCollections(biota);
 
             Exception firstException = null;
-            retry:
+        retry:
 
             try
             {
@@ -401,7 +401,7 @@ namespace ACE.Database
                 context.Biota.Remove(existingBiota);
 
                 Exception firstException = null;
-                retry:
+            retry:
 
                 try
                 {
@@ -553,6 +553,12 @@ namespace ACE.Database
                 {
                     var biota = GetBiota(result.ObjectId);
 
+                    if (biota.WeenieClassId == 600004) // remove any rift links
+                    {
+                        RemoveBiota(biota.Id);
+                        continue;
+                    }
+
                     // Filter out objects that are in a container
                     if (biota.BiotaPropertiesIID.FirstOrDefault(r => r.Type == 2 && r.Value != 0) != null)
                         continue;
@@ -679,7 +685,7 @@ namespace ACE.Database
                 try
                 {
                     Exception firstException = null;
-                    retry:
+                retry:
 
                     try
                     {
@@ -720,7 +726,7 @@ namespace ACE.Database
                 context.Character.Add(character);
 
                 Exception firstException = null;
-                retry:
+            retry:
 
                 try
                 {
@@ -894,5 +900,292 @@ namespace ACE.Database
                 rwLock.ExitReadLock();
             }
         }
+
+        public (DateTime Daily, DateTime Weekly, uint Week) UpdateXpCap()
+        {
+            using (var context = new ShardDbContext())
+            {
+                var timestamps = context.XpCap.FirstOrDefault();
+
+                DateTime currentDateTime = DateTime.UtcNow;
+
+                if (currentDateTime > timestamps.DailyTimestamp)
+                {
+                    timestamps.DailyTimestamp = currentDateTime.AddDays(1);
+                }
+
+                if (currentDateTime > timestamps.WeeklyTimestamp)
+                {
+                    timestamps.WeeklyTimestamp = currentDateTime.AddDays(7);
+
+                    timestamps.Week++;
+                }
+
+                context.SaveChanges();
+
+                return (timestamps.DailyTimestamp, timestamps.WeeklyTimestamp, timestamps.Week);
+            }
+        }
+
+        public (DateTime Daily, DateTime Weekly, uint Week) GetXpCapTimestamps()
+        {
+            using (var context = new ShardDbContext())
+            {
+                var timestamps = context.XpCap.FirstOrDefault();
+
+                if (timestamps == null)
+                {
+                    timestamps = new XpCap
+                    {
+                        DailyTimestamp = DateTime.UtcNow.AddDays(1),
+                        WeeklyTimestamp = DateTime.UtcNow.AddDays(7),
+                        Week = 1
+                    };
+
+                    context.XpCap.Add(timestamps);
+                    context.SaveChanges();
+                }
+
+                return (timestamps.DailyTimestamp, timestamps.WeeklyTimestamp, timestamps.Week);
+            }
+        }
+
+        public Dictionary<ushort, Dictionary<string, HashSet<ulong>>> GetIpToCharacterLoginMap()
+        {
+            using (var context = new ShardDbContext())
+            {
+                var characterLogins = context.CharacterLogin.ToList();
+                var ipCharacterMap = characterLogins
+                    .GroupBy(cl => cl.HomeRealmId)
+                    .ToDictionary(
+                        group => group.Key,
+                        group => group
+                            .GroupBy(cl => cl.SessionIP)
+                            .ToDictionary(
+                                innerGroup => innerGroup.Key,
+                                innerGroup => new HashSet<ulong>(innerGroup.Select(cl => cl.CharacterId))
+                            )
+                    );
+
+                return ipCharacterMap;
+            }
+        }
+
+        public void LogCharacterLogin(ushort homeRealmId, ushort currentRealmId, uint accountId, string accountName, string sessionIP, ulong characterId, string characterName)
+        {
+            var logEntry = new CharacterLogin();
+
+            try
+            {
+                logEntry.AccountId = accountId;
+                logEntry.AccountName = accountName;
+                logEntry.SessionIP = sessionIP;
+                logEntry.CharacterId = characterId;
+                logEntry.CharacterName = characterName;
+                logEntry.HomeRealmId = homeRealmId;
+                logEntry.CurrentRealmId = currentRealmId;
+                logEntry.LoginDateTime = DateTime.Now;
+
+                using (var context = new ShardDbContext())
+                {
+                    context.CharacterLogin.Add(logEntry);
+                    context.SaveChanges();
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Error($"Exception in LogCharacterLogin saving character login info to DB. Ex: {ex}");
+            }
+        }
+        public List<string> GetCharactersAssociatedWithIp(string sessionIp)
+        {
+            using (var context = new ShardDbContext())
+            {
+                var logins = context.CharacterLogin.Where(login => login.SessionIP == sessionIp);
+                return logins.Select(login => login.CharacterName).ToList();
+            }
+        }
+
+        public PKStatsKill TrackPkStatsKill(ushort homeRealmId, ushort currentRealmId, ulong killerId, ulong victimId)
+        {
+            using (var context = new ShardDbContext())
+            {
+                var kill = new PKStatsKill()
+                {
+                    KillerId = killerId,
+                    VictimId = victimId,
+                    HomeRealmId = homeRealmId,
+                    CurrentRealmId = currentRealmId,
+                    EventTime = DateTime.UtcNow,
+                };
+
+                context.PKStatsKills.Add(kill);
+                context.SaveChanges();
+                return kill;
+            }
+        }
+        public void TrackPkStatsDamage(ushort homeRealmId, ushort currentRealmId, uint attackerId, uint defenderId, int damageAmount, bool isCrit, uint combatType)
+        {
+            if (damageAmount <= 0)
+                return;
+
+            using (var context = new ShardDbContext())
+            {
+                var newPKStatsDamage = new PKStatsDamage
+                {
+                    AttackerId = attackerId,
+                    DefenderId = defenderId,
+                    DamageAmount = damageAmount,
+                    HomeRealmId = homeRealmId,
+                    CurrentRealmId = currentRealmId,
+                    IsCrit = isCrit,
+                    CombatMode = combatType,
+                    EventTime = DateTime.Now
+                };
+
+                context.PKStatsDamages.Add(newPKStatsDamage);
+
+                context.SaveChanges();
+            }
+        }
+
+        public (ulong PlayerId, int KillCount) GetPlayerWithMostKills()
+        {
+            using (var context = new ShardDbContext())
+            {
+                var playerKills = context.PKStatsKills
+                    .GroupBy(kill => kill.KillerId)
+                    .Select(group => new
+                    {
+                        PlayerId = group.Key,
+                        KillCount = group.Count()
+                    })
+                    .OrderByDescending(x => x.KillCount)
+                    .FirstOrDefault();
+
+                return (playerKills?.PlayerId ?? 0, playerKills?.KillCount ?? 0);
+            }
+        }
+
+        public class PlayerInfo
+        {
+            public uint Id { get; set; }
+            public string Name { get; set; }
+            public int Level { get; set; }
+        }
+
+        public List<(uint PlayerId, int DeathCount)> GetPlayerWithMostDeaths(ushort realmId)
+        {
+            using (var context = new ShardDbContext())
+            {
+                var topTenPlayers = context.PKStatsKills
+                    .Where(stats => stats.HomeRealmId == realmId)
+                    .GroupBy(kill => kill.VictimId)
+                    .Select(group => new
+                    {
+                        PlayerId = group.Key,
+                        DeathCount = group.Count()
+                    })
+                    .OrderByDescending(x => x.DeathCount)
+                    .Take(10)
+                    .ToList();
+
+                return topTenPlayers.Select(player => ((uint)player.PlayerId, player.DeathCount)).ToList();
+            }
+        }
+
+        public List<(uint PlayerId, int KillCount)> GetTopTenPlayersWithMostKills(ushort realmId)
+        {
+            using (var context = new ShardDbContext())
+            {
+                var topTenPlayers = context.PKStatsKills
+                    .Where(stats => stats.HomeRealmId == realmId)
+                    .GroupBy(kill => kill.KillerId)
+                    .Select(group => new
+                    {
+                        PlayerId = group.Key,
+                        KillCount = group.Count()
+                    })
+                    .OrderByDescending(x => x.KillCount)
+                    .Take(10)
+                    .ToList();
+
+                return topTenPlayers.Select(player => ((uint)player.PlayerId, player.KillCount)).ToList();
+            }
+        }
+        public (int killCount, List<uint>) GetPersonalKillStats(uint playerId)
+        {
+            using (var context = new ShardDbContext())
+            {
+                var last10Kills = context.PKStatsKills
+                  .Where(kill => kill.KillerId == playerId)
+                  .OrderByDescending(kill => kill.EventTime)
+                  .Take(10)
+                  .ToList();
+
+                var last10VictimIds = last10Kills.Select(kill => (uint)kill.VictimId).ToList();
+
+                var killCount = context.PKStatsKills
+                    .Where(kill => kill.KillerId == playerId)
+                    .Count();
+
+                return (killCount, last10VictimIds);
+            }
+        }
+
+        public PKStatsKill GetLastKillEntry(uint killerId, uint victimId)
+        {
+            using (var context = new ShardDbContext())
+            {
+                return context.PKStatsKills
+                    .Where(kill => kill.KillerId == killerId && kill.VictimId == victimId)
+                    .OrderByDescending(kill => kill.EventTime)
+                    .FirstOrDefault();
+            }
+
+        }
+
+        public bool UpdatePkTrophyCooldown(ulong killerId, ulong victimId)
+        {
+            using (var context = new ShardDbContext())
+            {
+                // Check if a PK trophy cooldown exists for the killerId and victimId pair
+                var trophyCooldown = context.PkTrophyCooldowns
+                    .FirstOrDefault(tc => tc.KillerId == killerId && tc.VictimId == victimId);
+
+                if (trophyCooldown != null)
+                {
+                    // Check if the cooldown has expired
+                    if (trophyCooldown.CooldownEndTime < DateTime.Now)
+                    {
+                        // Cooldown has expired, update the cooldown end time
+                        trophyCooldown.CooldownEndTime = DateTime.Now.AddMinutes(20);
+                        context.SaveChanges();
+
+                        // Return true to indicate that the cooldown has expired
+                        return true;
+                    }
+                    else
+                    {
+                        // Cooldown has not expired
+                        return false;
+                    }
+                }
+                else
+                {
+                    trophyCooldown = new PkTrophyCooldown()
+                    {
+                        KillerId = killerId,
+                        VictimId = victimId,
+                    };
+                    trophyCooldown.CooldownEndTime = DateTime.Now.AddMinutes(20);
+                    context.PkTrophyCooldowns.Add(trophyCooldown);
+                    context.SaveChanges();
+                    // No existing cooldown, return false
+                    return true;
+                }
+            }
+        }
+
     }
 }

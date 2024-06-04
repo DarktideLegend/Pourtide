@@ -108,12 +108,14 @@ namespace ACE.Server.WorldObjects
             // Time to rot has elapsed, time to disappear...
             decayCompleted = true;
 
-            // If this is a player corpse, puke out the corpses contents onto the landblock
-            if (corpse != null && !corpse.IsMonster)
+            try
             {
-                var inventoryGUIDs = corpse.Inventory.Keys.ToList();
+                // If this is a player corpse, puke out the corpses contents onto the landblock
+                if (corpse != null && !corpse.IsMonster)
+                {
+                    var inventoryGUIDs = corpse.Inventory.Keys.ToList();
 
-                var pukedItems = "";
+                    var pukedItems = "";
 
                 foreach (var guid in inventoryGUIDs)
                 {
@@ -128,24 +130,30 @@ namespace ACE.Server.WorldObjects
                     }
                 }
 
-                if (pukedItems.EndsWith(", "))
-                    pukedItems = pukedItems.Substring(0, pukedItems.Length - 2);
+                    if (pukedItems.EndsWith(", "))
+                        pukedItems = pukedItems.Substring(0, pukedItems.Length - 2);
 
                 if(log.IsDebugEnabled)
                     log.Debug($"[CORPSE] {corpse.Name} (0x{corpse.Guid}) at {corpse.Location.ToLOCString()} has decayed{((pukedItems == "") ? "" : $" and placed the following items on the landblock: {pukedItems}")}.");
             }
 
-            if (corpse != null)
-            {
-                EnqueueBroadcast(new GameMessageScript(Guid, PlayScript.Destroy));
+                if (corpse != null)
+                {
+                    EnqueueBroadcast(new GameMessageScript(Guid, PlayScript.Destroy));
 
-                var actionChain = new ActionChain();
-                actionChain.AddDelaySeconds(1.0f);
-                actionChain.AddAction(this, () => Destroy());
-                actionChain.EnqueueChain();
+                    var actionChain = new ActionChain();
+                    actionChain.AddDelaySeconds(1.0f);
+                    actionChain.AddAction(this, () => Destroy());
+                    actionChain.EnqueueChain();
+                }
+                else
+                    Destroy();
+            } catch (Exception ex)
+            {
+                log.Error($"Error: corpse decay error");
+                log.Error(ex.Message);
+                log.Error(ex.StackTrace);
             }
-            else
-                Destroy();
         }
 
         public void DeleteObject(Container rootOwner = null)

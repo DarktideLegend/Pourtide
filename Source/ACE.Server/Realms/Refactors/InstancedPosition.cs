@@ -1,6 +1,5 @@
 using ACE.DatLoader;
 using ACE.Entity;
-using ACE.Server.Managers;
 using ACE.Server.Network.GameAction.Actions;
 using ACE.Server.Physics.Common;
 using ACE.Server.Physics.Extensions;
@@ -82,20 +81,6 @@ namespace ACE.Server.Realms
             ushort left = (ushort)(instanceId >> 16);
             isTemporaryRuleset = (left & 0x8000) == 0x8000;
             realmId = (ushort)(left & 0x7FFF);
-        }
-
-        /// <summary>
-        /// Returns null if it is not a permanent realm
-        /// </summary>
-        public WorldRealm WorldRealm
-        {
-            get
-            {
-                ParseInstanceID(Instance, out var ephemeral, out var realmId, out _);
-                if (IsEphemeralRealm)
-                    return null;
-                return RealmManager.GetRealm(realmId, false);
-            }
         }
 
         public ushort RealmID
@@ -229,6 +214,54 @@ namespace ACE.Server.Realms
 
             return Entity.HouseCell.HouseCells.ContainsKey(cell);
         }
+        public static Position slocToPosition(string location)
+        {
+            var parameters = location.Split(' ');
+            uint cell;
+
+            if (parameters[0].StartsWith("0x"))
+            {
+                string strippedcell = parameters[0].Substring(2);
+                cell = (uint)int.Parse(strippedcell, System.Globalization.NumberStyles.HexNumber);
+            }
+            else
+                cell = (uint)int.Parse(parameters[0], System.Globalization.NumberStyles.HexNumber);
+
+            var positionData = new float[7];
+            for (uint i = 0u; i < 7u; i++)
+            {
+                if (i > 2 && parameters.Length < 8)
+                {
+                    positionData[3] = 1;
+                    positionData[4] = 0;
+                    positionData[5] = 0;
+                    positionData[6] = 0;
+                    break;
+                }
+
+                if (!float.TryParse(parameters[i + 1].Trim(new Char[] { ' ', '[', ']' }), out var position))
+                    throw new Exception();
+
+                positionData[i] = position;
+            }
+
+            uint inst = 0;
+            if (parameters.Length >= 9)
+                inst = uint.Parse(parameters[8].Trim());
+
+            return new Position(cell, positionData[0], positionData[1], positionData[2], positionData[4], positionData[5], positionData[6], positionData[3], inst);
+        }
+
+        public string LandblockHex
+        {
+            get
+            {
+                var currentLbRaw = LandblockId.Raw;
+                var currentLb = $"{currentLbRaw:X8}".Substring(0, 4);
+                return currentLb;
+            }
+        }
+
 
         #region Mutators
 

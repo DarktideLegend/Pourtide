@@ -13,6 +13,7 @@ using ACE.Server.Entity.Actions;
 using ACE.Server.Network.Enum;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
+using ACE.Database;
 
 namespace ACE.Server.WorldObjects
 {
@@ -118,6 +119,14 @@ namespace ACE.Server.WorldObjects
         {
             if (target.Health.Current <= 0)
                 return null;
+
+            if (!CanDamage(target))
+            {
+                SendTransientError($"You cannot attack {target.Name}");
+                return null;
+            }
+
+
 
             var targetPlayer = target as Player;
 
@@ -463,13 +472,13 @@ namespace ACE.Server.WorldObjects
 
         public int TakeDamage(WorldObject source, DamageEvent damageEvent)
         {
-            return TakeDamage(source, damageEvent.DamageType, damageEvent.Damage, damageEvent.BodyPart, damageEvent.IsCritical, damageEvent.AttackConditions);
+            return TakeDamage(source, damageEvent.DamageType, damageEvent.Damage, damageEvent.BodyPart, damageEvent.IsCritical, damageEvent.CombatType, damageEvent.AttackConditions);
         }
 
         /// <summary>
         /// Applies damages to a player from a physical damage source
         /// </summary>
-        public int TakeDamage(WorldObject source, DamageType damageType, float _amount, BodyPart bodyPart, bool crit = false, AttackConditions attackConditions = AttackConditions.None)
+        public int TakeDamage(WorldObject source, DamageType damageType, float _amount, BodyPart bodyPart, bool crit = false, CombatType combatType = default, AttackConditions attackConditions = AttackConditions.None)
         {
             if (Invincible || IsDead) return 0;
 
@@ -507,6 +516,9 @@ namespace ACE.Server.WorldObjects
             // update health
             var damageTaken = (uint)-UpdateVitalDelta(Health, (int)-amount);
             DamageHistory.Add(source, damageType, damageTaken);
+
+            if (source is Player)
+                DatabaseManager.Shard.BaseDatabase.TrackPkStatsDamage(HomeRealm, Location.RealmID, (uint)source.Guid.Full, (uint)Guid.Full, (int)damageTaken, crit, (uint)combatType);
 
             // update stamina
             if (CombatMode != CombatMode.NonCombat)
@@ -900,6 +912,10 @@ namespace ACE.Server.WorldObjects
                 callbackChain.EnqueueChain();
             }
         }
+        public bool CanDamageNoTeleport(Creature target)
+        {
+            return target.Attackable && !(target is CombatPet);
+        }
 
         public override bool CanDamage(Creature target)
         {
@@ -995,7 +1011,34 @@ namespace ACE.Server.WorldObjects
         {
             //log.Info($"Updating PK timer for {Name}");
 
+            DispelPkRares();
+
             LastPkAttackTimestamp = Time.GetUnixTime();
+        }
+
+        //Since this may be called very frequently, this is an attempt at a more efficient means to dispel rare spells by using a cached HashSet of rare spell enchantments
+        private void DispelPkRares()
+        {
+            if (!PropertyManager.GetBool("dispel_rares_pvp").Item)
+                return;
+
+            if (this.RareSpellEnchantments.Count > 0)
+            {
+                foreach (var spellid in this.RareSpellEnchantments.ToArray())
+                {
+                    // Retrieve enchantment on target and remove it, if present
+                    if (EnchantmentManager.HasSpell(spellid))
+                    {
+                        var enchantment = EnchantmentManager.GetEnchantment(spellid);
+                        while (enchantment != null)
+                        {
+                            log.Info($"Dispel rared spell ID {spellid} from {this.Name} on PK flagging");
+                            EnchantmentManager.Remove(enchantment);
+                            enchantment = EnchantmentManager.GetEnchantment(spellid);
+                        }
+                    }
+                }
+            }
         }
 
         /// <summary>

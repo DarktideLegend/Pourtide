@@ -13,7 +13,9 @@ namespace ACE.Server.Realms
     {
         public static readonly ImmutableHashSet<ushort> DuelLandblocks;
         public static readonly ImmutableList<AugmentationType> DuelAugmentations;
+        public static readonly ImmutableList<AugmentationType> PourtideAugmentations;
         public static readonly LocalPosition DuelStagingAreaDrop = new LocalPosition(0x01AC0118, 29.684622f, -30.072382f, 0.005000f, 0.000000f, 0.000000f, 0.035476156f, -0.9993705f);
+
         static RealmConstants()
         {
             DuelLandblocks = new List<ushort>()
@@ -57,6 +59,15 @@ namespace ACE.Server.Realms
                 AugmentationType.SpellDuration,
                 AugmentationType.SpellDuration
             }.ToImmutableList();
+
+            PourtideAugmentations = new List<AugmentationType>() {
+                AugmentationType.FociCreature,
+                AugmentationType.FociItem,
+                AugmentationType.FociLife,
+                AugmentationType.FociWar,
+                AugmentationType.FociVoid,
+            }.ToImmutableList();
         }
     }
 }
+

@@ -25,6 +25,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using ACE.Server.Features.HotDungeons.Managers;
+using ACE.Server.Features.Xp;
+using ACE.Server.Features.Discord;
 using System.Runtime;
 using ACE.Common.ACRealms;
 
@@ -175,8 +178,8 @@ namespace ACE.Server
 
             if (ConfigManager.Config.Server.WorldName != "AC Realms")
             {
-                consoleTitle = $"{ConfigManager.Config.Server.WorldName} | {consoleTitle}";
-                Console.Title = consoleTitle;
+                //consoleTitle = $"{ConfigManager.Config.Server.WorldName} | {consoleTitle}";
+                //Console.Title = consoleTitle;
             }
 
             // https://learn.microsoft.com/en-us/dotnet/core/extensions/generic-host?tabs=appbuilder
@@ -332,6 +335,9 @@ namespace ACE.Server
 
             if (ConfigManager.Config.Server.WorldDatabasePrecaching)
             {
+
+                log.Info("Precaching Dungeon Creatures...");
+                DatabaseManager.World.CacheDungeonCreatures();
                 log.Info("Precaching Weenies...");
                 DatabaseManager.World.CacheAllWeenies();
                 log.Info("Precaching Cookbooks...");
@@ -380,6 +386,13 @@ namespace ACE.Server
             log.Info("Initializing EventManager...");
             EventManager.Initialize();
 
+            log.Info("Initializing XpManager...");
+            XpManager.Initialize();
+
+            log.Info("Initializing DungeonManager...");
+            DungeonManager.Initialize();
+
+
             // Free up memory before the server goes online. This can free up 6 GB+ on larger servers.
             log.Info("Forcing .net garbage collection...");
             for (int i = 0; i < 10; i++)
@@ -399,6 +412,8 @@ namespace ACE.Server
             log.Info("Registering ModManager commands...");
             ModManager.RegisterCommands();
             ModManager.ListMods();
+
+            DiscordChatBridge.Start();
 
             if (!PropertyManager.GetBool("world_closed", false).Item)
             {

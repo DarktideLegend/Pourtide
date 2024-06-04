@@ -1,6 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
-
+using System.Net;
+using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
+using System.Text;
+using ACE.Database;
 using ACE.Entity;
 using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
@@ -58,6 +63,47 @@ namespace ACE.Server.WorldObjects
             get => GetProperty(PropertyBool.ExistedBeforeAllegianceXpChanges) ?? true;
             set { if (value) RemoveProperty(PropertyBool.ExistedBeforeAllegianceXpChanges); else SetProperty(PropertyBool.ExistedBeforeAllegianceXpChanges, value); }
         }
+        private static string ByteArrayToIpAddress(byte[] bytes)
+        {
+            if (bytes.Length != 4) // Check if it's a valid IPv4 address byte array
+            {
+                throw new ArgumentException("Invalid byte array length for IPv4 address.");
+            }
+
+            return new IPAddress(bytes).ToString();
+        }
+
+        public static string GetCharacterIp(IPlayer player)
+        {
+            var ip = player.Account.LastLoginIP;
+            var ipString = ByteArrayToIpAddress(ip);
+            return ipString;
+        }
+
+        public bool IsAlly(ushort realmId, IPlayer potentialAlly)
+        {
+            if (potentialAlly == this)
+                return true;
+            if (potentialAlly.IsAllyForTesting || ((IPlayer)this).IsAllyForTesting)
+                return true;
+            if (potentialAlly.IsEnemyForTesting || ((IPlayer)this).IsEnemyForTesting)
+                return false;
+
+            try
+            {
+                var selfIp = GetCharacterIp(this);
+                var potentialAllyIp = GetCharacterIp(potentialAlly);
+
+                return PlayerManager.CheckIpAssociations(realmId, selfIp, potentialAllyIp);
+            }
+            catch (Exception ex)
+            {
+                log.Error("An error occurred while trying to get allegiance associated with ip address");
+                log.Error(ex.Message);
+                log.Error(ex.StackTrace);
+                return false;
+            }
+        }
 
         /// <summary>
         /// Called when a player tries to Swear Allegiance to a target
@@ -107,6 +153,8 @@ namespace ACE.Server.WorldObjects
             // handle special case: monarch swearing into another allegiance
             if (Allegiance != null && Allegiance.MonarchId == Guid.Full)
                 HandleMonarchSwear();
+            else
+                PlayerManager.UpdatePlayerToIpMap(HomeRealm, GetCharacterIp(this), Guid.Full);
 
             SaveBiotaToDatabase();
 
@@ -146,6 +194,7 @@ namespace ACE.Server.WorldObjects
             AllegianceNode.Walk((node) =>
             {
                 node.Player.UpdateProperty(PropertyInstanceId.Monarch, MonarchId, true);
+                PlayerManager.UpdatePlayerToIpMap(HomeRealm, GetCharacterIp(node.Player), node.Player.Guid.Full);
 
                 node.Player.SaveBiotaToDatabase();
 
@@ -169,6 +218,8 @@ namespace ACE.Server.WorldObjects
         /// <param name="targetGuid">The target this player is attempting to break allegiance from</param>
         public void HandleActionBreakAllegiance(uint targetGuid)
         {
+            return;
+
             if (!IsBreakable(targetGuid)) return;
 
             var target = PlayerManager.FindByGuid(targetGuid, out var targetIsOnline);
@@ -1013,7 +1064,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (action == AllegianceLockAction.On && Allegiance.IsLocked || action== AllegianceLockAction.Off && !Allegiance.IsLocked)
+            if (action == AllegianceLockAction.On && Allegiance.IsLocked || action == AllegianceLockAction.Off && !Allegiance.IsLocked)
             {
                 Session.Network.EnqueueSend(new GameMessageSystemChat($"The allegiance is already {lockStatus}.", ChatMessageType.Broadcast));
                 return;

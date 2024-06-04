@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
-
+using ACE.Common;
 using ACE.Database;
 using ACE.DatLoader;
 using ACE.DatLoader.FileTypes;
@@ -11,9 +11,13 @@ using ACE.Entity;
 using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
 using ACE.Entity.Models;
+using ACE.Server.Command.Handlers;
 using ACE.Server.Entity;
 using ACE.Server.Entity.Actions;
 using ACE.Server.Factories;
+using ACE.Server.Factories.Tables;
+using ACE.Server.Features.HotDungeons.Managers;
+using ACE.Server.Features.Rifts;
 using ACE.Server.Managers;
 using ACE.Server.Network;
 using ACE.Server.Network.GameEvent.Events;
@@ -307,8 +311,9 @@ namespace ACE.Server.WorldObjects
 
             TryShuffleStance(wieldedLocation);
 
+            var isDuel = CurrentLandblock.RealmRuleset.GetProperty(RealmPropertyBool.IsDuelingRealm);
             // handle item spells
-            if (item.ItemCurMana > 0)
+            if (isDuel || item.ItemCurMana > 0)
                 TryActivateSpells(item);
 
             // handle equipment sets
@@ -1260,6 +1265,14 @@ namespace ACE.Server.WorldObjects
         private bool DoHandleActionPutItemInContainer(WorldObject item, Container itemRootOwner, bool itemWasEquipped, Container container, Container containerRootOwner, int placement)
         {
             //Console.WriteLine($"-> DoHandleActionPutItemInContainer({item.Name}, {itemRootOwner?.Name}, {itemWasEquipped}, {container?.Name}, {containerRootOwner?.Name}, {placement})");
+
+            ItemType containerValidTypes = (ItemType)(container.MerchandiseItemTypes ?? 0);
+            if (containerValidTypes != 0 && (item.ItemType & containerValidTypes) == 0)
+            {
+                Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, $"The {container.Name} can't hold that type of item!")); // Custom error message
+                Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid)); // Change to ClientGUID in realms v2
+                return false;
+            }
 
             InstancedPosition prevLocation = null;
             Landblock prevLandblock = null;
@@ -3215,6 +3228,16 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
+            if (target.WeenieClassId == 3000381 && item.WeenieClassId == 2626)
+            {
+                /*if (DateTime.UtcNow - PlayerBountySearchTimestamp < TimeSpan.FromSeconds(5))
+                {
+                    Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, $"Bounty information is only available once every minute, try again in {Formatting.FormatTimeRemaining(PlayerBountySearchTimestamp.AddMinutes(1) - DateTime.UtcNow)}!"));
+                    Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, itemGuid));
+                    return;
+                }*/
+            }
+
             CreateMoveToChain(target, (success) =>
             {
                 if (CurrentLandblock == null) // Maybe we were teleported as we were motioning to pick up the item
@@ -3228,6 +3251,18 @@ namespace ACE.Server.WorldObjects
                     Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, itemGuid, WeenieError.ActionCancelled));
                     return;
                 }
+
+                Trace(new PlayerItemGiveEntry()
+                {
+                    GivenTo = target.Name,
+                    GivenToClient = target is Player p ? p.ClientID : $"NPC-{target.WeenieClassId}",
+                    ItemGuid = item.Guid.ToString(),
+                    ItemName = item.Name,
+                    PlayerClient = this.ClientID,
+                    PlayerName = this.Name,
+                    WeenieID = item.WeenieClassId
+                });
+
 
                 if (target is Player targetAsPlayer)
                     GiveObjectToPlayer(targetAsPlayer, item, itemFoundInContainer, itemRootOwner, itemWasEquipped, amount);
@@ -3357,6 +3392,115 @@ namespace ACE.Server.WorldObjects
             actionChain.EnqueueChain();
         }
 
+        public DateTime PlayerBountySearchTimestamp;
+
+        public static bool GetBounty(Creature collector, Player currentPlayer, bool getCached = false)
+        {
+            try
+            {
+                /*if (DateTime.UtcNow - currentPlayer.PlayerBountySearchTimestamp <= TimeSpan.FromSeconds(5))
+                {
+                    currentPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{collector.Name} tells you, \"I only give bounty information once every minute, try again in {Formatting.FormatTimeRemaining(currentPlayer.PlayerBountySearchTimestamp.AddMinutes(1) - DateTime.UtcNow)}!.\"", ChatMessageType.Tell));
+                    return false;
+                }*/
+
+                currentPlayer.PlayerBountySearchTimestamp = DateTime.UtcNow;
+
+                var bountyGuid = currentPlayer.BountyGuid;
+
+                Player bountyPlayer = null;
+
+                if (getCached)
+                {
+                    if (bountyGuid == null)
+                    {
+                        currentPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{collector.Name} tells you, \"I have not given you a bounty, please bring me a D note if you'd like one!\"", ChatMessageType.Tell));
+                        return false;
+                    }
+
+                    bountyPlayer = PlayerManager.GetOnlinePlayer((uint)bountyGuid);
+
+                    if (bountyPlayer == null)
+                    {
+                        currentPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{collector.Name} tells you, \"I cannot find your bounty, they may be in an invalid location or not logged on.\"", ChatMessageType.Tell));
+                        return false;
+                    }
+                }
+                else 
+                {
+                    var players = PlayerManager.GetEnemyOnlinePlayers(currentPlayer).Where(p =>
+                                 p.Guid.Full != currentPlayer.Guid.Full &&
+                                 (PropertyManager.GetBool("test_server").Item || !(p is Admin)) &&
+                                 !p.IsLoggingOut &&
+                                 p.IsPK).ToList();
+
+                    if (players.Count <= 0)
+                    {
+                        currentPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{collector.Name} tells you, \"There are currently no bounty players available at this time.\"", ChatMessageType.Tell));
+                        return false;
+                    };
+
+                    var roll = ThreadSafeRandom.Next(0, players.Count - 1);
+
+                    bountyPlayer = players[roll];
+                }
+
+                if (bountyPlayer == null)
+                {
+                    currentPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{collector.Name} tells you, \"There are currently no bounty players available at this time.\"", ChatMessageType.Tell));
+                    return false;
+                }
+
+                if (bountyPlayer.PhysicsObj == null)
+                {
+                    currentPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{collector.Name} tells you, \"A bounty for {bountyPlayer.Name} was found but may be stuck in game.\"", ChatMessageType.Tell));
+                    return false;
+                }
+
+                var coords = bountyPlayer.Location.GetMapCoordStr();
+
+
+                if (RiftManager.TryGetActiveRift(bountyPlayer.Location.Instance, out Rift activeRift))
+                {
+                    currentPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{collector.Name} tells you, \"Player {bountyPlayer.Name} was last seen at rift {activeRift.Name} - {activeRift.Coords}.\"", ChatMessageType.Tell));
+                    currentPlayer.BountyGuid = (int?)bountyPlayer.Guid.Full;
+                }
+                else if (DungeonManager.TryGetDungeonLandblock(bountyPlayer.Location.LandblockHex, out DungeonLandblock landblock))
+                {
+                    currentPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{collector.Name} tells you, \"Player {bountyPlayer.Name} was last seen at dungeon {landblock.Name} - {landblock.Coords}.\"", ChatMessageType.Tell));
+                    currentPlayer.BountyGuid = (int?)bountyPlayer.Guid.Full;
+                }
+                else if (coords != null && coords.Length > 0)
+                {
+                    currentPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{collector.Name} tells you, \"Player {bountyPlayer.Name} was last seen at {bountyPlayer.Location.GetMapCoordStr()}.\"", ChatMessageType.Tell));
+                    currentPlayer.BountyGuid = (int?)bountyPlayer.Guid.Full;
+                }
+                else if (bountyPlayer.LastOutdoorPosition != null)
+                {
+                    currentPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{collector.Name} tells you, \"Player {bountyPlayer.Name} is in an unknown dungeon landblock ({bountyPlayer.Location.LandblockHex}) and was last seen outdoors near {bountyPlayer.LastOutdoorPosition.GetMapCoordStr()}.\"", ChatMessageType.Tell));
+                    currentPlayer.BountyGuid = (int?)bountyPlayer.Guid.Full;
+                }
+                else
+                {
+                    if (getCached)
+                        currentPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{collector.Name} tells you, \"Sorry, I could not find your bounty {bountyPlayer?.Name} at this time ... Try again later.\"", ChatMessageType.Tell));
+                    else 
+                        currentPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{collector.Name} tells you, \"Sorry, a bounty was found for {bountyPlayer?.Name} but they are in an unknown location  ... Try again later.\"", ChatMessageType.Tell));
+
+                    return false;
+                }
+
+                return true;
+            } catch (Exception ex)
+            {
+                log.Error($"Error: an error occurred while trying to get a bounty for {currentPlayer.Name}");
+                log.Error(ex.Message);
+                log.Error(ex.StackTrace);
+                return false;
+            }
+
+        }
+
         private void GiveObjectToNPC(WorldObject target, WorldObject item, Container itemFoundInContainer, Container itemRootOwner, bool itemWasEquipped, int amount)
         {
             if (target == null || item == null) return;
@@ -3404,6 +3548,103 @@ namespace ACE.Server.WorldObjects
                     // if stacked item, only give 1, ignoring amount indicated, unless they are AiAcceptEverything in which case, take full amount indicated
                     if (RemoveItemForGive(item, itemFoundInContainer, itemWasEquipped, itemRootOwner, acceptAll ? amount : 1, out WorldObject itemToGive))
                     {
+                        if (target.WeenieClassId == 3000382 && item.WeenieClassId == 60000212)
+                        {
+                            if (item.BountyTrophyGuid == null)
+                                return;
+
+                            var victim = PlayerManager.FindByGuid((ulong)item.BountyTrophyGuid);
+                            if (victim == null)
+                                return;
+
+                            var mod = (double)victim.Level / (double)Level;
+                            var playerXp = (victim.GetProperty(PropertyInt64.TotalExperience) ?? 0) * 0.02;
+                            var earnedPvpXp = playerXp * mod;
+                            EarnXP((long)Math.Round((double)earnedPvpXp), XpType.Quest, ShareType.None);
+                        }
+
+                        if (target.WeenieClassId == 3000383 && item.WeenieClassId == 60000212)
+                        {
+                            if (item.BountyTrophyGuid == null)
+                                return;
+
+                            var victim = PlayerManager.FindByGuid((ulong)item.BountyTrophyGuid);
+                            if (victim == null)
+                                return;
+
+                            var mod = (double)victim.Level / (double)Level;
+                            var playerXp = (victim.GetProperty(PropertyInt64.TotalExperience) ?? 0) * 0.02;
+                            var earnedPvpXp = playerXp * mod;
+                            EarnXP((long)Math.Round((double)earnedPvpXp), XpType.Kill, ShareType.None);
+                        }
+
+                        if (target.WeenieClassId == 3000381 && item.WeenieClassId == 60000212)
+                        {
+                            var xp = PvpXpDailyMax * 0.08; // give 8% of total PvpXpDailyMax
+
+                            if (BountyGuid != null && item.BountyTrophyGuid != null)
+                            {
+
+                                if (BountyGuid.Value == item.BountyTrophyGuid.Value)
+                                {
+                                    xp = PvpXpDailyMax * 0.25;
+                                    for (var i = 0; i < 5; ++i)
+                                    {
+                                        // add ore
+                                        var ore = WorldObjectFactory.CreateNewWorldObject(603004);
+                                        TryCreateInInventoryWithNetworking(ore);
+                                    }
+
+                                    // add slayer
+                                    var creatureType = SlayersChance.GetCreatureType();
+                                    var slayer = WorldObjectFactory.CreateNewWorldObject(604001);
+                                    var damage = ThreadSafeRandom.Next((float)1.5, (float)3.0);
+                                    slayer.Name = $"{creatureType} Slayer Skull";
+
+                                    if (creatureType == ACE.Entity.Enum.CreatureType.Human)
+                                        damage = ThreadSafeRandom.Next((float)1.1, (float)1.5);
+
+                                    slayer.LongDesc = $"Use this skull on any loot-generated weapon or caster to give it a {creatureType} Slayer effect. The damage for this slayer skull is {damage.ToString("0.00")}";
+                                    slayer.SlayerCreatureType = creatureType;
+                                    slayer.SlayerDamageBonus = damage;
+
+                                    TryCreateInInventoryWithNetworking(slayer);
+
+                                    BountyGuid = null;
+                                }
+                            }
+
+                            EarnXP((long)xp, XpType.Pvp, ShareType.None);
+                        }
+
+                        if (target.WeenieClassId == 3000381 && item.WeenieClassId == 2626)
+                        {
+                            if (!GetBounty((Creature)target, this))
+                            {
+                                var tradeNote = WorldObjectFactory.CreateNewWorldObject(2626);
+                                TryCreateInInventoryWithNetworking(tradeNote);
+                                PlayerBountySearchTimestamp = DateTime.MinValue;
+                                return;
+                            }
+                        }
+
+                        if (target.WeenieClassId == 3000381 && item.WeenieClassId == 7377)
+                        {
+                            var wcid = (uint)Player.MaterialSalvage[52];
+                            var leatherBag = WorldObjectFactory.CreateNewWorldObject(wcid);
+                            leatherBag.Structure = 100;
+                            TryCreateInInventoryWithNetworking(leatherBag);
+                            return;
+                        }
+
+                        if (target.WeenieClassId == 3000381 && item.WeenieClassId == 603004)
+                        {
+                            var xp = QuestXpDailyMax * 0.10;
+                            //DeveloperCommands.HandleCILoot(Session, item.ForgottenOreTier.ToString(), 5.ToString());
+                            EarnXP((long)xp, XpType.Quest, ShareType.None);
+                            return;
+                        }
+
                         if (item == itemToGive)
                             Session.Network.EnqueueSend(new GameEventItemServerSaysContainId(Session, item, target));
 

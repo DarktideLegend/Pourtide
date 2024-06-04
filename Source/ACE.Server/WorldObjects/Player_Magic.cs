@@ -134,7 +134,7 @@ namespace ACE.Server.WorldObjects
 
             var targetCategory = GetTargetCategory(targetGuid.Full, spellId, out var target);
 
-            if (target == null || target.Teleporting)
+            if (target == null)
             {
                 SendUseDoneEvent(WeenieError.TargetNotAcquired);
                 return;
@@ -472,7 +472,7 @@ namespace ACE.Server.WorldObjects
             if (target == this && spell.IsNegativeRedirectable)
                 return true;
 
-            if (targetCreature != null && targetCreature != this && spell.NonComponentTargetType == ItemType.Creature && !CanDamage(targetCreature))
+            if (targetCreature != null && targetCreature != this && spell.NonComponentTargetType == ItemType.Creature && !CanDamageNoTeleport(targetCreature))
                 return true;
 
             return false;
@@ -640,7 +640,9 @@ namespace ACE.Server.WorldObjects
             }
 
             if (FastTick)
-                windupTime = EnqueueMotionAction(castChain, spell.Formula.WindupGestures, CastSpeed, MotionStance.Magic, checkCasting: true);
+                windupTime = EnqueueMotionAction(castChain, spell.Formula.WindupGestures, CastSpeed, MotionStance.Magic);
+
+
         }
 
         public void DoCastGesture(Spell spell, WorldObject casterItem, ActionChain castChain)
@@ -665,8 +667,6 @@ namespace ACE.Server.WorldObjects
 
             castChain.AddAction(this, () =>
             {
-                if (!MagicState.IsCasting) return;
-
                 MagicState.CastGestureStartTime = DateTime.UtcNow;
 
                 if (FastTick)
@@ -823,7 +823,7 @@ namespace ACE.Server.WorldObjects
                 var stopCompletely = !MagicState.CastMotionDone;
                 //var stopCompletely = true;
 
-                CreateTurnToChain2(target, null, null, stopCompletely, MagicState.AlwaysTurn);
+                CreateTurnToChain2(target, null, stopCompletely, MagicState.AlwaysTurn);
 
                 MagicState.AlwaysTurn = false;
             }
@@ -887,6 +887,15 @@ namespace ACE.Server.WorldObjects
             var pk_error = CheckPKStatusVsTarget(target, spell);
             if (pk_error != null)
                 castingPreCheckStatus = CastingPreCheckStatus.InvalidPKStatus;
+
+
+            if (target != null && target.Teleporting)
+            {
+                if (spell.NumProjectiles == 0)
+                    SendTransientError($"You fail to affect {target.Name} because they are in portal space");
+
+                castingPreCheckStatus = CastingPreCheckStatus.InvalidPKStatus;
+            }
 
             switch (castingPreCheckStatus)
             {
@@ -1180,7 +1189,7 @@ namespace ACE.Server.WorldObjects
 
         public void TryBurnComponents(Spell spell)
         {
-            if (SafeSpellComponents || PropertyManager.GetBool("safe_spell_comps").Item)
+            if (CurrentLandblock.RealmHelpers.IsDuel || SafeSpellComponents || PropertyManager.GetBool("safe_spell_comps").Item)
                 return;
 
             var burned = spell.TryBurnComponents(this);
@@ -1228,7 +1237,7 @@ namespace ACE.Server.WorldObjects
         {
             spell.Formula.GetPlayerFormula(this);
 
-            if (!SpellComponentsRequired || !PropertyManager.GetBool("require_spell_comps").Item)
+            if (CurrentLandblock.RealmHelpers.IsDuel || !SpellComponentsRequired || !PropertyManager.GetBool("require_spell_comps").Item)
                 return true;
 
             var requiredComps = spell.Formula.GetRequiredComps();

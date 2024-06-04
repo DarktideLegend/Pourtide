@@ -9,6 +9,7 @@ using ACE.Entity.Enum.Properties;
 using ACE.Entity.Models;
 using ACE.Server.Entity;
 using ACE.Server.Network.GameEvent.Events;
+using ACE.Server.Managers;
 using ACE.Server.Realms;
 
 namespace ACE.Server.WorldObjects

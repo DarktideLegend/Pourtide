@@ -131,9 +131,30 @@ namespace ACE.Server.WorldObjects
             SetEphemeralValues();
             InitializeGenerator();
             InitializeHeartbeats();
+            UpdateDurability(this);
         }
 
+
+
         public bool BumpVelocity { get; set; }
+
+        public static void UpdateDurability(WorldObject item) 
+        {
+            if (item.ArmorLevel == null)
+                return;
+
+            if (item.OriginalArmorLevel == null)
+                item.OriginalArmorLevel = item.ArmorLevel;
+
+            StringBuilder message = new StringBuilder();
+
+            var originalAl = $"Original Armor Level: {item.OriginalArmorLevel}\n";
+            message.Append(originalAl);
+
+            var durabilityLoss = item.OriginalArmorLevel - item.ArmorLevel;
+            message.Append($"Durability Loss: {durabilityLoss}");
+            item.LongDesc = message.ToString();
+        }
 
         /// <summary>
         /// Initializes a new default physics object
@@ -241,7 +262,7 @@ namespace ACE.Server.WorldObjects
         }
 
         private void SetEphemeralValues()
-        { 
+        {
             ObjectDescriptionFlags = ObjectDescriptionFlag.Attackable;
 
             EmoteManager = new EmoteManager(this);
@@ -267,7 +288,7 @@ namespace ACE.Server.WorldObjects
             {
                 emote = refuseItem;
                 return true;
-            }            
+            }
 
             // NPC accepts this item
             var giveItem = EmoteManager.GetEmoteSet(EmoteCategory.Give, null, null, item.WeenieClassId);
@@ -566,7 +587,7 @@ namespace ACE.Server.WorldObjects
                         break;
                     case "linkedlifestone":
                         sb.AppendLine($"{prop.Name} = {obj.LinkedLifestone.ToLOCString()}");
-                        break;                    
+                        break;
                     case "channelsactive":
                         sb.AppendLine($"{prop.Name} = {(Channel)obj.GetProperty(PropertyInt.ChannelsActive)}" + " (" + (uint)obj.GetProperty(PropertyInt.ChannelsActive) + ")");
                         break;
@@ -719,6 +740,8 @@ namespace ACE.Server.WorldObjects
 
             if (Generator != null)
                 Location = new InstancedPosition(Location, Generator.Location.Instance);
+
+            UpdateDurability(this);
 
             if (!LandblockManager.AddObject(this))
                 return false;

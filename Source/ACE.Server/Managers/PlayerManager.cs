@@ -21,16 +21,25 @@ using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.WorldObjects;
 
 using Biota = ACE.Entity.Models.Biota;
+using ACE.Server.Realms;
+using ACE.Server.Features.Discord;
 
 namespace ACE.Server.Managers
 {
     public static class PlayerManager
     {
+        public class IpCharacterInfo
+        {
+            public HashSet<ulong> Characters = new HashSet<ulong>();
+        }
+
         private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         private static readonly ReaderWriterLockSlim playersLock = new ReaderWriterLockSlim();
         private static readonly Dictionary<ulong, Player> onlinePlayers = new Dictionary<ulong, Player>();
         private static readonly Dictionary<ulong, OfflinePlayer> offlinePlayers = new Dictionary<ulong, OfflinePlayer>();
+        private static readonly Dictionary<ushort, Dictionary<string, IpCharacterInfo>> IptoPlayerGuidMap = new Dictionary<ushort, Dictionary<string, IpCharacterInfo>>();
+
 
         // indexed by player name
         private static readonly Dictionary<string, IPlayer> playerNames = new Dictionary<string, IPlayer>(StringComparer.OrdinalIgnoreCase);
@@ -51,6 +60,8 @@ namespace ACE.Server.Managers
         public static void Initialize()
         {
             var results = DatabaseManager.Shard.BaseDatabase.GetAllPlayerBiotasInParallel();
+
+            var semaphore = new SemaphoreSlim(0);
 
             Parallel.ForEach(results, ConfigManager.Config.Server.Threading.DatabaseParallelOptions, result =>
             {
@@ -76,7 +87,112 @@ namespace ACE.Server.Managers
                     else
                         log.Error($"PlayerManager.Initialize: couldn't find account for player {offlinePlayer.Name} ({offlinePlayer.Guid})");
                 }
+
+                semaphore.Release();
             });
+
+            semaphore.Wait(results.Count);
+
+            BuildIpToPlayerGuidMap();
+        }
+
+        public static bool CheckIpAssociations(ushort realmId, string ipOne, string ipTwo)
+        {
+            if (IptoPlayerGuidMap.ContainsKey(realmId))
+            {
+                var innerIpMap = IptoPlayerGuidMap[realmId];
+                if (innerIpMap.ContainsKey(ipOne) && innerIpMap.ContainsKey(ipTwo))
+                {
+                    var guidsOne = innerIpMap[ipOne].Characters;
+                    var guidsTwo = innerIpMap[ipTwo].Characters;
+                    return guidsOne.Intersect(guidsTwo).Any();
+                }
+            }
+
+            log.Warn($"Warn: Could not find IpToPlayer mapping for addressA: {ipOne} or addressB: {ipTwo} with realmId {realmId}");
+            return true; // return true as a failsafe, non associated IPs usually give rewards
+
+        }
+
+        public static void BuildIpToPlayerGuidMap()
+        {
+            var loginMap = DatabaseManager.Shard.BaseDatabase.GetIpToCharacterLoginMap();
+            foreach (var realmId in loginMap.Keys)
+            {
+                var ipCharacterMap = loginMap[realmId];
+                foreach (var ip in ipCharacterMap.Keys)
+                {
+                    var characterGuids = ipCharacterMap[ip];
+                    var monarchs = characterGuids
+                        .Select(guid => FindByGuid(guid))
+                        .Where(player => player != null)
+                        .Select(player => AllegianceManager.GetMonarch(player).Guid.Full);
+
+                    foreach (var monarch in monarchs.ToList())
+                        characterGuids.Add(monarch);
+
+                    if (!IptoPlayerGuidMap.ContainsKey(realmId))
+                    {
+                        IptoPlayerGuidMap[realmId] = new Dictionary<string, IpCharacterInfo>();
+                    }
+
+                    IptoPlayerGuidMap[realmId][ip] = new IpCharacterInfo
+                    {
+                        Characters = characterGuids
+                    };
+                }
+            }
+        }
+
+        public static void UpdatePlayerToIpMap(ushort homeRealmId, string ip, ulong guid)
+        {
+            try
+            {
+                var player = FindByGuid(guid);
+
+                if (player == null)
+                {
+                    log.Warn($"Warn: UpdatePlayerToIpMap could not find a player with guid {guid}");
+                    return;
+                }
+
+                if (IptoPlayerGuidMap.TryGetValue(homeRealmId, out var realmMap))
+                {
+                    if (realmMap.TryGetValue(ip, out var info))
+                    {
+                        info.Characters.Add(guid);
+                        info.Characters.Add(AllegianceManager.GetMonarch(player).Guid.Full);
+                    }
+                    else
+                    {
+                        var newInfo = new IpCharacterInfo()
+                        {
+                            Characters = new HashSet<ulong>() { guid },
+                        };
+
+                        newInfo.Characters.Add(AllegianceManager.GetMonarch(player).Guid.Full);
+                        realmMap[ip] = newInfo;
+                    }
+                }
+                else
+                {
+                    var newInfo = new IpCharacterInfo()
+                    {
+                        Characters = new HashSet<ulong>() { guid },
+                    };
+
+                    newInfo.Characters.Add(AllegianceManager.GetMonarch(player).Guid.Full);
+
+                    var newRealmMap = new Dictionary<string, IpCharacterInfo>();
+                    newRealmMap[ip] = newInfo;
+
+                    IptoPlayerGuidMap[homeRealmId] = newRealmMap;
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Error($"Error: UpdatePlayerToIpMap with ip {ip}, guid {guid}, and homeRealmId {homeRealmId}, Ex: {ex}");
+            }
         }
 
         private static readonly LinkedList<Player> playersPendingLogoff = new LinkedList<Player>();
@@ -290,6 +406,19 @@ namespace ACE.Server.Managers
             }
         }
 
+        public static int GetOnlineCount(ushort realmId)
+        {
+            playersLock.EnterReadLock();
+            try
+            {
+                return onlinePlayers.Values.Where(player => player.HomeRealm == realmId).Count();
+            }
+            finally
+            {
+                playersLock.ExitReadLock();
+            }
+        }
+
         /// <summary>
         /// This will return null if the player wasn't found.
         /// </summary>
@@ -356,6 +485,13 @@ namespace ACE.Server.Managers
             }
 
             return results;
+        }
+
+        public static List<Player> GetEnemyOnlinePlayers(Player player)
+        {
+            var players = GetAllOnline();
+            var enemies = players.Where(p => !p.IsAlly(player.HomeRealm,  player)).ToList();
+            return enemies;
         }
 
 
@@ -720,6 +856,13 @@ namespace ACE.Server.Managers
                 default:
                     return;
             }
+
+            // narrow channels for webhook here
+            if (channel == Channel.Audit && PropertyManager.GetString("turbine_chat_webhook_audit").Item.Length > 0)
+                _ = WebhookRepository.SendAuditChat(
+                    $"[CHAT][{channel.ToString().ToUpper()}] {(sender != null ? sender.Name : "[SYSTEM]")} says on the {channel} channel, \"{message}\""
+                    );
+
 
             if (channel != Channel.AllBroadcast)
                 log.Info($"[CHAT][{channel.ToString().ToUpper()}] {(sender != null ? sender.Name : "[SYSTEM]")} says on the {channel} channel, \"{message}\"");

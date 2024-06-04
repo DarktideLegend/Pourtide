@@ -60,6 +60,12 @@ namespace ACE.Server.WorldObjects
                 EncumbranceVal = (StackUnitEncumbrance ?? 0) * (StackSize ?? 1);
                 Value = (StackUnitValue ?? 0) * (StackSize ?? 1);
             }
+
+            if (this is Ammunition)
+            {
+                StackUnitEncumbrance = (int?)(StackUnitEncumbrance - (StackUnitEncumbrance * 0.75));
+                EncumbranceVal = (int?)(EncumbranceVal - (EncumbranceVal * 0.75));
+            }
         }
 
         public override void ActOnUse(WorldObject wo)

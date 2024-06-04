@@ -531,7 +531,11 @@ namespace ACE.Server.WorldObjects
                     if (boost >= 0)
                         targetCreature.DamageHistory.OnHeal((uint)boost);
                     else
+                    {
                         targetCreature.DamageHistory.Add(this, DamageType.Health, (uint)-boost);
+                        if (this is Player attacker && targetCreature is Player victim)
+                            DatabaseManager.Shard.BaseDatabase.TrackPkStatsDamage(attacker.HomeRealm, attacker.Location.RealmID, (uint)attacker.Guid.Full, (uint)victim.Guid.Full, (int)(uint)-boost, false, (uint)CombatType.Magic);
+                    }
 
                     //if (targetPlayer != null && targetPlayer.Fellowship != null)
                     //targetPlayer.Fellowship.OnVitalUpdate(targetPlayer);
@@ -786,6 +790,10 @@ namespace ACE.Server.WorldObjects
 
                     transferSource.DamageHistory.Add(this, DamageType.Health, srcVitalChange);
 
+                    if (this is Player attacker && caster is Player victim)
+                        DatabaseManager.Shard.BaseDatabase.TrackPkStatsDamage(attacker.HomeRealm, attacker.Location.RealmID, (uint)attacker.Guid.Full, (uint)victim.Guid.Full, -(int)srcVitalChange, false, (uint)CombatType.Magic);
+
+
                     //var sourcePlayer = source as Player;
                     //if (sourcePlayer != null && sourcePlayer.Fellowship != null)
                     //sourcePlayer.Fellowship.OnVitalUpdate(sourcePlayer);
@@ -922,6 +930,9 @@ namespace ACE.Server.WorldObjects
                     caster.DamageHistory.Add(this, DamageType.Health, damage);
                     damageType = DamageType.Health;
 
+                    if (this is Player attacker && caster is Player victim)
+                        DatabaseManager.Shard.BaseDatabase.TrackPkStatsDamage(attacker.HomeRealm, attacker.Location.RealmID, (uint)attacker.Guid.Full, (uint)victim.Guid.Full, (int)damage, false, (uint)CombatType.Magic);
+
                     //if (player != null && player.Fellowship != null)
                     //player.Fellowship.OnVitalUpdate(player);
                 }
@@ -1050,6 +1061,8 @@ namespace ACE.Server.WorldObjects
 
             var targetPlayer = targetCreature as Player;
 
+            player?.VerifyPkEnemyInVicinity();
+
             if (player != null && player.PKTimerActive)
             {
                 player.Session.Network.EnqueueSend(new GameEventWeenieError(player.Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
@@ -1162,7 +1175,9 @@ namespace ACE.Server.WorldObjects
                     portalRecall.AddDelaySeconds(2.0f);  // 2 second delay
                     portalRecall.AddAction(targetPlayer, () =>
                     {
-                        var teleportDest = portal.Destination.AsInstancedPosition(targetPlayer, targetPlayer.RealmRuleset.RecallInstanceSelectMode);
+                        var dest = portal.Destination ?? targetPlayer.Sanctuary;
+
+                        var teleportDest = dest.AsInstancedPosition(targetPlayer, targetPlayer.RealmRuleset.RecallInstanceSelectMode);
                         teleportDest = AdjustDungeon(teleportDest);
 
                         targetPlayer.Teleport(teleportDest);
@@ -1184,6 +1199,8 @@ namespace ACE.Server.WorldObjects
                 player.Session.Network.EnqueueSend(new GameEventWeenieError(player.Session, WeenieError.OlthoiCanOnlyRecallToLifestone));
                 return;
             }
+
+            //player?.VerifyPkEnemyInVicinity();
 
             if (player != null && player.PKTimerActive)
             {
@@ -1285,45 +1302,6 @@ namespace ACE.Server.WorldObjects
 
             uint? forceInstanceId = null;
 
-            if (summoner != null)
-            {
-                var summonTargetRealms = source.GetRealmsToApply();
-
-                bool doEphemeralInstance = false;
-                if (summonTargetRealms.Count > 0)
-                    doEphemeralInstance = true;
-
-                if (summonTargetRealms.Any(x => x == null))
-                {
-                    log.Error($"SummonTargetRealm for guid {source.Guid} has an invalid realm ID.");
-                    summoner.Session.Network.EnqueueSend(new GameMessageSystemChat($"Unable to summon: Realm not found.", ChatMessageType.Magic));
-                    return false;
-                }
-
-                if (summoner.RealmRuleset.GetProperty(RealmPropertyBool.IsDuelingRealm))
-                    doEphemeralInstance = true;
-
-                if (doEphemeralInstance)
-                {
-                    if (summonTargetRealms.Any(x => x.Realm.Type != RealmType.Ruleset))
-                    {
-                        log.Error($"SummonTargetRealm for guid {source.Guid} has invalid realm ID {summonTargetRealms.First(x => x.Realm.Type != RealmType.Ruleset).Realm.Id}. Realm must be of type 'Ruleset'");
-                        summoner.Session.Network.EnqueueSend(new GameMessageSystemChat($"Unable to summon: Invalid realm type.", ChatMessageType.Magic));
-                        return false;
-                    }
-                    var landblock = RealmManager.GetNewEphemeralLandblock(portal.Destination.LandblockId, summoner, summonTargetRealms.Select(x => x.Realm).ToList());
-                    forceInstanceId = landblock.Instance;
-
-                    // If the ruleset dictates that the landblock is to be unloaded if empty for less time than the portal is active for, we need to shorten this portal's duration
-                    var maxPortalTime = Math.Min(portalLifetime, TimeSpan.FromMinutes(0.5 + landblock.RealmRuleset.GetProperty(RealmPropertyInt.LandblockUnloadInterval)).TotalSeconds);
-                    if (portalLifetime > maxPortalTime)
-                    {
-                        summoner.Session.Network.EnqueueSend(new GameMessageSystemChat($"The portal duration has been reduced from {portalLifetime} to {maxPortalTime} seconds due to the ruleset's limit on inactive landblock lifespans!", ChatMessageType.Magic));
-                        portalLifetime = maxPortalTime;
-                    }
-                }
-            }
-
             var gateway = WorldObjectFactory.CreateNewWorldObject("portalgateway") as Portal;
 
             if (gateway == null)
@@ -1362,6 +1340,8 @@ namespace ACE.Server.WorldObjects
         {
             if (targetCreature is Player targetPlayer)
             {
+                targetPlayer?.VerifyPkEnemyInVicinity();
+
                 if (targetPlayer.PKTimerActive)
                 {
                     targetPlayer.Session.Network.EnqueueSend(new GameEventWeenieError(targetPlayer.Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
@@ -1376,7 +1356,7 @@ namespace ACE.Server.WorldObjects
                     var teleportDest = new LocalPosition(spell.Position).AsInstancedPosition(targetPlayer, PlayerInstanceSelectMode.SameIfSameLandblock);
                     teleportDest = AdjustDungeon(teleportDest);
 
-                    targetPlayer.Teleport(teleportDest);
+                    targetPlayer.Teleport(teleportDest, false, false, TeleportType.RecallCast);
 
                     targetPlayer.SendTeleportedViaMagicMessage(itemCaster, spell);
                 });
@@ -1405,6 +1385,8 @@ namespace ACE.Server.WorldObjects
             if (targetPlayer == null || targetPlayer.Fellowship == null)
                 return false;
 
+            targetPlayer?.VerifyPkEnemyInVicinity();
+
             if (targetPlayer.PKTimerActive)
             {
                 targetPlayer.Session.Network.EnqueueSend(new GameEventWeenieError(targetPlayer.Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
@@ -1429,7 +1411,7 @@ namespace ACE.Server.WorldObjects
                 var teleportDest = new LocalPosition(spell.Position).AsInstancedPosition(targetPlayer, PlayerInstanceSelectMode.HomeRealm);
                 teleportDest = AdjustDungeon(teleportDest);
 
-                targetPlayer.Teleport(teleportDest);
+                targetPlayer.Teleport(teleportDest, false, false, TeleportType.RecallCast);
 
                 targetPlayer.SendTeleportedViaMagicMessage(itemCaster, spell);
             });

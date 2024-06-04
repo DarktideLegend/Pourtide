@@ -14,6 +14,7 @@ using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.Structure;
 using ACE.Server.WorldObjects.Entity;
+using ACE.Database;
 
 namespace ACE.Server.WorldObjects.Managers
 {
@@ -137,6 +138,11 @@ namespace ACE.Server.WorldObjects.Managers
 
             // check for existing spell in this category
             var entries = GetEnchantments(spell.Category);
+
+            if (caster is Gem gem && (gem.RareUsesTimer || gem.RareId != null) && Player != null)
+            {
+                Player.AddRareEnchantment(spell.Id);
+            }
 
             // if none, add new record
             if (entries.Count == 0)
@@ -324,6 +330,12 @@ namespace ACE.Server.WorldObjects.Managers
 
             if (Player != null)
             {
+                //TODO: Test with two of same rare then flag for PK
+                if (spellID >= 0)
+                {
+                    Player.TryRemoveRareEnchantment((uint)spellID);
+                }
+
                 var layer = (entry.SpellId == (uint)SpellId.Vitae) ? (ushort)0 : entry.LayerId; // this line is to force vitae to be layer 0 to match retail pcaps. We save it as layer 1 to make EF Core happy.
                 Player.Session.Network.EnqueueSend(new GameEventMagicRemoveEnchantment(Player.Session, (ushort)entry.SpellId, layer));
 
@@ -1386,6 +1398,9 @@ namespace ACE.Server.WorldObjects.Managers
                     damagers.Add(damager, tickAmount);
 
                 creature.DamageHistory.Add(damager, damageType, (uint)Math.Round(tickAmount));
+
+                if (damager is Player attacker && creature is Player victim)
+                    DatabaseManager.Shard.BaseDatabase.TrackPkStatsDamage(attacker.HomeRealm, attacker.Location.RealmID, (uint)attacker.Guid.Full, (uint)victim.Guid.Full, (int)(uint)Math.Round(tickAmount), false, (uint)CombatType.Magic);
 
                 tickAmountTotal += tickAmount;
 

@@ -1186,5 +1186,71 @@ namespace ACE.Database
         {
             cachedWieldedTreasure.Clear();
         }
+
+        public class CreatureInfo
+        {
+            public uint Id { get; set; }
+            public string Name { get; set; }
+            public int Tier { get; set; }
+
+            public int Level { get; set; }
+        }
+
+        public Dictionary<int, List<CreatureInfo>> GetAllCreaturesWithLootTier()
+        {
+            using (var context = new WorldDbContext())
+            {
+
+                List<CreatureInfo> creatures = (from weenieRecord in context.Weenie
+                            join name in context.WeeniePropertiesString on weenieRecord.ClassId equals name.ObjectId
+                            join treasure in context.WeeniePropertiesDID on weenieRecord.ClassId equals treasure.ObjectId
+                            join attackable in context.WeeniePropertiesBool on weenieRecord.ClassId equals attackable.ObjectId
+                            join level in context.WeeniePropertiesInt on weenieRecord.ClassId equals level.ObjectId
+                            join treasure_death in context.TreasureDeath on  treasure.Value equals treasure_death.TreasureType
+                            where
+                            name.Type == (short)PropertyString.Name &&
+                            weenieRecord.Type == (int)WeenieType.Creature &&
+                            treasure.Type == (ushort)PropertyDataId.DeathTreasureType &&
+                            attackable.Type == (ushort)PropertyBool.Attackable &&
+                            attackable.Value == true &&
+                            level.Type == (int)PropertyInt.Level 
+                            select new  CreatureInfo { Id = weenieRecord.ClassId, Name = name.Value, Tier = treasure_death.Tier, Level = level.Value }).Distinct().ToList();
+
+                Dictionary<int, List<CreatureInfo>> creatureTierTable = new Dictionary<int, List<CreatureInfo>>();
+
+                foreach(var creature in creatures)
+                {
+                    if (creatureTierTable.ContainsKey(creature.Tier))
+                    {
+                        creatureTierTable[creature.Tier].Add(creature);
+                    }
+                    else
+                        creatureTierTable[creature.Tier] = new List<CreatureInfo>()
+                        {
+                            creature
+                        };
+                }
+
+                return creatureTierTable;
+            }
+        }
+
+        private static Dictionary<int, List<CreatureInfo>> CachedDungeonCreatures = new Dictionary<int, List<CreatureInfo>>();
+
+        public List<CreatureInfo> GetDungeonCreatureWeenieIds(int tier)
+        {
+            if (CachedDungeonCreatures.ContainsKey(tier)) return CachedDungeonCreatures[tier];
+            else
+            {
+                var creatures = GetAllCreaturesWithLootTier();
+                CachedDungeonCreatures = creatures;
+                return CachedDungeonCreatures[tier];
+            }
+        }
+
+        public void CacheDungeonCreatures()
+        {
+            GetAllCreaturesWithLootTier();
+        }
     }
 }

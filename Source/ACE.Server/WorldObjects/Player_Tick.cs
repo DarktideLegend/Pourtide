@@ -32,7 +32,7 @@ namespace ACE.Server.WorldObjects
         private const double ageUpdateInterval = 7;
         private double nextAgeUpdateTime;
 
-        internal double houseRentWarnTimestamp;
+        private double houseRentWarnTimestamp;
         private const double houseRentWarnInterval = 3600;
 
         public void Player_Tick(double currentUnixTime)
@@ -128,6 +128,9 @@ namespace ACE.Server.WorldObjects
             GagsTick();
 
             PhysicsObj.ObjMaint.DestroyObjects();
+
+            if (!Location.IsEphemeralRealm && Ethereal.HasValue && Ethereal.Value == true)
+                HandleDeRiftPlayer();
 
             // Check if we're due for our periodic SavePlayer
             if (LastRequestedDatabaseSave == DateTime.MinValue)
@@ -313,9 +316,6 @@ namespace ACE.Server.WorldObjects
                 if (FastTick && PhysicsObj.IsMovingOrAnimating || PhysicsObj.Velocity != Vector3.Zero)
                 {
                     UpdatePlayerPhysics();
-
-                    if (MoveToParams?.Callback != null && !PhysicsObj.IsMovingOrAnimating)
-                        HandleMoveToCallback();
                 }
 
                 InUpdate = false;
@@ -421,6 +421,8 @@ namespace ACE.Server.WorldObjects
         /// <returns>TRUE if object moves to a different landblock</returns>
         public bool UpdatePlayerPosition(InstancedPosition newPosition, bool forceUpdate = false)
         {
+
+
             //Console.WriteLine($"{Name}.UpdatePlayerPhysics({newPosition}, {forceUpdate}, {Teleporting})");
             bool verifyContact = false;
 
@@ -517,6 +519,9 @@ namespace ACE.Server.WorldObjects
                 var landblockUpdate = Location.Cell >> 16 != newPosition.Cell >> 16;
 
                 Location = newPosition;
+
+                if (!newPosition.Indoors)
+                    LastOutdoorPosition = Location;
 
                 if (RecordCast.Enabled)
                     RecordCast.Log($"CurPos: {Location.ToLOCString()}");

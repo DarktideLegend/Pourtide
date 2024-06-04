@@ -28,6 +28,9 @@ using ACE.Server.WorldObjects;
 
 using Position = ACE.Entity.Position;
 using ACE.Server.Realms;
+using ACE.Server.Mods;
+using ACE.Server.Features.HotDungeons.Managers;
+using ACE.Server.Features.Rifts;
 using ACE.Server.Network.GameMessages.Messages;
 
 namespace ACE.Server.Entity
@@ -296,10 +299,12 @@ namespace ACE.Server.Entity
                     }
 
                     AddWorldObject(fo);
+
                     fo.ActivateLinks(objects, shardObjects, parent);
 
                     if (fo.PhysicsObj != null)
                         fo.PhysicsObj.Order = 0;
+
                 }
 
                 CreateWorldObjectsCompleted = true;
@@ -714,7 +719,19 @@ namespace ACE.Server.Entity
                     worldObjects[kvp.Key] = kvp.Value;
 
                     if (kvp.Value is Player player)
+                    {
                         players.Add(player);
+                        var currentLb = $"{Id.Raw:X8}".Substring(0, 4);
+
+                        if (DungeonManager.HasDungeonLandblock(currentLb))
+                            log.Info($"Player {player.Name} has entered {DungeonManager.GetDungeonLandblock(currentLb).Name}");
+
+                        if (DungeonManager.HasHotspotDungeon(player.HomeRealm, currentLb))
+                            DungeonManager.AddDungeonPlayer(currentLb, player);
+
+                        if (RiftManager.HasActiveRift(player.HomeRealm, currentLb))
+                            RiftManager.AddRiftPlayer(currentLb, player);
+                    }
                     else if (kvp.Value is Creature creature)
                         sortedCreaturesByNextTick.AddLast(creature);
 
@@ -736,7 +753,19 @@ namespace ACE.Server.Entity
                     if (worldObjects.Remove(objectGuid, out var wo))
                     {
                         if (wo is Player player)
+                        {
                             players.Remove(player);
+                            var currentLb = $"{Id.Raw:X8}".Substring(0, 4);
+
+                            if (DungeonManager.HasDungeon(currentLb))
+                                log.Info($"Player {player.Name} has left {DungeonManager.GetDungeonLandblock(currentLb).Name}");
+
+                            if (DungeonManager.HasHotspotDungeon(player.HomeRealm, currentLb))
+                                DungeonManager.RemoveDungeonPlayer( currentLb, player);
+
+                            if (RiftManager.HasActiveRift(player.HomeRealm, currentLb))
+                                RiftManager.RemoveRiftPlayer(currentLb, player);
+                        }
                         else if (wo is Creature creature)
                             sortedCreaturesByNextTick.Remove(creature);
 
@@ -1510,6 +1539,14 @@ Please report this to the ACRealms developer.");
                 get
                 {
                     return Landblock.RealmRuleset != null && Landblock.RealmRuleset.GetProperty(RealmPropertyBool.IsPKOnly);
+                }
+            }
+
+            public bool IsRift
+            {
+                get
+                {
+                    return Landblock.InnerRealmInfo != null && Landblock.RealmRuleset.Realm.Id == 1016;
                 }
             }
         }

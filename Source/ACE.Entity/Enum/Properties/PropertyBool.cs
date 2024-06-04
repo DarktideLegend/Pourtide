@@ -217,7 +217,11 @@ namespace ACE.Entity.Enum.Properties
         /// <summary>
         /// Player will always be placed in a different instance ID according to their character ID. Mainly intended for testing 
         /// </summary>
-        AttemptUniqueInstanceID = 42004
+        AttemptUniqueInstanceID = 42004,
+
+        // Pourtide props
+
+        IsRiftMonster                    = 60000,
     }
 
     public static class PropertyBoolExtensions

@@ -1,4 +1,5 @@
 using System;
+using ACE.Database.Models.Shard;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 
@@ -19,6 +20,7 @@ namespace ACE.Database.Models.Auth
 
         public virtual DbSet<Accesslevel> Accesslevel { get; set; }
         public virtual DbSet<Account> Account { get; set; }
+     
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -140,6 +142,7 @@ namespace ACE.Database.Models.Auth
                     .HasConstraintName("fk_accesslevel");
             });
 
+           
             OnModelCreatingPartial(modelBuilder);
         }
 

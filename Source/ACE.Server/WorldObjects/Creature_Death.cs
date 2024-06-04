@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using ACE.Common;
 using ACE.Database;
 using ACE.Database.Models.World;
 using ACE.Entity;
@@ -11,6 +11,9 @@ using ACE.Entity.Models;
 using ACE.Server.Entity;
 using ACE.Server.Entity.Actions;
 using ACE.Server.Factories;
+using ACE.Server.Factories.Tables;
+using ACE.Server.Features.HotDungeons.Managers;
+using ACE.Server.Features.Rifts;
 using ACE.Server.Managers;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
@@ -94,48 +97,75 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         protected virtual void Die(DamageHistoryInfo lastDamager, DamageHistoryInfo topDamager)
         {
-            if (dieEntered) return;
-
-            dieEntered = true;
-
-            UpdateVital(Health, 0);
-
-            if (topDamager != null)
+            try
             {
-                KillerId = topDamager.Guid.Full;
+                if (dieEntered) return;
 
-                if (topDamager.IsPlayer)
+                dieEntered = true;
+
+                UpdateVital(Health, 0);
+
+                if (topDamager != null)
                 {
-                    var topDamagerPlayer = topDamager.TryGetAttacker();
-                    if (topDamagerPlayer != null)
-                        topDamagerPlayer.CreatureKills = (topDamagerPlayer.CreatureKills ?? 0) + 1;
+                    KillerId = topDamager.Guid.Full;
+
+                    if (topDamager.IsPlayer)
+                    {
+                        var topDamagerPlayer = topDamager.TryGetAttacker();
+                        if (topDamagerPlayer != null)
+                            topDamagerPlayer.CreatureKills = (topDamagerPlayer.CreatureKills ?? 0) + 1;
+                    }
                 }
+
+                CurrentMotionState = new Motion(MotionStance.NonCombat, MotionCommand.Ready);
+                //IsMonster = false;
+
+                PhysicsObj.StopCompletely(true);
+
+                // broadcast death animation
+                var motionDeath = new Motion(MotionStance.NonCombat, MotionCommand.Dead);
+                var deathAnimLength = ExecuteMotion(motionDeath);
+
+                EmoteManager.OnDeath(lastDamager);
+
+                var dieChain = new ActionChain();
+
+                // wait for death animation to finish
+                //var deathAnimLength = DatManager.PortalDat.ReadFromDat<MotionTable>(MotionTableId).GetAnimationLength(MotionCommand.Dead);
+                dieChain.AddDelaySeconds(deathAnimLength);
+
+                dieChain.AddAction(this, () =>
+                {
+                    CreateCorpse(topDamager);
+                    HandleRiftCreatureDeath(Location);
+                    Destroy();
+
+
+                });
+
+                dieChain.EnqueueChain();
+
+            } catch(Exception ex)
+            {
+                log.Error(ex.Message);
+                log.Error(ex.StackTrace);
             }
 
-            CurrentMotionState = new Motion(MotionStance.NonCombat, MotionCommand.Ready);
-            //IsMonster = false;
+        }
 
-            PhysicsObj.StopCompletely(true);
+        private void HandleRiftCreatureDeath(InstancedPosition location)
+        {
+            if (location.RealmID != 1016)
+                return;
 
-            // broadcast death animation
-            var motionDeath = new Motion(MotionStance.NonCombat, MotionCommand.Dead);
-            var deathAnimLength = ExecuteMotion(motionDeath);
-
-            EmoteManager.OnDeath(lastDamager);
-
-            var dieChain = new ActionChain();
-
-            // wait for death animation to finish
-            //var deathAnimLength = DatManager.PortalDat.ReadFromDat<MotionTable>(MotionTableId).GetAnimationLength(MotionCommand.Dead);
-            dieChain.AddDelaySeconds(deathAnimLength);
-
-            dieChain.AddAction(this, () =>
+            if (RiftManager.TryGetActiveRift(location.Instance, out Rift rift))
             {
-                CreateCorpse(topDamager);
-                Destroy();
-            });
+                var oreDropChance = RealmRuleset.GetProperty(RealmPropertyInt.OreDropChance);
+                var ore = MutationsManager.CreateOre(location, oreDropChance, rift.Tier);
 
-            dieChain.EnqueueChain();
+                if (ore != null)
+                    ore.EnterWorld();
+            }
         }
 
         /// <summary>
@@ -167,40 +197,64 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public void OnDeath_GrantXP()
         {
-            if (this is Player && PlayerKillerStatus == PlayerKillerStatus.PKLite)
-                return;
-
-            var totalHealth = DamageHistory.TotalHealth;
-
-            if (totalHealth == 0)
-                return;
-
-            foreach (var kvp in DamageHistory.TotalDamage)
+            try
             {
-                var damager = kvp.Value.TryGetAttacker();
+                var currentLb = Location.LandblockHex;
 
-                var playerDamager = damager as Player;
+                // mobs from a dungeon may be destroyed and not have a landblock assigned to them
+                if (CurrentLandblock == null)
+                    return;
 
-                if (playerDamager == null && kvp.Value.PetOwner != null)
-                    playerDamager = kvp.Value.TryGetPetOwner();
+                if (this is Player && PlayerKillerStatus == PlayerKillerStatus.PKLite)
+                    return;
 
-                if (playerDamager == null)
-                    continue;
+                var totalHealth = DamageHistory.TotalHealth;
 
-                var totalDamage = kvp.Value.TotalDamage;
+                if (totalHealth == 0)
+                    return;
 
-                var damagePercent = totalDamage / totalHealth;
 
-                var totalXP = (XpOverride ?? 0) * damagePercent;
-
-                playerDamager.EarnXP((long)Math.Round(totalXP), XpType.Kill);
-
-                // handle luminance
-                if (LuminanceAward != null)
+                foreach (var kvp in DamageHistory.TotalDamage)
                 {
-                    var totalLuminance = (long)Math.Round(LuminanceAward.Value * damagePercent);
-                    playerDamager.EarnLuminance(totalLuminance, XpType.Kill);
+                    var damager = kvp.Value.TryGetAttacker();
+
+                    var playerDamager = damager as Player;
+
+                    if (playerDamager == null && kvp.Value.PetOwner != null)
+                        playerDamager = kvp.Value.TryGetPetOwner();
+
+                    if (playerDamager == null)
+                        continue;
+
+                    var totalDamage = kvp.Value.TotalDamage;
+
+                    var damagePercent = totalDamage / totalHealth;
+
+                    var xp = (double)(XpOverride ?? 0);
+
+                    DungeonManager.ProcessCreaturesDeath(currentLb, playerDamager, (int)xp, out double hotSpotModifier);
+
+                    xp *= hotSpotModifier;
+
+                    var totalXP = (xp) * damagePercent;
+
+                    if (this is Player)
+                        return;
+
+                    playerDamager.EarnXP((long)Math.Round(totalXP), XpType.Kill);
+
+                    // handle luminance
+                    if (LuminanceAward != null)
+                    {
+                        var totalLuminance = (long)Math.Round(LuminanceAward.Value * damagePercent);
+                        playerDamager.EarnLuminance(totalLuminance, XpType.Kill);
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex.Message);
+                log.Error(ex.StackTrace);
             }
         }
 
@@ -670,6 +724,15 @@ namespace ACE.Server.WorldObjects
             set { if (!value) RemoveProperty(PropertyBool.CanGenerateRare); else SetProperty(PropertyBool.CanGenerateRare, value); }
         }
 
+        private List<uint> OreNodes = new List<uint>()
+        {
+            603001,
+            603002,
+            603003,
+        };
+
+        public bool IsOreNode => OreNodes.Contains(WeenieClassId);
+
         /// <summary>
         /// Transfers generated treasure from creature to corpse
         /// </summary>
@@ -677,10 +740,96 @@ namespace ACE.Server.WorldObjects
         {
             var droppedItems = new List<WorldObject>();
 
+            if (IsOreNode)
+            {
+                if (Location.RealmID != 1016)
+                    return droppedItems;
+
+                if (RiftManager.TryGetActiveRift(Location.Instance, out Rift activeRift))
+                {
+                    var tier = WeenieClassId == 603001 ? 1 : WeenieClassId == 603002 ? 2 : 3;
+                    var amount = WeenieClassId == 603001 ? 1 : WeenieClassId == 603002 ? 10 : 20;
+                    for (var i = 0; i < amount; ++i)
+                    {
+                        var forgottenOre = WorldObjectFactory.CreateNewWorldObject(603004);
+                        if (activeRift != null)
+                            forgottenOre.ForgottenOreTier = (int)MutationsManager.GetLootTierFromRiftTier(activeRift.Tier);
+                        corpse.TryAddToInventory(forgottenOre);
+                    }
+
+
+                    var slayerDropChance = RealmRuleset.GetProperty(RealmPropertyInt.OreSlayerDropChance);
+                    if (ThreadSafeRandom.Next(1, slayerDropChance) == 1)
+                    {
+                        var creatureType = SlayersChance.GetCreatureType();
+                        var slayer = WorldObjectFactory.CreateNewWorldObject(604001);
+                        var damage = ThreadSafeRandom.Next((float)1.5, (float)3.0);
+
+                        slayer.Name = $"{creatureType} Slayer Skull";
+
+                        if (creatureType == ACE.Entity.Enum.CreatureType.Human)
+                            damage = ThreadSafeRandom.Next((float)1.1, (float)1.5);
+
+                        slayer.LongDesc = $"Use this skull on any loot-generated weapon or caster to give it a {creatureType} Slayer effect. The damage for this slayer skull is {damage.ToString("0.00")}";
+                        slayer.SlayerCreatureType = creatureType;
+                        slayer.SlayerDamageBonus = damage;
+                        corpse.TryAddToInventory(slayer);
+                    }
+
+
+                    // salvage
+                    var maxSalvageAmount = RealmRuleset.GetProperty(RealmPropertyInt.OreSalvageDropAmount);
+                    for (var i = 0; i < maxSalvageAmount; i++)
+                    {
+                        var salvageWcids = SalvageChance.Roll();
+                        foreach (var wcid in salvageWcids)
+                        {
+                            var wo = WorldObjectFactory.CreateNewWorldObject((uint)wcid);
+
+                            if (wo != null)
+                            {
+                                wo.Name = $"Salvage ({100})";
+                                wo.Structure = 100;
+                                wo.ItemWorkmanship = ThreadSafeRandom.Next(50, 100);
+                                wo.NumItemsInMaterial = 10;
+                                wo.Value = 15000;
+                                corpse.TryAddToInventory(wo);
+                            }
+                        }
+                    }
+                }
+            }
+
             // create death treasure from loot generation factory
             if (DeathTreasure != null)
             {
-                List<WorldObject> items = LootGenerationFactory.CreateRandomLootObjects(DeathTreasure);
+                var dt = DeathTreasure;
+
+                if (IsRiftMonster)
+                {
+                    dt = new TreasureDeath()
+                    {
+                        CantripAmount = MutationsManager.CantripRoll(),
+                        Tier = dt.Tier,
+                        LootQualityMod = 0,
+                        MagicItemTreasureTypeSelectionChances = 8,
+                        MagicItemChance = dt.MagicItemChance,
+                        MagicItemMinAmount = 5,
+                        MagicItemMaxAmount = 20,
+                        TreasureType = dt.TreasureType,
+                        UnknownChances = dt.UnknownChances,
+                        ItemChance = dt.ItemChance,
+                        ItemMinAmount = dt.ItemMinAmount,
+                        ItemMaxAmount = dt.ItemMaxAmount,
+                        ItemTreasureTypeSelectionChances = dt.ItemTreasureTypeSelectionChances,
+                        MundaneItemChance = dt.MundaneItemChance,
+                        MundaneItemMinAmount = dt.MundaneItemMinAmount,
+                        MundaneItemMaxAmount = dt.MundaneItemMaxAmount,
+                        MundaneItemTypeSelectionChances = dt.MundaneItemTypeSelectionChances
+                    };
+                }
+
+                List<WorldObject> items = LootGenerationFactory.CreateRandomLootObjects(dt);
                 foreach (WorldObject wo in items)
                 {
                     if (corpse != null)

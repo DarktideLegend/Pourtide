@@ -5,13 +5,7 @@ using System.Threading;
 
 using log4net;
 
-using ACE.Common;
-using ACE.Common.Performance;
-using ACE.Database;
-using ACE.Database.Entity;
-using ACE.Entity.Enum;
-using ACE.Entity.Enum.Properties;
-using ACE.Entity.Models;
+
 using ACE.Server.Entity;
 using ACE.Server.Entity.Actions;
 using ACE.Server.WorldObjects;
@@ -23,13 +17,20 @@ using ACE.Server.Physics;
 using ACE.Server.Physics.Common;
 
 using Character = ACE.Database.Models.Shard.Character;
-using Position = ACE.Entity.Position;
 using ACE.Server.Realms;
-using ACE.Entity.Enum.RealmProperties;
+using ACE.Server.Factories;
 using ACE.Server.Network.Enum;
 using System.Linq;
 using ACRealms.Server.Network.TraceMessages.Messages;
+using ACE.Common;
+using ACE.Database;
+using ACE.Entity.Models;
+using ACE.Database.Entity;
+using ACE.Entity.Enum;
+using ACE.Entity.Enum.Properties;
 using ACE.Common.ACRealms;
+using ACE.Entity.Enum.RealmProperties;
+using ACE.Common.Performance;
 
 namespace ACE.Server.Managers
 {
@@ -52,6 +53,7 @@ namespace ACE.Server.Managers
 
         public static readonly ActionQueue ActionQueue = new ActionQueue();
         public static readonly DelayManager DelayManager = new DelayManager();
+        public static bool IsTestServer => PropertyManager.GetBool("test_server", false).Item;
 
         static WorldManager()
         {
@@ -214,6 +216,26 @@ namespace ACE.Server.Managers
             session.State = SessionState.WorldConnected;
 
             PlayerEnterWorld(session, character);
+
+            try
+            {
+                var homeRealmId = offlinePlayer.GetProperty(ACE.Entity.Enum.Properties.PropertyInt.HomeRealm);
+
+                if (homeRealmId == null)
+                    homeRealmId = 0;
+
+                var playerLocation = offlinePlayer.GetPositionUnsafe(ACE.Entity.Enum.Properties.PositionType.Location);
+
+                var currentRealmId = playerLocation?.RealmID ?? 0;
+
+                DatabaseManager.Shard.BaseDatabase.LogCharacterLogin((ushort)homeRealmId, currentRealmId, session.AccountId, session.Account, session.EndPointC2S.Address.ToString(), character.Id, character.Name);
+                PlayerManager.UpdatePlayerToIpMap((ushort)homeRealmId, session.EndPointC2S.Address.ToString(), character.Id);
+
+            }
+            catch (Exception ex)
+            {
+                log.Error($"Exception logging character login. Ex: {ex}");
+            }
         }
 
         public static void PlayerEnterWorld(ISession session, Character character)
@@ -330,6 +352,9 @@ namespace ACE.Server.Managers
                 }
             }
 
+            // ensure players are always attackable
+            player.Attackable = true;
+
             // If the client is missing a location, we start them off in the starter town they chose
             if (session.Player.Location == null)
             {
@@ -374,6 +399,9 @@ namespace ACE.Server.Managers
             if (olthoiPlayerReturnedToLifestone)
                 session.Player.Location = session.Player.Sanctuary.AsInstancedPosition(session.Player, PlayerInstanceSelectMode.HomeRealm);
 
+            // teach pourtide augs
+            PlayerFactory.TeachPourtideAugmentations(player);
+
             session.Player.PlayerEnterWorld();
 
             var success = LandblockManager.AddObject(session.Player, true);
@@ -415,7 +443,11 @@ namespace ACE.Server.Managers
                 if (player.IsOlthoiPlayer)
                     session.Network.EnqueueSend(new GameEventPopupString(session, AppendLines(popup_welcome, popup_motd)));
                 else
+                {
+
+                    PlayerFactory.AddStarterEssentials(player);
                     session.Network.EnqueueSend(new GameEventPopupString(session, AppendLines(popup_header, popup_motd, popup_welcome)));
+                }
             }
             else if (!string.IsNullOrEmpty(popup_motd))
             {
