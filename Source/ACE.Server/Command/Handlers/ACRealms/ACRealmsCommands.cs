@@ -125,6 +125,126 @@ namespace ACE.Server.Command.Handlers
             session.Player.ExitInstance();
         }
 
+        [CommandHandler("compile-ruleset", AccessLevel.Admin, CommandHandlerFlag.RequiresWorld, 1, "Gives a diagnostic trace of a ruleset compilation for the current landblock",
+                    "(required) { full | landblock | ephemeral-new | ephemeral-cached | all }\n" +
+                    "(optional) random seed")]
+        public static void HandleCompileRuleset(ISession session, params string[] parameters)
+        {
+            if (!PropertyManager.GetBool("acr_enable_ruleset_seeds").Item)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"The server property 'acr_enable_ruleset_seeds' must be enabled to use this command.", ChatMessageType.Broadcast));
+                return;
+            }
+
+            string type = parameters[0];
+            int seed;
+            if (parameters.Length > 1)
+            {
+                if (!int.TryParse(parameters[1], out seed))
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"Invalid random seed, must pass an integer", ChatMessageType.Broadcast));
+                    return;
+                }
+            }
+            else
+                seed = Random.Shared.Next();
+
+            string result;
+            switch (type)
+            {
+                case "all":
+                    HandleCompileRuleset(session, "landblock", seed.ToString());
+                    if (session.Player.CurrentLandblock.IsEphemeral)
+                    {
+                        HandleCompileRuleset(session, "ephemeral-cached", seed.ToString());
+                        HandleCompileRuleset(session, "ephemeral-new", seed.ToString());
+                    }
+                    HandleCompileRuleset(session, "full", seed.ToString());
+                    return;
+                default:
+                    result = CompileRulesetRaw(session, seed, type);
+                    break;
+            }
+
+            var filename = $"compile-ruleset-output-{session.Player.Name}-{type}.txt";
+            File.WriteAllText(filename, result);
+            session.Network.EnqueueSend(new GameMessageSystemChat($"Logged compilation output to {filename}", ChatMessageType.Broadcast));
+        }
+
+        public class InvalidCommandException() : Exception { }
+        public static string CompileRulesetRaw(ISession session, int seed, string type, DateTime? timeContext = null)
+        {
+            Ruleset ruleset;
+            var ctx = Ruleset.MakeDefaultContext().WithTrace(deriveNewSeedEachPhase: false).WithNewSeed(seed);
+            if (timeContext.HasValue)
+                ctx = ctx.WithTimeContext(timeContext.Value);
+
+            switch (type)
+            {
+                case "landblock":
+                    ruleset = AppliedRuleset.MakeRerolledRuleset(session.Player.RealmRuleset.Template, ctx);
+                    break;
+                case "ephemeral-new":
+                    if (!session.Player.CurrentLandblock.IsEphemeral)
+                    {
+                        session.Network.EnqueueSend(new GameMessageSystemChat($"The current landblock is not ephemeral.", ChatMessageType.Broadcast));
+                        throw new InvalidCommandException();
+                    }
+                    ruleset = AppliedRuleset.MakeRerolledRuleset(session.Player.CurrentLandblock.InnerRealmInfo.RulesetTemplate.RebuildTemplateWithContext(ctx), ctx);
+                    break;
+                case "ephemeral-cached":
+                    if (!session.Player.CurrentLandblock.IsEphemeral)
+                    {
+                        session.Network.EnqueueSend(new GameMessageSystemChat($"The current landblock is not ephemeral.", ChatMessageType.Broadcast));
+                        throw new InvalidCommandException();
+                    }
+                    ruleset = AppliedRuleset.MakeRerolledRuleset(session.Player.RealmRuleset.Template, ctx);
+                    break;
+                case "full":
+                    RulesetTemplate template;
+                    if (!session.Player.CurrentLandblock.IsEphemeral)
+                        template = RealmManager.BuildRuleset(session.Player.RealmRuleset.Realm, ctx);
+                    else
+                        template = session.Player.CurrentLandblock.InnerRealmInfo.RulesetTemplate.RebuildTemplateWithContext(ctx);
+                    ruleset = AppliedRuleset.MakeRerolledRuleset(template, ctx);
+                    break;
+                default:
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"Unknown compilation type.", ChatMessageType.Broadcast));
+                    throw new InvalidCommandException();
+            }
+            return ruleset.Context.FlushLog();
+        }
+
+        [CommandHandler("ruleset-seed", AccessLevel.Envoy, CommandHandlerFlag.RequiresWorld, 0, "Shows the randomization seed for the current landblock's ruleset")]
+        public static void HandleRulesetSeed(ISession session, params string[] parameters)
+        {
+            if (!PropertyManager.GetBool("acr_enable_ruleset_seeds").Item)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"The server property 'acr_enable_ruleset_seeds' must be enabled to use this command.", ChatMessageType.Broadcast));
+                return;
+            }
+
+            session.Network.EnqueueSend(new GameMessageSystemChat($"Ruleset seed: {session.Player.RealmRuleset.Context.RandomSeed}", ChatMessageType.Broadcast));
+        }
+
+        [CommandHandler("spl", AccessLevel.Developer, CommandHandlerFlag.None, 0, "Show player locations.")]
+        [CommandHandler("show-player-locations", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Show player locations.")]
+        public static void HandleShowPlayerLocations(ISession session, params string[] parameters)
+        {
+
+            foreach (var player in PlayerManager.GetAllOnline())
+            {
+                if (player != null && player.Location != null)
+                {
+                    RiftManager.TryGetActiveRift(player.HomeRealm, player.Location.LandblockHex, out Rift rift);
+                    DungeonManager.TryGetDungeonLandblock(player.Location.LandblockHex, out DungeonLandblock dungeon);
+
+                    var at = rift != null ? $"Rift {rift.Name}" : dungeon != null ? $"Dungeon {dungeon.Name}" : player.Location.GetMapCoordStr();
+                    CommandHandlerHelper.WriteOutputInfo(session, $"Name = {player.Name}, At = {at}, RealmId = {player.Location.RealmID}, Instance = {player.Location.Instance} ", ChatMessageType.WorldBroadcast);
+                }
+            }
+        }
+
         // Requires IsDuelingRealm and HomeRealm to be set
         [CommandHandler("rebuff", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0,
             "Buffs you with all beneficial spells. Only usable in certain realms.")]

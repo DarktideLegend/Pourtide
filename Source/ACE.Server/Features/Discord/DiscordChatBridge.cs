@@ -91,6 +91,7 @@ namespace ACE.Server.Features.Discord
                         var command = splitString[0].Substring(1).ToLower();
                         switch (command)
                         {
+                            case "leaderboards-xp":
                             case "topxp":
                                 if (DateTime.UtcNow - PrevLeaderboardXPCommandRequestTimestamp < TimeSpan.FromMinutes(1))
                                 {
@@ -106,6 +107,7 @@ namespace ACE.Server.Features.Discord
                                 CustomCommands.HandleLeaderboardsXp(null, parameters);
                                 return Task.CompletedTask;
 
+                            case "leaderboards-kills":
                             case "topkills":
                                 if (DateTime.UtcNow - PrevLeaderboardPvPKillsCommandRequestTimestamp < TimeSpan.FromMinutes(1))
                                 {
@@ -121,6 +123,7 @@ namespace ACE.Server.Features.Discord
                                 CustomCommands.HandleLeaderboardsKills(null, parameters);
                                 return Task.CompletedTask;
 
+                            case "leaderboards-deaths":
                             case "topdeaths":
                                 if (DateTime.UtcNow - PrevLeaderboardPvPDeathsCommandRequestTimestamp < TimeSpan.FromMinutes(1))
                                 {
