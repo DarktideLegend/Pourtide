@@ -103,7 +103,7 @@ namespace ACE.Server.Features.Discord
                                 parameters = parameters.AddToArray("discord");
                                 parameters = parameters.AddToArray(message.Channel.Id.ToString());
 
-                                ACRealmsCommands.HandleLeaderboardsXp(null, parameters);
+                                CustomCommands.HandleLeaderboardsXp(null, parameters);
                                 return Task.CompletedTask;
 
                             case "topkills":
@@ -118,7 +118,7 @@ namespace ACE.Server.Features.Discord
                                 parameters = parameters.AddToArray("discord");
                                 parameters = parameters.AddToArray(message.Channel.Id.ToString());
 
-                                ACRealmsCommands.HandleLeaderboardsKills(null, parameters);
+                                CustomCommands.HandleLeaderboardsKills(null, parameters);
                                 return Task.CompletedTask;
 
                             case "topdeaths":
@@ -133,7 +133,7 @@ namespace ACE.Server.Features.Discord
                                 parameters = parameters.AddToArray("discord");
                                 parameters = parameters.AddToArray(message.Channel.Id.ToString());
 
-                                ACRealmsCommands.HandleLeaderboardsDeaths(null, parameters);
+                                CustomCommands.HandleLeaderboardsDeaths(null, parameters);
                                 return Task.CompletedTask;
 
 
@@ -149,7 +149,7 @@ namespace ACE.Server.Features.Discord
                                 parameters = parameters.AddToArray("discord");
                                 parameters = parameters.AddToArray(message.Channel.Id.ToString());
 
-                                ACRealmsCommands.HandleCheckDungeons(null, parameters);
+                                CustomCommands.HandleCheckDungeons(null, parameters);
                                 return Task.CompletedTask;
 
                             case "pop":

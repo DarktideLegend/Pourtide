@@ -30,7 +30,7 @@ namespace ACE.Server.Command.Handlers
         {
             if (session != null)
             {
-                var realmId = session.Player.Location.RealmID;
+                var realmId = session.Player.HomeRealm;
                 CommandHandlerHelper.WriteOutputInfo(session, $"Current world population: {PlayerManager.GetOnlineCount(realmId):N0}", ChatMessageType.Broadcast);
             } else
             {
