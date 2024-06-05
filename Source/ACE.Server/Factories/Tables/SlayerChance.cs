@@ -4,9 +4,9 @@ using System.Collections.Generic;
 
 namespace ACE.Server.Factories.Tables
 {
-    public static class SlayersChance
+    public static class SlayerChance
     {
-        public static readonly List<CreatureType> CreatureTypes = new List<CreatureType>()
+        private static readonly List<CreatureType> CreatureTypes = new List<CreatureType>()
         {
             CreatureType.Anekshay,
             CreatureType.Armoredillo,
@@ -16,10 +16,12 @@ namespace ACE.Server.Factories.Tables
             CreatureType.Crystal,
             CreatureType.Drudge,
             CreatureType.Eater,
+            CreatureType.Elemental,
             CreatureType.Fiun,
             CreatureType.GearKnight,
             CreatureType.Ghost,
             CreatureType.Golem,
+            CreatureType.Gurog,
             CreatureType.Gromnie,
             CreatureType.Human,
             CreatureType.Knathtead,
@@ -38,12 +40,14 @@ namespace ACE.Server.Factories.Tables
             CreatureType.Remoran,
             CreatureType.Sclavus,
             CreatureType.Shadow,
+            CreatureType.Shreth,
             CreatureType.Skeleton,
             CreatureType.Tumerok,
             CreatureType.Tusker,
             CreatureType.Undead,
             CreatureType.Virindi,
-            CreatureType.Wisp
+            CreatureType.Wisp,
+            CreatureType.Zefir
         };
 
         public static CreatureType GetCreatureType()

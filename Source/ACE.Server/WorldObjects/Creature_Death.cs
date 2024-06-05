@@ -761,7 +761,7 @@ namespace ACE.Server.WorldObjects
                     var slayerDropChance = RealmRuleset.GetProperty(RealmPropertyInt.OreSlayerDropChance);
                     if (ThreadSafeRandom.Next(1, slayerDropChance) == 1)
                     {
-                        var creatureType = SlayersChance.GetCreatureType();
+                        var creatureType = SlayerChance.GetCreatureType();
                         var slayer = WorldObjectFactory.CreateNewWorldObject(604001);
                         var damage = ThreadSafeRandom.Next((float)1.5, (float)3.0);
 
