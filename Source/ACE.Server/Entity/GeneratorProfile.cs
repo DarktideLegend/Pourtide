@@ -365,11 +365,10 @@ namespace ACE.Server.Entity
                 {
                     var oreDropChance = Generator.RealmRuleset.GetProperty(RealmPropertyInt.OreDropChance);
                     wo = MutationsManager.ProcessRiftCreature(wo, oreDropChance, activeRift);
-                    if (wo is Creature creature && !creature.IsOreNode)
-                    {
-                        wo.Translucency = (float)0.8;
-                        wo.LightsStatus = false;
-                    }
+
+                    if (wo == null)
+                        return null;
+
                 }
 
                 if (Biota.PaletteId.HasValue && Biota.PaletteId > 0)

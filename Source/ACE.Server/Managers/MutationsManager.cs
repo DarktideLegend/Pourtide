@@ -152,7 +152,11 @@ namespace ACE.Server.Managers
                     creature.Location = new InstancedPosition(wo.Location);
                     creature.Name = $"Rift {creature.Name}";
                     creature.IsRiftMonster = true;
+                    creature.Translucency = (float)0.8;
+                    creature.LightsStatus = false;
+
                     wo.Destroy();
+
                     return creature;
                 }
                 catch (Exception ex)
@@ -160,7 +164,8 @@ namespace ACE.Server.Managers
                     log.Error(ex.Message);
                     log.Error(ex.StackTrace);
 
-                    return wo;
+                    wo.Destroy();
+                    return null;
                 }
             }
 
