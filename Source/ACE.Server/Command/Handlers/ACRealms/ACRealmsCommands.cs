@@ -246,7 +246,7 @@ namespace ACE.Server.Command.Handlers
         }
 
         // Requires IsDuelingRealm and HomeRealm to be set
-        [CommandHandler("rebuff", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0,
+        [CommandHandler("rebuff", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, 0,
             "Buffs you with all beneficial spells. Only usable in certain realms.")]
         public static void HandleRebuff(ISession session, params string[] parameters)
         {
