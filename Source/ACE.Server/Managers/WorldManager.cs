@@ -153,6 +153,15 @@ namespace ACE.Server.Managers
                 return;
             }
 
+            if (offlinePlayer.Heritage == (int)HeritageGroup.Lugian ||
+                offlinePlayer.Heritage == (int)HeritageGroup.Empyrean ||
+                offlinePlayer.Heritage == (int)HeritageGroup.Tumerok ||
+                offlinePlayer.Heritage == (int)HeritageGroup.Gearknight)
+            {
+                session.SendCharacterError(CharacterError.EnterGameCouldntPlaceCharacter);
+                return;
+            }
+
             var homeRealm = offlinePlayer.GetProperty(PropertyInt.HomeRealm);
             if (!homeRealm.HasValue || homeRealm.Value == (ushort)ReservedRealm.NULL)
             {
