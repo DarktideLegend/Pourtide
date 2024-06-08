@@ -14,7 +14,10 @@ namespace ACE.Server.Network.GameEvent.Events
         public GameEventFellowshipFullUpdate(ISession session)
             : base(GameEventType.FellowshipFullUpdate, GameMessageGroup.UIQueue, session, 512) // 338 is the average seen in retail pcaps, 1,264 is the max seen in retail pcaps
         {
-            var fellowship = session.Player.Fellowship;
+            var fellowship = session?.Player?.Fellowship;
+
+            if (fellowship == null)
+                return;
 
             var fellows = fellowship.GetFellowshipMembers().ToDictionary(x => (uint)x.Key, x => x.Value);
 
