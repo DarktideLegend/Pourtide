@@ -153,15 +153,6 @@ namespace ACE.Server.Managers
                 return;
             }
 
-            if (offlinePlayer.Heritage == (int)HeritageGroup.Lugian ||
-                offlinePlayer.Heritage == (int)HeritageGroup.Empyrean ||
-                offlinePlayer.Heritage == (int)HeritageGroup.Tumerok ||
-                offlinePlayer.Heritage == (int)HeritageGroup.Gearknight)
-            {
-                session.SendCharacterError(CharacterError.EnterGameCouldntPlaceCharacter);
-                return;
-            }
-
             var homeRealm = offlinePlayer.GetProperty(PropertyInt.HomeRealm);
             if (!homeRealm.HasValue || homeRealm.Value == (ushort)ReservedRealm.NULL)
             {
@@ -271,6 +262,26 @@ namespace ACE.Server.Managers
             Player player;
 
             Player.HandleNoLogLandblock(playerBiota, out var playerLoggedInOnNoLogLandblock);
+
+            if(playerBiota.PropertiesInt.TryGetValue(PropertyInt.HeritageGroup, out int value))
+            {
+                if (value == (int)HeritageGroup.Lugian ||
+                    value == (int)HeritageGroup.Empyrean ||
+                    value == (int)HeritageGroup.Tumerok ||
+                    value == (int)HeritageGroup.Gearknight
+                    )
+                {
+                    if(playerBiota.PropertiesPosition.TryGetValue(PositionType.Location, out var location))
+                    {
+                        var instancedPosition = new InstancedPosition(location.ObjCellId, location.PositionX, location.PositionY, location.PositionZ, location.RotationX, location.RotationY, location.RotationZ, location.RotationW, (uint)location.Instance);
+                        if (instancedPosition.LandblockHex == "B96F")
+                        {
+                            session.SendCharacterError(CharacterError.EnterGameCouldntPlaceCharacter);
+                            return;
+                        }
+                    }
+                }
+            }
 
             var stripAdminProperties = false;
             var addAdminProperties = false;
