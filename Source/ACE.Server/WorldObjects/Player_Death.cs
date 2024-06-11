@@ -705,7 +705,7 @@ namespace ACE.Server.WorldObjects
                 if (!isAlly)
                 {
                     var mod = (double)victim.Level / (double)killer.Level;
-                    var playerXp = (victim.GetProperty(PropertyInt64.TotalExperience) ?? 0) * 0.02;
+                    var playerXp = (victim.GetProperty(PropertyInt64.TotalExperience) ?? 0) * 0.05;
                     var earnedPvpXp = playerXp * mod;
                     var killerPlayer = PlayerManager.GetOnlinePlayer(killer.Guid);
                     killerPlayer?.EarnXP((long)Math.Round((double)earnedPvpXp), XpType.Pvp, ShareType.None);

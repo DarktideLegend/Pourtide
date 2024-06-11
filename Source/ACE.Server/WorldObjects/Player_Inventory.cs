@@ -3558,7 +3558,7 @@ namespace ACE.Server.WorldObjects
                                 return;
 
                             var mod = (double)victim.Level / (double)Level;
-                            var playerXp = (victim.GetProperty(PropertyInt64.TotalExperience) ?? 0) * 0.02;
+                            var playerXp = (victim.GetProperty(PropertyInt64.TotalExperience) ?? 0) * 0.05;
                             var earnedPvpXp = playerXp * mod;
                             EarnXP((long)Math.Round((double)earnedPvpXp), XpType.Quest, ShareType.None);
                         }
@@ -3573,21 +3573,29 @@ namespace ACE.Server.WorldObjects
                                 return;
 
                             var mod = (double)victim.Level / (double)Level;
-                            var playerXp = (victim.GetProperty(PropertyInt64.TotalExperience) ?? 0) * 0.02;
+                            var playerXp = (victim.GetProperty(PropertyInt64.TotalExperience) ?? 0) * 0.05;
                             var earnedPvpXp = playerXp * mod;
                             EarnXP((long)Math.Round((double)earnedPvpXp), XpType.Kill, ShareType.None);
                         }
 
                         if (target.WeenieClassId == 3000381 && item.WeenieClassId == 60000212)
                         {
-                            var xp = PvpXpDailyMax * 0.08; // give 8% of total PvpXpDailyMax
+                            if (item.BountyTrophyGuid == null)
+                                return;
+
+                            var victim = PlayerManager.FindByGuid((ulong)item.BountyTrophyGuid);
+                            if (victim == null)
+                                return;
+
+                            var mod = (double)victim.Level / (double)Level;
+                            var playerXp = (victim.GetProperty(PropertyInt64.TotalExperience) ?? 0) * 0.05;
 
                             if (BountyGuid != null && item.BountyTrophyGuid != null)
                             {
 
                                 if (BountyGuid.Value == item.BountyTrophyGuid.Value)
                                 {
-                                    xp = PvpXpDailyMax * 0.25;
+                                    playerXp = (victim.GetProperty(PropertyInt64.TotalExperience) ?? 0) * 0.25;
                                     for (var i = 0; i < 5; ++i)
                                     {
                                         // add ore
@@ -3614,7 +3622,8 @@ namespace ACE.Server.WorldObjects
                                 }
                             }
 
-                            EarnXP((long)xp, XpType.Pvp, ShareType.None);
+                            var earnedXp = playerXp * mod;
+                            EarnXP((long)Math.Round((double)earnedXp), XpType.Pvp, ShareType.None);
                         }
 
                         if (target.WeenieClassId == 3000381 && item.WeenieClassId == 2626)
@@ -3639,7 +3648,7 @@ namespace ACE.Server.WorldObjects
 
                         if (target.WeenieClassId == 3000381 && item.WeenieClassId == 603004)
                         {
-                            var xp = QuestXpDailyMax * 0.10;
+                            var xp = DailyXp * 0.05;
                             //DeveloperCommands.HandleCILoot(Session, item.ForgottenOreTier.ToString(), 5.ToString());
                             EarnXP((long)xp, XpType.Quest, ShareType.None);
                             return;

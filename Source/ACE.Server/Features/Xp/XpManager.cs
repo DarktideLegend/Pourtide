@@ -147,11 +147,21 @@ namespace ACE.Server.Features.Xp
             player.SetProperty(ACE.Entity.Enum.Properties.PropertyInt64.PvpXp, 0);
 
             var playerTotalXp = player.GetProperty(ACE.Entity.Enum.Properties.PropertyInt64.TotalExperience);
-            var diff = (long)CurrentDailyXp.XpCap - (long)playerTotalXp;
+            var dailyMax = (long)CurrentDailyXp.XpCap - (long)playerTotalXp;
 
-            player.SetProperty(ACE.Entity.Enum.Properties.PropertyInt64.QuestXpDailyMax, (long)(diff * 0.4));
-            player.SetProperty(ACE.Entity.Enum.Properties.PropertyInt64.MonsterXpDailyMax, (long)(diff * 0.4));
-            player.SetProperty(ACE.Entity.Enum.Properties.PropertyInt64.PvpXpDailyMax, (long)(diff * 0.2));
+            if (dailyMax <= 0)
+            {
+                player.SetProperty(ACE.Entity.Enum.Properties.PropertyInt64.DailyXpRemaining, 0);
+                player.SetProperty(ACE.Entity.Enum.Properties.PropertyInt64.DailyXpMaxPerCategory, 0);
+                player.SetProperty(ACE.Entity.Enum.Properties.PropertyInt64.DailyXp, 0);
+                return;
+            }
+
+            var dailyMaxXpPerCategory = (long)(dailyMax * 0.7);
+
+            player.SetProperty(ACE.Entity.Enum.Properties.PropertyInt64.DailyXp, dailyMax);
+            player.SetProperty(ACE.Entity.Enum.Properties.PropertyInt64.DailyXpRemaining, dailyMax);
+            player.SetProperty(ACE.Entity.Enum.Properties.PropertyInt64.DailyXpMaxPerCategory, dailyMaxXpPerCategory);
 
             player.SaveBiotaToDatabase();
         }
