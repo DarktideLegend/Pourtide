@@ -117,6 +117,7 @@ namespace ACE.Server.WorldObjects
                     {
                         actualXpToAdd = Math.Min(amount, Math.Min(DailyXpRemaining, remainingQuestXpCap));
                         QuestXp += actualXpToAdd;
+                        LifetimeQuestXp += actualXpToAdd;
                     }
                     break;
 
@@ -127,6 +128,7 @@ namespace ACE.Server.WorldObjects
                     {
                         actualXpToAdd = Math.Min(amount, Math.Min(DailyXpRemaining, remainingMonsterXpCap));
                         MonsterXp += actualXpToAdd;
+                        LifetimeMonsterXp += actualXpToAdd;
                     }
                     break;
 
@@ -135,6 +137,7 @@ namespace ACE.Server.WorldObjects
                     {
                         actualXpToAdd = Math.Min(amount, Math.Min(DailyXpRemaining, remainingPvpXpCap));
                         PvpXp += actualXpToAdd;
+                        LifetimePvpXp += actualXpToAdd;
                     }
                     break;
             }
