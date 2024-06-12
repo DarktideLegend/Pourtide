@@ -3587,15 +3587,14 @@ namespace ACE.Server.WorldObjects
                             if (victim == null)
                                 return;
 
-                            var mod = (double)victim.Level / (double)Level;
-                            var playerXp = (victim.GetProperty(PropertyInt64.TotalExperience) ?? 0) * 0.05;
+                            var xp = DailyXp * 0.05;
 
                             if (BountyGuid != null && item.BountyTrophyGuid != null)
                             {
 
                                 if (BountyGuid.Value == item.BountyTrophyGuid.Value)
                                 {
-                                    playerXp = (victim.GetProperty(PropertyInt64.TotalExperience) ?? 0) * 0.25;
+                                    xp = DailyXp * 0.25;
                                     for (var i = 0; i < 5; ++i)
                                     {
                                         // add ore
@@ -3622,8 +3621,7 @@ namespace ACE.Server.WorldObjects
                                 }
                             }
 
-                            var earnedXp = playerXp * mod;
-                            EarnXP((long)Math.Round((double)earnedXp), XpType.Pvp, ShareType.None);
+                            EarnXP((long)Math.Round((double)xp), XpType.Pvp, ShareType.None);
                         }
 
                         if (target.WeenieClassId == 3000381 && item.WeenieClassId == 2626)
