@@ -152,6 +152,7 @@ namespace ACE.Server.Command.Handlers
             session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> The current week is {XpManager.Week}.", ChatMessageType.System));
             session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> The daily xp cap today for all players is {Formatting.FormatIntWithCommas(XpManager.CurrentDailyXp.XpCap)}.", ChatMessageType.System));
             session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> The current highest level player for the server is {(uint)XpManager.MaxLevel}.", ChatMessageType.System));
+            session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> The most xp you can earn for a single category today is {Formatting.FormatIntWithCommas((ulong)player.DailyXpMaxPerCategory)}.", ChatMessageType.System));
             session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> Your current global xp modifier is {globalAverageModifier}x.", ChatMessageType.System));
             session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> You have {Formatting.FormatIntWithCommas((ulong)player.DailyXpRemaining)} daily xp remaining.", ChatMessageType.System));
             session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> You have currently earned {Formatting.FormatIntWithCommas((ulong)queryXp)} quest xp for the day.", ChatMessageType.System));
