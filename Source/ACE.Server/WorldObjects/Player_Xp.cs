@@ -88,6 +88,7 @@ namespace ACE.Server.WorldObjects
                 GrantItemXP(amount);
         }
 
+
         /// <summary>
         /// Adds XP to a player's total XP, handles triggers (vitae, level up)
         /// </summary>
@@ -96,52 +97,54 @@ namespace ACE.Server.WorldObjects
             if (HasVitae && xpType != XpType.Allegiance)
                 UpdateXpVitae(amount);
 
+            if (DailyXpRemaining <= 0 || amount <= 0)
+                return;
+
+            var currentQuestXp = QuestXp;
+            var currentMonsterXp = MonsterXp;
+            var currentPvpXp = PvpXp;
+
+            var remainingQuestXpCap = DailyXpMaxPerCategory - currentQuestXp;
+            var remainingMonsterXpCap = DailyXpMaxPerCategory - currentMonsterXp;
+            var remainingPvpXpCap = DailyXpMaxPerCategory - currentPvpXp;
+
+            long actualXpToAdd = 0;
+
             switch (xpType)
             {
                 case XpType.Quest:
-                    if (QuestXpDailyMax <= QuestXp)
-                        return;
-
-                    var questTotal = amount + QuestXp;
-                    if (questTotal >= QuestXpDailyMax)
+                    if (currentQuestXp < DailyXpMaxPerCategory)
                     {
-                        amount = QuestXpDailyMax - QuestXp;
-                        QuestXp = QuestXpDailyMax;
+                        actualXpToAdd = Math.Min(amount, Math.Min(DailyXpRemaining, remainingQuestXpCap));
+                        QuestXp += actualXpToAdd;
+                        LifetimeQuestXp += actualXpToAdd;
                     }
-                    else
-                        QuestXp = questTotal;
                     break;
 
                 case XpType.Kill:
                 case XpType.Fellowship:
                 case XpType.Allegiance:
-                    if (MonsterXpDailyMax <= MonsterXp)
-                        return;
-
-                    var monsterTotal = amount + MonsterXp;
-                    if (monsterTotal >= MonsterXpDailyMax)
+                    if (currentMonsterXp < DailyXpMaxPerCategory)
                     {
-                        amount = MonsterXpDailyMax - MonsterXp;
-                        MonsterXp = MonsterXpDailyMax;
+                        actualXpToAdd = Math.Min(amount, Math.Min(DailyXpRemaining, remainingMonsterXpCap));
+                        MonsterXp += actualXpToAdd;
+                        LifetimeMonsterXp += actualXpToAdd;
                     }
-                    else
-                        MonsterXp = monsterTotal;
                     break;
 
                 case XpType.Pvp:
-                    if (PvpXpDailyMax <= PvpXp)
-                        return;
-
-                    var pvpTotal = amount + PvpXp;
-                    if (pvpTotal > PvpXpDailyMax)
+                    if (currentPvpXp < DailyXpMaxPerCategory)
                     {
-                        amount = PvpXpDailyMax - PvpXp;
-                        PvpXp = PvpXpDailyMax;
+                        actualXpToAdd = Math.Min(amount, Math.Min(DailyXpRemaining, remainingPvpXpCap));
+                        PvpXp += actualXpToAdd;
+                        LifetimePvpXp += actualXpToAdd;
                     }
-                    else
-                        PvpXp = pvpTotal;
                     break;
             }
+
+            // Subtract the added XP from the daily XP remaining
+            DailyXpRemaining -= actualXpToAdd;
+            amount = actualXpToAdd;
 
             // until we are max level we must make sure that we send
             var xpTable = DatManager.PortalDat.XpTable;
@@ -167,13 +170,13 @@ namespace ACE.Server.WorldObjects
                 CheckForLevelup();
             }
             if (xpType == XpType.Kill)
-                Session.Network.EnqueueSend(new GameMessageSystemChat($"You've earned {amount:N0} experience. You have {Formatting.FormatIntWithCommas((ulong)(MonsterXpDailyMax - MonsterXp))} monster daily xp remaining", ChatMessageType.Broadcast));
+                Session.Network.EnqueueSend(new GameMessageSystemChat($"You've earned {amount:N0} monster xp. You have {Formatting.FormatIntWithCommas((ulong)DailyXpRemaining)} xp remaining", ChatMessageType.Broadcast));
 
             if (xpType == XpType.Pvp)
-                Session.Network.EnqueueSend(new GameMessageSystemChat($"You've earned {amount:N0} experience. You have {Formatting.FormatIntWithCommas((ulong)(PvpXpDailyMax - PvpXp))} pvp daily xp remaining", ChatMessageType.Broadcast));
+                Session.Network.EnqueueSend(new GameMessageSystemChat($"You've earned {amount:N0} pvp experience. You have {Formatting.FormatIntWithCommas((ulong)DailyXpRemaining)} xp remaining", ChatMessageType.Broadcast));
 
             if (xpType == XpType.Quest)
-                Session.Network.EnqueueSend(new GameMessageSystemChat($"You've earned {amount:N0} experience. You have {Formatting.FormatIntWithCommas((ulong)(QuestXpDailyMax - QuestXp))} quest daily xp remaining", ChatMessageType.Broadcast));
+                Session.Network.EnqueueSend(new GameMessageSystemChat($"You've earned {amount:N0} quest experience. You have {Formatting.FormatIntWithCommas((ulong)DailyXpRemaining)} xp remaining", ChatMessageType.Broadcast));
 
 
         }

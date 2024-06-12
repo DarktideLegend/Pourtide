@@ -38,13 +38,20 @@ namespace ACE.Entity.Enum.Properties
         PvpXp                 = 9005,
         [ServerOnly]
         MonsterXp             = 9006,
-        [ServerOnly]
-        QuestXpDailyMax               = 9007,
-        [ServerOnly]
-        PvpXpDailyMax                 = 9008,
-        [ServerOnly]
-        MonsterXpDailyMax             = 9009,
 
+        [ServerOnly]
+        DailyXpMaxPerCategory             = 9010,
+        [ServerOnly]
+        DailyXpRemaining             = 9011,
+
+        [ServerOnly]
+        LifetimeQuestXp = 9012,
+        [ServerOnly]
+        LifetimePvpXp = 9013,
+        [ServerOnly]
+        LifetimeMonsterXp = 9014,
+        [ServerOnly]
+        DailyXp = 9015,
     }
 
     public static class PropertyInt64Extensions

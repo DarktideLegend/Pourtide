@@ -167,22 +167,39 @@ namespace ACE.Server.WorldObjects
             set { if (!value.HasValue) RemoveProperty(PropertyInt.Age); else SetProperty(PropertyInt.Age, value.Value); }
         }
 
-        public long MonsterXpDailyMax
+        public long DailyXp
         {
-            get => GetProperty(PropertyInt64.MonsterXpDailyMax) ?? 0;
-            set { if (value == 0) RemoveProperty(PropertyInt64.MonsterXpDailyMax); else SetProperty(PropertyInt64.MonsterXpDailyMax, value); }
+            get => GetProperty(PropertyInt64.DailyXp) ?? 0;
+            set { if (value == 0) RemoveProperty(PropertyInt64.DailyXp); else SetProperty(PropertyInt64.DailyXp, value); }
+        }
+        public long DailyXpRemaining
+        {
+            get => GetProperty(PropertyInt64.DailyXpRemaining) ?? 0;
+            set { if (value == 0) RemoveProperty(PropertyInt64.DailyXpRemaining); else SetProperty(PropertyInt64.DailyXpRemaining, value); }
         }
 
-        public long PvpXpDailyMax
+        public long DailyXpMaxPerCategory
         {
-            get => GetProperty(PropertyInt64.PvpXpDailyMax) ?? 0;
-            set { if (value == 0) RemoveProperty(PropertyInt64.PvpXpDailyMax); else SetProperty(PropertyInt64.PvpXpDailyMax, value); }
+            get => GetProperty(PropertyInt64.DailyXpMaxPerCategory) ?? 0;
+            set { if (value == 0) RemoveProperty(PropertyInt64.DailyXpMaxPerCategory); else SetProperty(PropertyInt64.DailyXpMaxPerCategory, value); }
         }
 
-        public long QuestXpDailyMax
+        public long LifetimeQuestXp
         {
-            get => GetProperty(PropertyInt64.QuestXpDailyMax) ?? 0;
-            set { if (value == 0) RemoveProperty(PropertyInt64.QuestXpDailyMax); else SetProperty(PropertyInt64.QuestXpDailyMax, value); }
+            get => GetProperty(PropertyInt64.LifetimeQuestXp) ?? 0;
+            set { if (value == 0) RemoveProperty(PropertyInt64.LifetimeQuestXp); else SetProperty(PropertyInt64.LifetimeQuestXp, value); }
+        }
+
+        public long LifetimePvpXp
+        {
+            get => GetProperty(PropertyInt64.LifetimePvpXp) ?? 0;
+            set { if (value == 0) RemoveProperty(PropertyInt64.LifetimePvpXp); else SetProperty(PropertyInt64.LifetimePvpXp, value); }
+        }
+
+        public long LifetimeMonsterXp
+        {
+            get => GetProperty(PropertyInt64.LifetimeMonsterXp) ?? 0;
+            set { if (value == 0) RemoveProperty(PropertyInt64.LifetimeMonsterXp); else SetProperty(PropertyInt64.LifetimeMonsterXp, value); }
         }
 
         public long QuestXp
