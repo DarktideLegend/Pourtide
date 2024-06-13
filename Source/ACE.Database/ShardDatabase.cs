@@ -1234,6 +1234,62 @@ namespace ACE.Database
                 context.SaveChanges();
             }
         }
+        public void DeleteArmorSets()
+        {
+            using (var context = new ShardDbContext())
+            {
+                var query = from b in context.Biota
+                            join work in context.BiotaPropertiesInt on b.Id equals work.ObjectId
+                            where work != null && work.Type == 105 && work.Value > 0
+                            join setId in context.BiotaPropertiesInt on b.Id equals setId.ObjectId
+                            where setId != null && setId.Type == 265
+                            select b;
+
+                var biotas = query
+                    .Include(b => b.BiotaPropertiesInt).ToList();
+
+                foreach (var biota in biotas)
+                {
+                    var item = biota.BiotaPropertiesInt.FirstOrDefault(item => item.Type == 265);
+
+                    if (item != null)
+                        biota.BiotaPropertiesInt.Remove(item);
+                }
+
+                context.SaveChanges();
+            }
+        }
+
+        private List<ushort> ArmorRatings = new List<ushort>()
+        {
+            370, 371, 374, 375, 376, 379
+        };
+
+        public void DeleteArmorRatings()
+        {
+            using (var context = new ShardDbContext())
+            {
+                var query = from b in context.Biota
+                            join work in context.BiotaPropertiesInt on b.Id equals work.ObjectId
+                            where work != null && work.Type == 105 && work.Value > 0
+                            join rating in context.BiotaPropertiesInt on b.Id equals rating.ObjectId
+                            where rating != null && ArmorRatings.Contains(rating.Type) && rating.Value > 0
+                            select b;
+
+                var biotas = query
+                    .Include(b => b.BiotaPropertiesInt).ToList();
+
+                foreach (var biota in biotas)
+                {
+                    var item = biota.BiotaPropertiesInt.FirstOrDefault(item => ArmorRatings.Contains(item.Type));
+
+                    if (item != null)
+                        biota.BiotaPropertiesInt.Remove(item);
+                }
+
+                context.SaveChanges();
+            }
+        }
 
     }
 }

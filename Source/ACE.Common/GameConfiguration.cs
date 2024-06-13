@@ -40,6 +40,7 @@ namespace ACE.Common
 
         public bool DeleteArmorSets { get; set; } = false;
 
+        public bool DeleteArmorRatings { get; set; } = false;
         public bool WorldDatabasePrecaching { get; set; } = false;
 
         public bool LandblockPreloading { get; set; } = true;

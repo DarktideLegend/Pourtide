@@ -371,6 +371,9 @@ namespace ACE.Server
                 DatabaseManager.Shard.BaseDatabase.DeleteArmorSets();
 
 
+            if (ConfigManager.Config.Server.DeleteArmorRatings)
+                DatabaseManager.Shard.BaseDatabase.DeleteArmorRatings();
+
             log.Info("Initializing RealmManager...");
             RealmManager.Initialize();
 
