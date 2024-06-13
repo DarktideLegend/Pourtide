@@ -38,6 +38,8 @@ namespace ACE.Common
         /// </summary>
         public bool DeleteNonMajorCantripsFromShardBiotas { get; set; } = false;
 
+        public bool DeleteArmorSets { get; set; } = false;
+
         public bool WorldDatabasePrecaching { get; set; } = false;
 
         public bool LandblockPreloading { get; set; } = true;

@@ -90,6 +90,8 @@
         // Remove Major cantrips from player owned items, this does not include Minor cantrips.
         "DeleteNonMajorCantripsFromShardBiotas":  false,
 
+        "DeleteArmorSets":  false,
+
         // WorldDatabasePrecaching, default: false
         // Development recommendation: false
         // Server recommendation: true

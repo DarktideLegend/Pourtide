@@ -367,6 +367,10 @@ namespace ACE.Server
             if (ConfigManager.Config.Server.DeleteNonMajorCantripsFromShardBiotas)
                 DatabaseManager.Shard.BaseDatabase.DeleteAllNonMajorCantrips();
 
+            if (ConfigManager.Config.Server.DeleteArmorSets)
+                DatabaseManager.Shard.BaseDatabase.DeleteArmorSets();
+
+
             log.Info("Initializing RealmManager...");
             RealmManager.Initialize();
 
