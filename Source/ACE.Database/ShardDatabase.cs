@@ -1209,7 +1209,7 @@ namespace ACE.Database
                     {
                         var spell = Enum.GetName(typeof(SpellId), id);
 
-                        if (spell.Contains("CANTRIP"))
+                        if (spell.ToLower().Contains("cantrip"))
                         {
                             char lastChar = spell[spell.Length - 1];
 
