@@ -364,6 +364,9 @@ namespace ACE.Server
             else
                 log.Info("Precaching World Database Disabled...");
 
+            if (ConfigManager.Config.Server.DeleteNonMajorCantripsFromShardBiotas)
+                DatabaseManager.Shard.BaseDatabase.DeleteAllNonMajorCantrips();
+
             log.Info("Initializing RealmManager...");
             RealmManager.Initialize();
 

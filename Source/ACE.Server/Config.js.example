@@ -87,6 +87,9 @@
         // The amount of minutes to keep in memory a non player object from shard database.
         "ShardNonPlayerBiotaCacheTime": "11",
 
+        // Remove Major cantrips from player owned items, this does not include Minor cantrips.
+        "DeleteNonMajorCantripsFromShardBiotas":  false,
+
         // WorldDatabasePrecaching, default: false
         // Development recommendation: false
         // Server recommendation: true

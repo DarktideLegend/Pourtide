@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 using ACE.Entity;
@@ -309,6 +310,13 @@ namespace ACE.Database.Models.Shard
             return false;
         }
 
+        public static List<int> GetKnownSpellsIds(this Biota biota)
+        {
+            if (biota.BiotaPropertiesSpellBook == null)
+                return new List<int>();
+
+            return new List<int>(biota.BiotaPropertiesSpellBook.Select(s => s.Spell));
+        }
 
         // =====================================
         // BiotaPropertiesSkill

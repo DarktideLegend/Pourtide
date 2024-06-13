@@ -33,6 +33,11 @@ namespace ACE.Common
         /// </summary>
         public uint ShardNonPlayerBiotaCacheTime { get; set; } = 11;
 
+        /// <summary>
+        /// This does not include Minor Cantrips
+        /// </summary>
+        public bool DeleteNonMajorCantripsFromShardBiotas { get; set; } = false;
+
         public bool WorldDatabasePrecaching { get; set; } = false;
 
         public bool LandblockPreloading { get; set; } = true;

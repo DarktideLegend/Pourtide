@@ -20,7 +20,6 @@ using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
 using Microsoft.Extensions.DependencyInjection;
 using ACE.Database.Models.World;
-using Microsoft.EntityFrameworkCore.Internal;
 
 namespace ACE.Database
 {
@@ -1184,6 +1183,55 @@ namespace ACE.Database
                     // No existing cooldown, return false
                     return true;
                 }
+            }
+        }
+
+        /// <summary>
+        /// This does not include minor cantrips
+        /// </summary>
+        public void DeleteAllNonMajorCantrips()
+        {
+            using (var context = new ShardDbContext())
+            {
+                var query = from b in context.Biota
+                            join work in context.BiotaPropertiesInt on b.Id equals work.ObjectId
+                            where work != null && work.Type == 105 && work.Value > 0
+                            select b;
+
+                var biotas = query
+                    .Include(b => b.BiotaPropertiesSpellBook).ToList();
+
+                foreach (var biota in biotas)
+                {
+                    var ids = biota.GetKnownSpellsIds();
+
+                    foreach(var id in ids)
+                    {
+                        var spell = Enum.GetName(typeof(SpellId), id);
+
+                        if (spell.Contains("CANTRIP"))
+                        {
+                            char lastChar = spell[spell.Length - 1];
+
+                            if (char.IsDigit(lastChar))
+                            {
+                                int value = lastChar - '0';
+
+                                if (value > 2)
+                                {
+                                    var item = biota.BiotaPropertiesSpellBook.FirstOrDefault(item => item.Spell == id);
+
+                                    if (item != null)
+                                    {
+                                        biota.BiotaPropertiesSpellBook.Remove(item);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                context.SaveChanges();
             }
         }
 
