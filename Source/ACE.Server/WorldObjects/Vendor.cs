@@ -17,6 +17,7 @@ using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Managers;
 using ACE.Server.Realms;
 using System.Drawing;
+using ACE.Server.Features.Xp;
 
 namespace ACE.Server.WorldObjects
 {
@@ -749,6 +750,9 @@ namespace ACE.Server.WorldObjects
             {
                 var realmId = item.GetProperty(PropertyInt.HomeRealm).Value;
                 RealmManager.SetHomeRealm(target, (ushort)realmId, true);
+                if (realmId == RealmManager.CurrentSeason.Realm.Id)
+                    XpManager.SetPlayerXpCap(target);
+
                 NumServicesSold++;
                 return;
             }
