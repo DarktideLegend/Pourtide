@@ -106,6 +106,46 @@ VALUES (3000311, 2, 25703,  0, 93, 1, False) /* Create Dapper Suit (25703) for W
      , (3000311, 4, 36627, -1, 0, 0, False) /* Create  (36627) for Shop */
      , (3000311, 4, 22449, -1, 0, 0, False) /* Create Plentiful Healing Kit (22449) for Shop */
      , (3000311, 4, 3000360, -1, 0, 0, False) /* Create  (3000360) for Shop */
+     , (3000311, 4, 29266, -1, 0, 0, False) /* Create Ciandra's Fortune (29266) for Shop */
+     , (3000311, 4, 29267, -1, 0, 0, False) /* Create Quick Learner (29267) for Shop */
+     , (3000311, 4, 29268, -1, 0, 0, False) /* Create Might of the Seventh Mule (29268) for Shop */
+     , (3000311, 4, 29269, -1, 0, 0, False) /* Create Critical Protection (29269) for Shop */
+     , (3000311, 4, 29270, -1, 0, 0, False) /* Create Clutch of the Miser (29270) for Shop */
+     , (3000311, 4, 29271, -1, 0, 0, False) /* Create Enduring Enchantment (29271) for Shop */
+     , (3000311, 4, 29272, -1, 0, 0, False) /* Create Innate Renewal (29272) for Shop */
+     , (3000311, 4, 29273, -1, 0, 0, False) /* Create Charmed Smith (29273) for Shop */
+     , (3000311, 4, 29275, -1, 0, 0, False) /* Create Enhancement of the Mace Turner (29275) for Shop */
+     , (3000311, 4, 29276, -1, 0, 0, False) /* Create Storm's Enhancement (29276) for Shop */
+     , (3000311, 4, 29277, -1, 0, 0, False) /* Create Fiery Enhancement (29277) for Shop */
+     , (3000311, 4, 29278, -1, 0, 0, False) /* Create Icy Enhancement (29278) for Shop */
+     , (3000311, 4, 29279, -1, 0, 0, False) /* Create Enhancement of the Arrow Turner (29279) for Shop */
+     , (3000311, 4, 29280, -1, 0, 0, False) /* Create Enhancement of the Blade Turner (29280) for Shop */
+     , (3000311, 4, 29284, -1, 0, 0, False) /* Create Jibril's Essence (29284) for Shop */
+     , (3000311, 4, 29282, -1, 0, 0, False) /* Create Shadow of The Seventh Mule (29282) for Shop */
+     , (3000311, 4, 29283, -1, 0, 0, False) /* Create Archmage's Endurance (29283) for Shop */
+     , (3000311, 4, 29285, -1, 0, 0, False) /* Create Yoshi's Essence (29285) for Shop */
+     , (3000311, 4, 29286, -1, 0, 0, False) /* Create Celdiseth's Essence (29286) for Shop */
+     , (3000311, 4, 29287, -1, 0, 0, False) /* Create Ciandra's Essence (29287) for Shop */
+     , (3000311, 4, 29288, -1, 0, 0, False) /* Create Koga's Essence (29288) for Shop */
+     , (3000311, 4, 29289, -1, 0, 0, False) /* Create Oswald's Enhancement (29289) for Shop */
+     , (3000311, 4, 29290, -1, 0, 0, False) /* Create Bleeargh's Fortitude (29290) for Shop */
+     , (3000311, 4, 29291, -1, 0, 0, False) /* Create Enduring Calm (29291) for Shop */
+     , (3000311, 4, 29292, -1, 0, 0, False) /* Create Siraluun's Blessing (29292) for Shop */
+     , (3000311, 4, 29293, -1, 0, 0, False) /* Create Steadfast Will (29293) for Shop */
+     , (3000311, 4, 29294, -1, 0, 0, False) /* Create Reinforcement of the Lugians (29294) for Shop */
+     , (3000311, 4, 41472, -1, 0, 0, False) /* Create Infused Creature Magic (41472) for Shop */
+     , (3000311, 4, 41473, -1, 0, 0, False) /* Create Infused Item Magic (41473) for Shop */
+     , (3000311, 4, 41474, -1, 0, 0, False) /* Create Infused Life Magic (41474) for Shop */
+     , (3000311, 4, 41475, -1, 0, 0, False) /* Create Infused War Magic (41475) for Shop */
+     , (3000311, 4, 41476, -1, 0, 0, False) /* Create Master of the Five Fold Path (41476) for Shop */
+     , (3000311, 4, 41477, -1, 0, 0, False) /* Create Master of the Steel Circle (41477) for Shop */
+     , (3000311, 4, 41478, -1, 0, 0, False) /* Create Frenzy of the Slayer (41478) for Shop */
+     , (3000311, 4, 41479, -1, 0, 0, False) /* Create Infused Void Magic (41479) for Shop */
+     , (3000311, 4, 41480, -1, 0, 0, False) /* Create Iron Skin of the Invincible (41480) for Shop */
+     , (3000311, 4, 41481, -1, 0, 0, False) /* Create Hand of the Remorseless (41481) for Shop */
+     , (3000311, 4, 41482, -1, 0, 0, False) /* Create Eye of the Remorseless (41482) for Shop */
+     , (3000311, 4, 41490, -1, 0, 0, False) /* Create Master of the Focused Eye (41490) for Shop */
+     , (3000311, 4, 43167, -1, 0, 0, False) /* Create Jack of All Trades (43167) for Shop */
      , (3000311, 4, 23356, -1, 0, 0, False) /* Create Sanguinary Aegis (23356) for Shop */
      , (3000311, 4, 15856, -1, 0, 0, False) /* Create Encrusted Bloodstone Jewel (15856) for Shop */
      , (3000311, 4, 30246, -1, 0, 0, False) /* Create Artist's Crystal (30246) for Shop */
