@@ -30,6 +30,7 @@ using ACE.Server.Features.Xp;
 using ACE.Server.Features.Discord;
 using System.Runtime;
 using ACE.Common.ACRealms;
+using ACE.Server.Managers.ACRealms;
 
 namespace ACE.Server
 {
@@ -265,7 +266,7 @@ namespace ACE.Server
 
             if (ConfigManager.Config.Offline.AutoUpdateWorldDatabase)
             {
-                CheckForWorldDatabaseUpdate();
+                CheckForWorldDatabaseUpdate(services);
 
                 if (ConfigManager.Config.Offline.AutoApplyWorldCustomizations)
                     AutoApplyWorldCustomizations();
@@ -380,6 +381,8 @@ namespace ACE.Server
             log.Info("Initializing PlayerManager...");
             PlayerManager.Initialize();
 
+            RealmsFromACESetup.QueryStage1();
+
             log.Info("Initializing HouseManager...");
             HouseManager.Initialize();
 
@@ -392,6 +395,9 @@ namespace ACE.Server
 
             log.Info("Initializing WorldManager...");
             WorldManager.Initialize();
+
+            if (!RealmsFromACESetup.DoMigrationsIfRequired())
+                return;
 
             log.Info("Initializing EventManager...");
             EventManager.Initialize();

@@ -2,6 +2,7 @@ using ACE.Entity.Enum.Properties;
 using System.CommandLine;
 using Newtonsoft.Json;
 using ACE.Entity.Enum;
+using ACE.Entity.Enum.RealmProperties;
 
 namespace ACRealms.JsonSchemaGenerator
 {
@@ -34,20 +35,34 @@ namespace ACRealms.JsonSchemaGenerator
         public static void Run(DirectoryInfo directory)
         {
             var realmDir = new DirectoryInfo($"{directory}/json/realms/realm");
-            var realmFiles = realmDir.GetFiles() ?? throw new ArgumentException("Could not find files");
+            var realmFiles = realmDir.GetFiles()?.Where(f => f.Name.EndsWith(".jsonc"))?.ToList() ?? throw new ArgumentException("Could not find realm files");
             var realmNames = realmFiles.Select(f =>
             {
-                var dobj = JsonConvert.DeserializeObject<dynamic>(File.ReadAllText(f.FullName));
-                return (name: (string)dobj!.name.Value, description: (string?)dobj!.properties?.Description?.Value ?? "This realm is missing a 'Description' property. You can add one!");
-            }).ToList();
+                try
+                {
+                    var dobj = JsonConvert.DeserializeObject<dynamic>(File.ReadAllText(f.FullName));
+                    return (name: (string?)dobj!.name.Value, description: (string?)(dobj!.properties?.Description?.Value ?? "This realm is missing a 'Description' property. You can add one!"));
+                }
+                catch (Exception)
+                {
+                    return (name: null, description: null);
+                }
+            }).Where(data => data.name != null).Select(d => (name: d.name!, description: d.description!)).ToList();
 
             var rulesetDir = new DirectoryInfo($"{directory}/json/realms/ruleset");
-            var rulesetFiles = rulesetDir.GetFiles();
+            var rulesetFiles = rulesetDir.GetFiles().Where(f => f.Name.EndsWith(".jsonc"))?.ToList() ?? new List<FileInfo>();
             var rulesetNames = rulesetFiles.Select(f =>
             {
-                var dobj = JsonConvert.DeserializeObject<dynamic>(File.ReadAllText(f.FullName));
-                return (name: (string)dobj!.name.Value, description: (string?)dobj!.properties?.Description?.Value ?? "This ruleset is missing a 'Description' property. You can add one!");
-            }).ToList();
+                try
+                {
+                    var dobj = JsonConvert.DeserializeObject<dynamic>(File.ReadAllText(f.FullName));
+                    return (name: (string?)dobj!.name.Value, description: (string?)(dobj!.properties?.Description?.Value ?? "This ruleset is missing a 'Description' property. You can add one!"));
+                }
+                catch (Exception)
+                {
+                    return (name: null, description: null);
+                }
+            }).Where(data => data.name != null).Select(d => (name: d.name!, description: d.description!)).ToList();
 
             var generatedPath = $"{directory}/json-schema/generated";
             if (Directory.Exists(generatedPath))
@@ -117,6 +132,8 @@ namespace ACRealms.JsonSchemaGenerator
                 {   "properties", applyRulesetsRandomSchemaProperties }
             };
 
+            if (!Directory.Exists(generatedPath))
+                Directory.CreateDirectory(generatedPath);
 
             File.WriteAllText($"{generatedPath}/realm-names.json", JsonConvert.SerializeObject(realmNamesSchema, Formatting.Indented));
             File.WriteAllText($"{generatedPath}/ruleset-names.json", JsonConvert.SerializeObject(rulesetNamesSchema, Formatting.Indented));
@@ -156,11 +173,11 @@ namespace ACRealms.JsonSchemaGenerator
 
         private static object MakePropertySchema()
         {
-            var propertyDefinitionsBool = RealmPropertyHelper.MakePropDict<RealmPropertyBool, RealmPropertyBoolAttribute>().Where(x => x.Key != RealmPropertyBool.Undef);
-            var propertyDefinitionsInt = RealmPropertyHelper.MakePropDict<RealmPropertyInt, RealmPropertyIntAttribute>().Where(x => x.Key != RealmPropertyInt.Undef);
-            var propertyDefinitionsInt64 = RealmPropertyHelper.MakePropDict<RealmPropertyInt64, RealmPropertyInt64Attribute>().Where(x => x.Key != RealmPropertyInt64.Undef);
-            var propertyDefinitionsString = RealmPropertyHelper.MakePropDict<RealmPropertyString, RealmPropertyStringAttribute>().Where(x => x.Key != RealmPropertyString.Undef);
-            var propertyDefinitionsFloat = RealmPropertyHelper.MakePropDict<RealmPropertyFloat, RealmPropertyFloatAttribute>().Where(x => x.Key != RealmPropertyFloat.Undef);
+            var propertyDefinitionsBool = RealmPropertyPrototypes.Bool;
+            var propertyDefinitionsInt = RealmPropertyPrototypes.Int;
+            var propertyDefinitionsInt64 = RealmPropertyPrototypes.Int64;
+            var propertyDefinitionsString = RealmPropertyPrototypes.String;
+            var propertyDefinitionsFloat = RealmPropertyPrototypes.Float;
 
             var probabilitySchema = new Dictionary<string, object>()
             {
@@ -184,7 +201,7 @@ namespace ACRealms.JsonSchemaGenerator
 
             foreach (var propInt in propertyDefinitionsInt)
             {
-                var att = propInt.Value;
+                var att = propInt.Value.PrimaryAttribute;
                 var propertySchema = new Dictionary<string, object>();
 
                 var directValueSchema = new Dictionary<string, object>()
@@ -251,7 +268,7 @@ namespace ACRealms.JsonSchemaGenerator
 
             foreach (var propLong in propertyDefinitionsInt64)
             {
-                var att = propLong.Value;
+                var att = propLong.Value.PrimaryAttribute;
                 var propertySchema = new Dictionary<string, object>();
 
                 var directValueSchema = new Dictionary<string, object>()
@@ -319,7 +336,7 @@ namespace ACRealms.JsonSchemaGenerator
 
             foreach (var propFloat in propertyDefinitionsFloat)
             {
-                var att = propFloat.Value;
+                var att = propFloat.Value.PrimaryAttribute;
                 var propertySchema = new Dictionary<string, object>();
 
                 var directValueSchema = new Dictionary<string, object>()
@@ -386,7 +403,7 @@ namespace ACRealms.JsonSchemaGenerator
 
             foreach (var propString in propertyDefinitionsString)
             {
-                var att = propString.Value;
+                var att = propString.Value.PrimaryAttribute;
                 var propertySchema = new Dictionary<string, object>();
 
                 var directValueSchema = new Dictionary<string, object>()
@@ -430,7 +447,7 @@ namespace ACRealms.JsonSchemaGenerator
 
             foreach (var propBool in propertyDefinitionsBool)
             {
-                var att = propBool.Value;
+                var att = propBool.Value.PrimaryAttribute;
                 var propertySchema = new Dictionary<string, object>();
 
                 var directValueSchema = new Dictionary<string, object>()

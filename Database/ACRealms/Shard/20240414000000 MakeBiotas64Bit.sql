@@ -1,4 +1,4 @@
-USE ace_shard;
+use ace_shard;
 
 ALTER TABLE biota_properties_allegiance DROP FOREIGN KEY FK_allegiance_character_Id;
 ALTER TABLE character_properties_contract_registry DROP FOREIGN KEY wcid_contract;

@@ -3,14 +3,19 @@ using System;
 using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
+using RealmPropertyIntAttribute = ACE.Entity.Enum.Properties.RealmPropertyPrimaryMinMaxAttribute<int>;
 
 namespace ACE.Entity.Enum.Properties
 {
+    #pragma warning disable IDE0001
+    [RequiresPrimaryAttribute<RealmPropertyPrimaryMinMaxAttribute<int>, int>]
+    #pragma warning restore IDE0001
     public enum RealmPropertyInt : ushort
     {
         [RealmPropertyInt(defaultValue: 0, minValue: 0, maxValue: 0)]
         Undef                                    = 0,
 
+        [Obsolete("This will be changed to a string")]
         [Description("Vendor weenies with a matching PropertyInt.RulesetStampVendorType will include this ruleset as a stamp for sale, to allow players to craft these rulesets for ephemeral instances")]
         [RealmPropertyInt(0, 0, 0xFFFF)]
         RulesetStampVendorCategory = 1,

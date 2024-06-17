@@ -1,2 +1,3 @@
-USE ace_world;
+use ace_world;
+
 ALTER TABLE weenie_properties_position MODIFY COLUMN instance int UNSIGNED;

@@ -1208,7 +1208,7 @@ namespace ACE.Server.WorldObjects
         {
             if (killerIsOlthoiPlayer)
             {
-                var slag = LootGenerationFactory.RollSlag(this, hadVitae);
+                var slag = RealmRuleset.LootGenerationFactory.RollSlag(this, hadVitae);
 
                 if (slag == null)
                     return new();
@@ -1223,9 +1223,9 @@ namespace ACE.Server.WorldObjects
                 if (hadVitae)
                     return new();
 
-                var items = LootGenerationFactory.CreateRandomLootObjects(OlthoiDeathTreasureType);
+                var items = RealmRuleset.LootGenerationFactory.CreateRandomLootObjects(OlthoiDeathTreasureType);
 
-                var gland = LootGenerationFactory.RollGland(this, hadVitae);
+                var gland = RealmRuleset.LootGenerationFactory.RollGland(this, hadVitae);
 
                 if (gland != null)
                 {

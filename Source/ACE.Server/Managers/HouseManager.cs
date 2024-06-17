@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-
+using System.Threading;
 using log4net;
 
 using ACE.Common.Performance;
@@ -19,7 +19,12 @@ using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.Network.Structure;
 using ACE.Server.WorldObjects;
 using ACE.Server.Realms;
+using System.Threading.Tasks;
+using System.Runtime.CompilerServices;
+using ACE.Common;
+using ACE.Server.Managers.ACRealms;
 using ACE.Server.Features.Xp;
+
 
 namespace ACE.Server.Managers
 {
@@ -48,22 +53,19 @@ namespace ACE.Server.Managers
         /// </summary>
         private static readonly RateLimiter updateHouseManagerRateLimiter = new RateLimiter(1, TimeSpan.FromMinutes(1));
 
+        public static bool Initialized { get; private set; }
+
         public static readonly uint[] PourHousing = new uint[] { 0x7200FFFF, 0x912A0025, 0x9132FFFF }; // Winthur Gate, Random Villas
 
         public static readonly Position PourApartmentLoc = InstancedPosition.slocToPosition("0x72000161 [83.740000 -93.750000 0.000000] 0.393140 0.000000 0.000000 -0.919479");
-
 
         public static void Initialize()
         {
             BuildHouseIdToGuid();
 
             BuildRentQueue();
-        }
 
-        public static bool ValidatePourHousing(ushort landblock)
-        {
-            var whitelisted = PourHousing.Select(r => new LandblockId(r).Landblock); // Winthur Gate, Random Villas
-            return whitelisted.Contains(landblock);
+            Initialized = true;
         }
 
         /// <summary>
@@ -145,24 +147,24 @@ namespace ACE.Server.Managers
             var owner = PlayerManager.FindByGuid(biotaOwner.Value);
             if (owner == null)
             {
-                log.Error($"[HOUSE] HouseManager.AddRentQueue(): couldn't find owner {biotaOwner.Value:X8}");
+                log.Error($"[HOUSE] HouseManager.AddRentQueue(): couldn't find owner {biotaOwner.Value:X16}");
                 return;
             }
             var houseId = slumlord.BiotaPropertiesDID.FirstOrDefault(i => i.Type == (ushort)PropertyDataId.HouseId);
             if (houseId == null)
             {
-                log.Error($"[HOUSE] HouseManager.AddRentQueue(): couldn't find house id for {slumlord.Id:X8}");
+                log.Error($"[HOUSE] HouseManager.AddRentQueue(): couldn't find house id for {slumlord.Id:X16}");
                 return;
             }
             if (!HouseIdToGuid.TryGetValue(houseId.Value, out var houseGuids))
             {
-                log.Error($"[HOUSE] HouseManager.AddRentQueue(): couldn't find house instance for {slumlord.Id:X8}");
+                log.Error($"[HOUSE] HouseManager.AddRentQueue(): couldn't find house instance for {slumlord.Id:X16}");
                 return;
             }
             var houseInstance = GetHouseGuid(slumlord.Id, houseGuids);
             if (houseInstance == 0)
             {
-                log.Error($"[HOUSE] HouseManager.AddRentQueue(): couldn't find house guid for {slumlord.Id:X8}");
+                log.Error($"[HOUSE] HouseManager.AddRentQueue(): couldn't find house guid for {slumlord.Id:X16}");
                 return;
             }
             if (RentQueueContainsHouse(houseInstance))
@@ -192,22 +194,23 @@ namespace ACE.Server.Managers
             if (house == null)      // this can happen for basement dungeons
                 return;
 
-            var purchaseTime = (uint)(player.HousePurchaseTimestamp ?? 0);
-
-            if (player.HouseRentTimestamp == null)
-            {
-                log.WarnFormat("[HOUSE] HouseManager.AddRentQueue({0}, {1:X16}): player has null HouseRentTimestamp", player.Name, houseGuid);
-                player.HouseRentTimestamp = (int)house.GetRentDue(purchaseTime);
-                //return;
-            }
             AddRentQueue(player, house);
         }
 
         /// <summary>
         /// Adds a player-owned house to the rent queue
         /// </summary>
-        private static void AddRentQueue(IPlayer player, House house)
+        internal static void AddRentQueue(IPlayer player, House house)
         {
+            var purchaseTime = (uint)(player.HousePurchaseTimestamp ?? 0);
+
+            if (player.HouseRentTimestamp == null)
+            {
+                log.WarnFormat("[HOUSE] HouseManager.AddRentQueue({0}, {1:X16}): player has null HouseRentTimestamp", player.Name, house.Guid);
+                player.HouseRentTimestamp = (int)house.GetRentDue(purchaseTime);
+                //return;
+            }
+
             var playerHouse = new PlayerHouse(player, house);
 
             RentQueue.Add(playerHouse);
@@ -216,10 +219,7 @@ namespace ACE.Server.Managers
         /// <summary>
         /// Called when a player abandons a house
         /// </summary>
-        public static void RemoveRentQueue(ulong houseGuid)
-        {
-            RentQueue.RemoveWhere(i => i.House.Guid.Full == houseGuid);
-        }
+        public static bool RemoveRentQueue(ulong houseGuid) => RentQueue.RemoveWhere(i => i.House.Guid.Full == houseGuid) > 0;
 
         /// <summary>
         /// Queries the status of multi-house owners on the server
@@ -237,7 +237,7 @@ namespace ACE.Server.Managers
                 if (biotaOwner == null)
                 {
                     // this is fine. this is just a house that was purchased, and then later abandoned
-                    //Console.WriteLine($"HouseManager.QueryMultiHouse(): couldn't find owner for house {slumlord.Id:X8}");
+                    //Console.WriteLine($"HouseManager.QueryMultiHouse(): couldn't find owner for house {slumlord.Id:X16}");
                     continue;
                 }
                 var owner = PlayerManager.FindByGuid(biotaOwner.Value);
@@ -327,13 +327,33 @@ namespace ACE.Server.Managers
             return coords;
         }
 
+        internal static bool PausedDuringACEMigrationFinalization { get; private set; }
+
+        [MethodImpl(MethodImplOptions.Synchronized)]
+        internal static void PauseForACEMigrationFinalization()
+        {
+            PausedDuringACEMigrationFinalization = true;
+        }
+
+        [MethodImpl(MethodImplOptions.Synchronized)]
+        internal static void ResetAfterACEMigrationFinalization()
+        {
+            if (!PausedDuringACEMigrationFinalization || !RealmsFromACESetup.ACEMigrationInProgress)
+                throw new InvalidOperationException("This may only be run by RealmsFromACESetup");
+
+            Initialize();
+        }
+
         /// <summary>
         /// Runs every ~1 minute
         /// </summary>
+        [MethodImpl(MethodImplOptions.Synchronized)]
         public static void Tick()
         {
             XpManager.Tick();
 
+            if (PausedDuringACEMigrationFinalization)
+                return;
             if (updateHouseManagerRateLimiter.GetSecondsToWaitBeforeNextEvent() > 0)
                 return;
 
@@ -450,7 +470,7 @@ namespace ACE.Server.Managers
         /// <summary>
         /// Handles the eviction process for a player house
         /// </summary>
-        public static void HandleEviction(House house, ulong playerGuid, bool multihouse = false, bool force = false)
+        public static void HandleEviction(House house, ulong playerGuid, bool multihouse = false, bool force = false, bool movingHouse = false)
         {
             // clear out slumlord inventory
             var slumlord = house.SlumLord;
@@ -526,7 +546,7 @@ namespace ACE.Server.Managers
                 return;
             }
 
-            if (!isOnline)
+            if (!isOnline && !movingHouse)
             {
                 // inform player of eviction when they log in
                 var offlinePlayer = PlayerManager.GetOfflinePlayer(playerGuid);
@@ -545,7 +565,8 @@ namespace ACE.Server.Managers
             onlinePlayer.House = null;
 
             // send text message
-            onlinePlayer.Session.Network.EnqueueSend(new GameMessageSystemChat("Your house has reverted due to non-payment of the maintenance costs.  All items stored in the house have been lost.", ChatMessageType.Broadcast));
+            if (!movingHouse)
+                onlinePlayer.Session.Network.EnqueueSend(new GameMessageSystemChat("Your house has reverted due to non-payment of the maintenance costs.  All items stored in the house have been lost.", ChatMessageType.Broadcast));
             onlinePlayer.RemoveDeed();
 
             onlinePlayer.SaveBiotaToDatabase();
@@ -681,9 +702,14 @@ namespace ACE.Server.Managers
         /// <summary>
         /// Returns all of the houses in the rent queue for a house id
         /// </summary>
-        public static List<House> GetHouseById(ulong houseId)
+        public static List<House> GetHouseById(uint houseId)
         {
             return RentQueue.Where(i => i.House.HouseId == houseId).Select(i => i.House).ToList();
+        }
+
+        public static House GetPurchasedHouseByInstancedId(ObjectGuid guid)
+        {
+            return RentQueue.Where(i => i.House.Guid == guid).Select(i => i.House).FirstOrDefault();
         }
 
         /// <summary>
@@ -713,12 +739,51 @@ namespace ACE.Server.Managers
             return new ObjectGuid(house_guids.FirstOrDefault(i => slumlord_prefix == (i >> 12)), instance).Full;
         }
 
+        public static House GetHouseSynchronously(ObjectGuid houseGuid, bool waitForInventoryLoad = false, bool isRealmMigration = false)
+        {
+            var (house, isLoaded) = GetHouse(houseGuid, (_) => { });
+            if (!waitForInventoryLoad || isLoaded || house == null)
+                return house;
+
+            if (house.SlumLord.CurrentLandblock == null)
+            {
+                if (!LandblockManager.IsLoaded(house.Location.LandblockId, house.Location.Instance))
+                {
+                    var lb = LandblockManager.GetLandblock(house.Location.LandblockId, house.Location.Instance, null, loadAdjacents: false, wait: isRealmMigration);
+                    lb.SetActive(isAdjacent: false);
+                }
+            }
+            (house, isLoaded) = GetHouse(houseGuid, (_) => { });
+            if (isLoaded)
+                return house;
+
+            bool cancelled = false;
+            var waitjob = new Task(() => {
+                while (!cancelled)
+                {
+                    Thread.Sleep(100);
+                    if (house.SlumLord.InventoryLoaded)
+                        return;
+                }
+            });
+            waitjob.Start();
+            var completed = waitjob.Wait(isRealmMigration ? 30000 : 5000);
+            cancelled = true;
+
+            if (completed)
+                return house;
+
+            log.Error($"GetHouseSynchronously failed for {house.HouseOwnerName}'s house {houseGuid}.");
+            return null;
+        }
+
         /// <summary>
         /// If the landblock is loaded, return a reference to the current House object
         /// else return a copy of the House biota from the latest info in the db
-        ///
+        /// Returns the house biota immediately, and a boolean to indicate if the inventory was loaded 
         /// <param name="callback">called when the slumlord inventory is fully loaded</param>
-        public static void GetHouse(ObjectGuid houseGuid, Action<House> callback)
+        /// </summary>
+        public static Tuple<House, bool> GetHouse(ObjectGuid houseGuid, Action<House> callback)
         {
             var landblockId = new LandblockId(houseGuid.StaticObjectLandblock.Value);
             var isLoaded = LandblockManager.IsLoaded(landblockId, houseGuid.Instance.Value);
@@ -729,9 +794,10 @@ namespace ACE.Server.Managers
                 // return a copy of the House biota from the latest info in the db
                 var houseBiota = House.Load(houseGuid);
 
+                var inventoryLoaded = houseBiota.SlumLord.InventoryLoaded;
                 RegisterCallback(houseBiota, callback);
 
-                return;
+                return new Tuple<House, bool>(houseBiota, inventoryLoaded);
             }
 
             // landblock is loaded, return a reference to the current House object
@@ -741,18 +807,30 @@ namespace ACE.Server.Managers
             if (house != null && house.SlumLord != null)
             {
                 if (!house.SlumLord.InventoryLoaded)
+                {
                     RegisterCallback(house, callback);
+                    return new Tuple<House, bool>(house, false);
+                }
                 else
+                {
                     callback(house);
+                    return new Tuple<House, bool>(house, true);
+                }
+
             }
             else if (!loaded.CreateWorldObjectsCompleted)
             {
                 var houseBiota = House.Load(houseGuid);
 
+                var inventoryLoaded = houseBiota.SlumLord.InventoryLoaded;
                 RegisterCallback(houseBiota, callback);
+                return new Tuple<House, bool>(houseBiota, inventoryLoaded);
             }
             else
+            {
                 log.ErrorFormat("[HOUSE] HouseManager.GetHouse({0:X16}): couldn't find house on loaded landblock", houseGuid);
+                return new Tuple<House, bool>(null, false);
+            }
         }
 
         /// <summary>
@@ -932,6 +1010,180 @@ namespace ACE.Server.Managers
             {
                 PayRent(house);
             }
+        }
+
+        /// <summary>
+        /// Sets this player as the owner of a house.
+        /// </summary>
+        public static void SetHouseOwner(IPlayer player, SlumLord slumlord, House house, bool runSynchronously = false)
+        {
+            if (slumlord.House != null && slumlord.House != house)
+                throw new InvalidOperationException("SetHouseOwner: Slumlord house was present but referenced a different copy of the same house");
+
+            log.Info($"[HOUSE] Setting {player.Name} (0x{player.Guid}) as owner of {house.Name} (0x{house.Guid:X16})");
+            Player onlinePlayer = player as Player;
+
+            // set player properties
+            player.HouseId = house.HouseId;
+            player.HouseInstance = house.Guid.Full;
+
+            var housePurchaseTimestamp = Time.GetUnixTime();
+            if (house.HouseType != HouseType.Apartment)
+                player.HousePurchaseTimestamp = (int)housePurchaseTimestamp;
+            player.HouseRentTimestamp = (int)house.GetRentDue((uint)housePurchaseTimestamp);
+            if (onlinePlayer != null)
+                onlinePlayer.houseRentWarnTimestamp = 0;
+
+            // set house properties
+            house.HouseOwner = player.Guid.Full;
+            house.HouseOwnerName = player.Name;
+            house.OpenToEveryone = false;
+            house.SaveBiotaToDatabase();
+
+            // relink
+            house.UpdateLinks();
+
+            if (house.HasDungeon)
+            {
+                var dungeonHouse = house.GetDungeonHouse();
+                if (dungeonHouse != null)
+                    dungeonHouse.UpdateLinks();
+            }
+
+            // notify client w/ HouseID
+            if (onlinePlayer != null)
+                onlinePlayer.Session.Network.EnqueueSend(new GameMessageSystemChat("Congratulations!  You now own this dwelling.", ChatMessageType.Broadcast));
+
+            // player slumlord 'on' animation
+            slumlord.On();
+
+            // set house name
+            slumlord.SetAndBroadcastName(player.Name);
+
+            slumlord.ClearInventory();
+
+            slumlord.SaveBiotaToDatabase();
+
+            HouseList.RemoveFromAvailable(slumlord, house);
+
+            player.SaveBiotaToDatabase();
+
+            if (house.HouseType != HouseType.Apartment && onlinePlayer != null)
+                onlinePlayer.Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(onlinePlayer, PropertyInt.HousePurchaseTimestamp, onlinePlayer.HousePurchaseTimestamp ?? 0));
+
+            var asyncAction = () =>
+            {
+                if (onlinePlayer != null)
+                    onlinePlayer.HandleActionQueryHouse();
+                house.UpdateRestrictionDB();
+
+                // boot anyone who may have been wandering around inside...
+                if (onlinePlayer != null)
+                    onlinePlayer.HandleActionBootAll(false);
+                else
+                    house.BootAll(player, false);
+
+                AddRentQueue(player, house.Guid.Full);
+
+                if (onlinePlayer != null)
+                    slumlord.ActOnUse(onlinePlayer);
+            };
+
+            if (runSynchronously)
+            {
+                asyncAction();
+            }
+            else
+            {
+                var actionChain = new ActionChain();
+                actionChain.AddDelaySeconds(3.0f);
+                actionChain.AddAction(onlinePlayer, asyncAction);
+                actionChain.EnqueueChain();
+            }
+        }
+
+        // This is still buggy for hooks and storage use outside of RealmsFromACSetupHelper
+        public static bool ChangeOwnedHouse(IPlayer player, House oldHouse, House newHouse)
+        {
+            if (newHouse.OwnerId.HasValue)
+            {
+                log.Warn($"[HOUSE] Couldn't set owner of {newHouse.Guid} to '{player.Name}' as it is already owned by '{newHouse.HouseOwnerName}'");
+                return false;
+            }
+
+            HandleEviction(oldHouse, player.Guid.Full, movingHouse: true);
+            RemoveRentQueue(oldHouse.Guid.Full);
+
+            var slumlord = newHouse.SlumLord;
+            SetHouseOwner(player, slumlord, newHouse, runSynchronously: true);
+            if (player is Player onlinePlayer)
+                onlinePlayer.GiveDeed(slumlord);
+
+            bool ableToTransferItems = oldHouse.Guid.ClientGUID == newHouse.Guid.ClientGUID;
+
+            log.Info($"Transferred house owner for '{player.Name}' from {oldHouse.Guid} to {newHouse.Guid}. {(ableToTransferItems ? "Beginning transfer of items now." : "")}");
+
+            if (!ableToTransferItems)
+                return true;
+
+            List<Container> srcContainers = [.. oldHouse.Storage, .. oldHouse.Hooks];
+            List<Container> destContainersList = [.. newHouse.Storage, .. newHouse.Hooks];
+            var destContainers = destContainersList.ToDictionary(x => x.Guid.ClientGUID);
+
+            try
+            {
+                foreach (var srcContainer in srcContainers)
+                {
+                    string type = srcContainer.GetType().Name;
+                    if (!srcContainer.InventoryLoaded)
+                    {
+                        log.Error($"Couldn't move house for player '{player.Name}' to new instance, {type} inventory not loaded.");
+                        return false;
+                    }
+
+                    if (!destContainers.ContainsKey(srcContainer.Guid.ClientGUID))
+                    {
+                        log.Error($"Couldn't move house for player '{player.Name}' to new instance, destination {type} not found.");
+                        return false;
+                    }
+                    var destContainer = destContainers[srcContainer.Guid.ClientGUID];
+                    destContainer.ClearInventory(true);
+                    foreach (var item in srcContainer.Inventory.Values)
+                    {
+                        if (destContainer.TryAddToInventory(item, item.PlacementPosition ?? 0, false, false))
+                            item.SaveBiotaToDatabase();
+                        else
+                            log.Error($"Couldn't move inventory item {item.Guid} for player '{player.Name}' to new {type}.");
+                    }
+
+                    srcContainer.UpdateLinks();
+                }
+            }
+            finally
+            {
+                List<House> housesToUpdate = [oldHouse, newHouse];
+                foreach (var house in housesToUpdate)
+                {
+                    house.UpdateLinks();
+
+                    if (house.HasDungeon)
+                    {
+                        var dungeonHouse = house.GetDungeonHouse();
+                        if (dungeonHouse != null)
+                            dungeonHouse.UpdateLinks();
+                    }
+
+                    house.SaveBiotaToDatabase();
+                }
+            }
+
+            return true;
+        }
+
+        public static bool ValidatePourHousing(ushort landblock)
+        {
+            var whitelisted = PourHousing.Select(r => new LandblockId(r).Landblock); // Winthur Gate, Random Villas
+            return whitelisted.Contains(landblock);
         }
     }
 }

@@ -1353,7 +1353,7 @@ namespace ACE.Server.WorldObjects
                 portalSendingChain.AddAction(targetPlayer, () => targetPlayer.DoPreTeleportHide());
                 portalSendingChain.AddAction(targetPlayer, () =>
                 {
-                    var teleportDest = new LocalPosition(spell.Position).AsInstancedPosition(targetPlayer, PlayerInstanceSelectMode.SameIfSameLandblock);
+                    var teleportDest = new LocalPosition(spell.Position).AsInstancedPosition(targetPlayer, PlayerInstanceSelectMode.SameIfSameLandblock, PlayerInstanceSelectMode.RealmDefaultInstanceID);
                     teleportDest = AdjustDungeon(teleportDest);
 
                     targetPlayer.Teleport(teleportDest, false, false, TeleportType.RecallCast);
@@ -1408,7 +1408,7 @@ namespace ACE.Server.WorldObjects
             portalSendingChain.AddAction(targetPlayer, () => targetPlayer.DoPreTeleportHide());
             portalSendingChain.AddAction(targetPlayer, () =>
             {
-                var teleportDest = new LocalPosition(spell.Position).AsInstancedPosition(targetPlayer, PlayerInstanceSelectMode.HomeRealm);
+                var teleportDest = new LocalPosition(spell.Position).AsInstancedPosition(targetPlayer, PlayerInstanceSelectMode.SameIfSameLandblock, PlayerInstanceSelectMode.RealmDefaultInstanceID);
                 teleportDest = AdjustDungeon(teleportDest);
 
                 targetPlayer.Teleport(teleportDest, false, false, TeleportType.RecallCast);

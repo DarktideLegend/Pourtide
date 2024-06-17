@@ -5,6 +5,10 @@
   "properties": {
     "Description": "The first season of Pourtide",
     "CanBeHomeworld": true,
-    "HideoutEnabled": false
+    "HideoutEnabled": false,
+    "MinorCantripDropRate": 1,
+    "MajorCantripDropRate": 0,
+    "EpicCantripDropRate": 0,
+    "LegendaryCantripDropRate": 0
   }
 }
