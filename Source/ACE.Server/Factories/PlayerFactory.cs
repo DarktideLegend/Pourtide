@@ -70,8 +70,6 @@ namespace ACE.Server.Factories
             player.QuestXpDailyMax = (long)dailyCap;
             player.MonsterXpDailyMax = (long)dailyCap;
             player.PvpXpDailyMax = (long)dailyCap;*/
-
-            XpManager.SetPlayerXpCap(player);
         }
 
         public static CreateResult Create(CharacterCreateInfo characterCreateInfo, Weenie weenie, ObjectGuid guid, uint accountId, WeenieType weenieType, out Player player)

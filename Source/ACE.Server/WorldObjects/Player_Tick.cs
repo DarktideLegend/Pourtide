@@ -11,7 +11,9 @@ using ACE.Entity.Models;
 using ACE.Server.Entity;
 using ACE.Server.Entity.Actions;
 using ACE.Server.Factories;
+using ACE.Server.Features.Xp;
 using ACE.Server.Managers;
+using ACE.Server.Network;
 using ACE.Server.Network.Enum;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.Network.Sequence;
@@ -127,6 +129,8 @@ namespace ACE.Server.WorldObjects
 
             GagsTick();
 
+            PlayerDailyXpTick();
+
             PhysicsObj.ObjMaint.DestroyObjects();
 
             if (!Location.IsEphemeralRealm && Ethereal.HasValue && Ethereal.Value == true)
@@ -148,6 +152,12 @@ namespace ACE.Server.WorldObjects
             }
 
             base.Heartbeat(currentUnixTime);
+        }
+
+        private void PlayerDailyXpTick()
+        {
+            if (DailyXpTimestamp != (int)Time.GetUnixTime(XpManager.DailyTimestamp))
+                XpManager.SetPlayerXpCap(this);
         }
 
         public static float MaxSpeed = 50;

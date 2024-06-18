@@ -1,4 +1,5 @@
 using ACE.Database;
+using ACE.Common;
 using ACE.DatLoader.FileTypes;
 using ACE.Entity.Enum;
 using ACE.Server.Entity;
@@ -96,28 +97,22 @@ namespace ACE.Server.Features.Xp
 
         public static void Tick()
         {
-
-            lock (xpLock)
+            if (!Initialized)
             {
-                if (!Initialized)
-                {
-                    log.Warn("Warning, XpManager was not initialized, daily cap tick will not be processed!");
-                    return;
-                }
-
-                if (IsDailyTimestampExpired())
-                {
-                    GetUpdatedXpCapTimestamps();
-
-                    // season ends at week 8
-                    if (Week > 8)
-                        return;
-
-                    CalculateCurrentDailyXpCap();
-                    ResetPlayersForDaily();
-                }
+                log.Warn("Warning, XpManager was not initialized, daily cap tick will not be processed!");
+                return;
             }
 
+            if (IsDailyTimestampExpired())
+            {
+                GetUpdatedXpCapTimestamps();
+
+                // season ends at week 8
+                if (Week > 8)
+                    return;
+
+                CalculateCurrentDailyXpCap();
+            }
         }
 
         public static void ResetPlayersForDaily()
@@ -126,6 +121,7 @@ namespace ACE.Server.Features.Xp
             foreach (var player in players)
                 SetPlayerXpCap(player);
         }
+
         public static void ResetPlayersForDaily(string name)
         {
             var player = PlayerManager.FindByName(name);
@@ -162,6 +158,7 @@ namespace ACE.Server.Features.Xp
             player.SetProperty(ACE.Entity.Enum.Properties.PropertyInt64.DailyXp, dailyMax);
             player.SetProperty(ACE.Entity.Enum.Properties.PropertyInt64.DailyXpRemaining, dailyMax);
             player.SetProperty(ACE.Entity.Enum.Properties.PropertyInt64.DailyXpMaxPerCategory, dailyMaxXpPerCategory);
+            player.SetProperty(ACE.Entity.Enum.Properties.PropertyInt.DailyXpTimestamp, (int)Time.GetUnixTime(DailyTimestamp));
 
             player.SaveBiotaToDatabase();
         }

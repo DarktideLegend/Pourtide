@@ -184,6 +184,12 @@ namespace ACE.Server.WorldObjects
             set { if (value == 0) RemoveProperty(PropertyInt64.DailyXpMaxPerCategory); else SetProperty(PropertyInt64.DailyXpMaxPerCategory, value); }
         }
 
+        public int? DailyXpTimestamp
+        {
+            get => GetProperty(PropertyInt.DailyXpTimestamp);
+            set { if (!value.HasValue) RemoveProperty(PropertyInt.DailyXpTimestamp); else SetProperty(PropertyInt.DailyXpTimestamp, value.Value); }
+        }
+
         public long LifetimeQuestXp
         {
             get => GetProperty(PropertyInt64.LifetimeQuestXp) ?? 0;
