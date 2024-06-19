@@ -32,9 +32,11 @@
       "high": 5,
       "reroll": "landblock"
     },
-    "MinorCantripDropRate": 2,
-    "MajorCantripDropRate": 1,
+    "MinorCantripDropRate": 0.1,
+    "MajorCantripDropRate": 0,
     "EpicCantripDropRate": 0,
-    "LegendaryCantripDropRate": 0
+    "LegendaryCantripDropRate": 0,
+    "HasGearRatingDrops": true,
+    "HasEquipmentSetDrops": true
   }
 }
