@@ -82,9 +82,16 @@ will be moved to the parent realm.")]
         ClassicalInstances_EnableForAllLandblocks_Dangerous = 13,
 
         // Pourtide props
-
         [RealmPropertyBool(false)]
         ReplaceMobs = 1001,
+
+        [Description("If enabled, gear ratings chance table may be applied to gear in this realm")]
+        [RealmPropertyBool(true)]
+        HasGearRatingDrops = 1002,
+
+        [Description("If enabled, equipment set pieces may be applied to gear in this realm")]
+        [RealmPropertyBool(true)]
+        HasEquipmentSetDrops = 1003,
     }
 
     public static class RealmPropertyBoolExtensions

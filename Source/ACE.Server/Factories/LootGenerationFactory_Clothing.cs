@@ -617,7 +617,7 @@ namespace ACE.Server.Factories
         {
             if (roll == null)
             {
-                if (!PropertyManager.GetBool("equipmentsetid_enabled").Item)
+                if (!Ruleset.GetProperty(ACE.Entity.Enum.Properties.RealmPropertyBool.HasEquipmentSetDrops) || !PropertyManager.GetBool("equipmentsetid_enabled").Item)
                     return false;
 
                 if (profile.Tier < 6 || !wo.HasArmorLevel())
@@ -641,7 +641,7 @@ namespace ACE.Server.Factories
             }
             else
             {
-                wo.EquipmentSetId = EquipmentSetChance.Roll(wo, profile, roll);
+                wo.EquipmentSetId = EquipmentSetChance.Roll(wo, profile, roll, Ruleset);
             }
 
             if (wo.EquipmentSetId != null && PropertyManager.GetBool("equipmentsetid_name_decoration").Item)
@@ -991,7 +991,7 @@ namespace ACE.Server.Factories
             // shields don't have gear ratings
             if (wo.IsShield) return false;
 
-            var gearRating = GearRatingChance.Roll(wo, profile, roll);
+            var gearRating = GearRatingChance.Roll(wo, profile, roll, Ruleset);
 
             if (gearRating == 0)
                 return false;
