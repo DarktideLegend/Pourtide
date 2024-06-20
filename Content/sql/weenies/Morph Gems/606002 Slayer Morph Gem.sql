@@ -1,13 +1,11 @@
 DELETE FROM `weenie` WHERE `class_Id` = 606002;
 
 INSERT INTO `weenie` (`class_Id`, `class_Name`, `type`, `last_Modified`)
-VALUES (606002, 'ace606002-slayermorphgem', 38, '2024-06-20 05:52:47') /* Gem */;
+VALUES (606002, 'ace606002-slayermorphgem', 38, '2024-06-20 11:08:32') /* Gem */;
 
 INSERT INTO `weenie_properties_int` (`object_Id`, `type`, `value`)
 VALUES (606002,   1,       2048) /* ItemType - Gem */
      , (606002,   5,         10) /* EncumbranceVal */
-     , (606002,  11,        100) /* MaxStackSize */
-     , (606002,  12,          1) /* StackSize */
      , (606002,  16,     524296) /* ItemUseable - SourceContainedTargetContained */
      , (606002,  18,          2) /* UiEffects - Poisoned */
      , (606002,  19,          1) /* Value */
@@ -21,11 +19,11 @@ VALUES (606002,  11, True ) /* IgnoreCollisions */
      , (606002,  14, True ) /* GravityStatus */
      , (606002,  19, True ) /* Attackable */
      , (606002,  69, False) /* IsSellable */
-     , (606002,  60001, True) /* IsMorphGem */;
+     , (606002, 60001, True );
 
 INSERT INTO `weenie_properties_string` (`object_Id`, `type`, `value`)
 VALUES (606002,   1, 'Slayer Morph Gem') /* Name */
-     , (606002,  14, 'Use this morph gem on any loot-generated weapon or caster to give it a Slayer effect.') /* Use */
+     , (606002,  14, 'Use this morph gem on any loot-generated weapon or caster to give it a Slayer effect.') /* Use */;
 
 INSERT INTO `weenie_properties_d_i_d` (`object_Id`, `type`, `value`)
 VALUES (606002,   1,   33555677) /* Setup */
@@ -35,10 +33,16 @@ VALUES (606002,   1,   33555677) /* Setup */
 
 /* Lifestoned Changelog:
 {
-  "LastModified": "2024-06-19T22:33:28.6141122-07:00",
+  "LastModified": "2024-06-20T04:07:21.7474512-07:00",
   "ModifiedBy": "pourman",
-  "Changelog": [],
-  "UserChangeSummary": "checked and verified",
+  "Changelog": [
+    {
+      "created": "2024-06-20T06:34:37.5364965Z",
+      "author": "ACE.Adapter",
+      "comment": "Weenie exported from ACEmulator world database using ACE.Adapter"
+    }
+  ],
+  "UserChangeSummary": "Weenie exported from ACEmulator world database using ACE.Adapter",
   "IsDone": true
 }
 */

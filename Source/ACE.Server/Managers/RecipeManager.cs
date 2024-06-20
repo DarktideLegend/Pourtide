@@ -27,6 +27,8 @@ using System.Text;
 using Discord;
 using Mono.Cecil;
 using ACE.Server.Factories.Tables;
+using ACE.Database.Models.Shard;
+using ACE.Server.Features.Spells.Managers;
 
 namespace ACE.Server.Managers
 {
@@ -167,7 +169,180 @@ namespace ACE.Server.Managers
             player.NextUseTime = DateTime.UtcNow.AddSeconds(nextUseTime);
         }
 
-        private static bool ApplySlayer(Player player, WorldObject source, WorldObject target)
+
+
+        private static bool TryHandleHardcodedRecipe(Player player, WorldObject source, WorldObject target)
+        {
+            var isLeather = source.ItemType == ItemType.TinkeringMaterial && source.Structure == 100 && source.MaterialType == MaterialType.Leather;
+            var isArmorOrShield = target.ValidLocations != null && (target.ValidLocations & (EquipMask.Extremity | EquipMask.Armor | EquipMask.Shield)) != 0 && target.ArmorLevel < target.OriginalArmorLevel;
+
+            if (source.IsMorphGem)
+                return ApplyMorphGem(player, source, target);
+            if (isLeather && isArmorOrShield && target.ItemWorkmanship.HasValue && target.ItemWorkmanship.Value > 0)
+                return ApplyDurability(player, source, target);
+            if (source.WeenieClassId == 604001)
+                return ApplySlayerMorphGem(player, source, target);
+            if (target.GetProperty(PropertyBool.AllowRulesetStamp) == true && source.WeenieClassName == "realm-ruleset-stamp")
+                return ApplyRulesetStamp(player, source, target);
+            return false;
+        }
+
+        private static bool ApplyMorphGem(Player player, WorldObject source, WorldObject target)
+        {
+            if (!Enum.IsDefined(typeof(MorphGems), source.WeenieClassId))
+            {
+                player.Session.Network.EnqueueSend(new GameMessageSystemChat("This morph gem does not exist in the morph gems table, please notify a server admin.", ChatMessageType.Craft));
+                return false;
+            }
+
+            switch ((MorphGems)source.WeenieClassId)
+            {
+                case MorphGems.SlayerExtractorGem:
+                    return ApplySlayerExtractor(player, source, target);
+                case MorphGems.SlayerMorphGem:
+                    return ApplySlayerMorphGem(player, source, target);
+                case MorphGems.CantripExtractorGem:
+                    return ApplyCantripExtractorGem(player, source, target);
+                case MorphGems.CantripMorphGem:
+                    return ApplyCantripMorphGem(player, source, target);
+                case MorphGems.MinorUpgradeGem:
+                    return ApplyCantripUpgradeGem(player, source, target);
+                case MorphGems.MajorUpgradeGem:
+                    return ApplyCantripUpgradeGem(player, source, target);
+                case MorphGems.EpicUpgradeGem:
+                    return ApplyCantripUpgradeGem(player, source, target);
+                default:
+                    player.Session.Network.EnqueueSend(new GameMessageSystemChat("This morph gem has not been implemented yet.", ChatMessageType.Craft));
+                    return false;
+            }
+        }
+
+        private static bool ApplyCantripUpgradeGem(Player player, WorldObject source, WorldObject target)
+        {
+            if (target.ItemWorkmanship == null)
+                return false;
+
+            var ids = target.Biota.GetKnownSpellsIds(target.BiotaDatabaseLock);
+
+            foreach (var id in ids)
+            {
+                var spell = Enum.GetName(typeof(SpellId), id);
+
+                if (spell.ToLower().Contains("cantrip"))
+                {
+                    char level = spell[spell.Length - 1];
+
+                    int value = level - '0';
+
+                    if (char.IsDigit(level))
+                    {
+                        var cantripLevel = source.GetProperty(PropertyInt.CantripLevel);
+                        if (value != cantripLevel)
+                            continue;
+
+                        int upgrade = value + 1;
+
+                        var upgradedSpell = spell.Replace(level, (char)(upgrade + '0'));
+
+                        if(SpellsManager.TryGetEnumValue(upgradedSpell, out SpellId spellId))
+                        {
+                            target.Biota.TryRemoveKnownSpell(id, target.BiotaDatabaseLock);
+                            target.Biota.GetOrAddKnownSpell((int)spellId, target.BiotaDatabaseLock, out bool added);
+
+                            if (!added)
+                                return false;
+
+                            target.SaveBiotaToDatabase();
+                            player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have applied the {source.Name} to {target.Name}.", ChatMessageType.Craft));
+                            player.TryConsumeFromInventoryWithNetworking(source);
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private static bool ApplyCantripMorphGem(Player player, WorldObject source, WorldObject target)
+        {
+            if (target.ItemWorkmanship == null)
+                return false;
+
+            var ids = source.Biota.GetKnownSpellsIds(target.BiotaDatabaseLock);
+
+            var isArmor = (target.ItemType & ItemType.Vestements) != 0;
+            var isJewelry = (target.ItemType & ItemType.Jewelry) != 0;
+
+            foreach (var id in ids)
+            {
+                var spell = Enum.GetName(typeof(SpellId), id);
+
+                char lastChar = spell[spell.Length - 1];
+
+                var spellKey = spell.Replace(lastChar, '1');
+
+                if (SpellsManager.TryGetEnumValue(spellKey, out SpellId spellId))
+                {
+                    if ((target.ItemType & ItemType.Caster) != 0 && !WandCantrips.spells.Contains(spellId))
+                        return false;
+
+                    if ((target.ItemType & ItemType.MeleeWeapon) != 0 && !MeleeCantrips.spells.Contains(spellId))
+                        return false;
+
+                    if ((target.ItemType & ItemType.MissileWeapon) != 0 && !MissileCantrips.spells.Contains(spellId))
+                        return false;
+
+                    if (isArmor && !ArmorCantrips.spells.Contains(spellId))
+                        return false;
+
+                    if (isJewelry && !JewelryCantrips.spells.Contains(spellId))
+                        return false;
+                }
+
+                target.Biota.GetOrAddKnownSpell(id, target.BiotaDatabaseLock, out var added);
+
+                if (!added)
+                    return false;
+
+                target.SaveBiotaToDatabase();
+                player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have applied the {source.Name} to {target.Name}.", ChatMessageType.Craft));
+                player.TryConsumeFromInventoryWithNetworking(source);
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool ApplyCantripExtractorGem(Player player, WorldObject source, WorldObject target)
+        {
+            if (target.ItemWorkmanship == null)
+                return false;
+
+            var ids = target.Biota.GetKnownSpellsIds(target.BiotaDatabaseLock);
+
+            foreach (var id in ids)
+            {
+                var spell = Enum.GetName(typeof(SpellId), id);
+
+                if (spell.ToLower().Contains("cantrip"))
+                {
+                    target.Biota.TryRemoveKnownSpell(id, target.BiotaDatabaseLock);
+
+                    var cantripMorphGem = WorldObjectFactory.CreateNewWorldObject((uint)MorphGems.CantripMorphGem, RealmManager.GetRealm(player.HomeRealm, includeRulesets: false).StandardRules);
+                    cantripMorphGem.Name = $"{SpellsManager.GetSpellName((uint)id)} Morph Gem";
+                    cantripMorphGem.Biota.GetOrAddKnownSpell(id, cantripMorphGem.BiotaDatabaseLock, out var _);
+                    player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have applied the {source.Name} to {cantripMorphGem.Name}.", ChatMessageType.Craft));
+                    player.TryConsumeFromInventoryWithNetworking(source);
+                    player.TryCreateInInventoryWithNetworking(cantripMorphGem);
+                    target.SaveBiotaToDatabase();
+                    return true;
+                }
+            }
+
+            return false;
+        }
+        private static bool ApplySlayerMorphGem(Player player, WorldObject source, WorldObject target)
         {
             if (target.ItemWorkmanship == null)
                 return false;
@@ -211,42 +386,6 @@ namespace ACE.Server.Managers
             player.TryCreateInInventoryWithNetworking(slayerMorphGem);
             player.TryConsumeFromInventoryWithNetworking(source);
             return true;
-        }
-
-        private static bool TryHandleHardcodedRecipe(Player player, WorldObject source, WorldObject target)
-        {
-            var isLeather = source.ItemType == ItemType.TinkeringMaterial && source.Structure == 100 && source.MaterialType == MaterialType.Leather;
-            var isArmorOrShield = target.ValidLocations != null && (target.ValidLocations & (EquipMask.Extremity | EquipMask.Armor | EquipMask.Shield)) != 0 && target.ArmorLevel < target.OriginalArmorLevel;
-
-            if (source.IsMorphGem)
-                return ApplyMorphGem(player, source, target);
-            if (isLeather && isArmorOrShield && target.ItemWorkmanship.HasValue && target.ItemWorkmanship.Value > 0)
-                return ApplyDurability(player, source, target);
-            if (source.WeenieClassId == 604001)
-                return ApplySlayer(player, source, target);
-            if (target.GetProperty(PropertyBool.AllowRulesetStamp) == true && source.WeenieClassName == "realm-ruleset-stamp")
-                return ApplyRulesetStamp(player, source, target);
-            return false;
-        }
-
-        private static bool ApplyMorphGem(Player player, WorldObject source, WorldObject target)
-        {
-            if (!Enum.IsDefined(typeof(MorphGems), source.WeenieClassId))
-            {
-                player.Session.Network.EnqueueSend(new GameMessageSystemChat("This morph gem does not exist in the morph gems table, please notify a server admin.", ChatMessageType.Craft));
-                return false;
-            }
-
-            switch ((MorphGems)source.WeenieClassId)
-            {
-                case MorphGems.SlayerExtractorGem:
-                    return ApplySlayerExtractor(player, source, target);
-                case MorphGems.SlayerMorphGem:
-                    return ApplySlayer(player, source, target);
-                default:
-                    player.Session.Network.EnqueueSend(new GameMessageSystemChat("This morph gem has not been implemented yet.", ChatMessageType.Craft));
-                    return false;
-            }
         }
 
         public static void ApplyDurability(WorldObject target)

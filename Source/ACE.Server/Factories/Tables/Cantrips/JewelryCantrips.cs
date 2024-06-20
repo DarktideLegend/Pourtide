@@ -11,7 +11,7 @@ namespace ACE.Server.Factories.Tables
     {
         private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        private static readonly List<SpellId> spells = new List<SpellId>()
+        public static readonly List<SpellId> spells = new List<SpellId>()
         {
             SpellId.CANTRIPHEAVYWEAPONSAPTITUDE1,
             SpellId.CANTRIPLIGHTWEAPONSAPTITUDE1,

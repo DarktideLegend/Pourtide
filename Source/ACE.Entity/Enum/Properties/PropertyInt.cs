@@ -667,7 +667,10 @@ namespace ACE.Entity.Enum.Properties
         ForgottenOreTier                        = 60004,
 
         [ServerOnly]
-        DailyXpTimestamp = 60005
+        DailyXpTimestamp                        = 60005,
+
+        [ServerOnly]
+        CantripLevel                     = 60006,
     }
 
     public static class PropertyIntExtensions

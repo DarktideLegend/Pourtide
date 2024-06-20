@@ -289,6 +289,9 @@
     <None Update="Features\Dungeons\dungeon_ids.csv">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Features\Spells\spells.csv">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="images\ace-retro-icon2.png">
       <Pack>True</Pack>
       <PackagePath></PackagePath>

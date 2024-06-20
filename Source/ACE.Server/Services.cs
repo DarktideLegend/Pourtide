@@ -31,6 +31,7 @@ using ACE.Server.Features.Discord;
 using System.Runtime;
 using ACE.Common.ACRealms;
 using ACE.Server.Managers.ACRealms;
+using ACE.Server.Features.Spells.Managers;
 
 namespace ACE.Server
 {
@@ -408,6 +409,8 @@ namespace ACE.Server
             log.Info("Initializing DungeonManager...");
             DungeonManager.Initialize();
 
+            log.Info("Initializing SpellsManager...");
+            SpellsManager.Initialize();
 
             // Free up memory before the server goes online. This can free up 6 GB+ on larger servers.
             log.Info("Forcing .net garbage collection...");
