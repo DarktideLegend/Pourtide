@@ -26,6 +26,7 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System.Text;
 using Discord;
 using Mono.Cecil;
+using ACE.Server.Factories.Tables;
 
 namespace ACE.Server.Managers
 {
@@ -166,7 +167,7 @@ namespace ACE.Server.Managers
             player.NextUseTime = DateTime.UtcNow.AddSeconds(nextUseTime);
         }
 
-        private static bool ApplySlayerSkull(Player player, WorldObject source, WorldObject target)
+        private static bool ApplySlayer(Player player, WorldObject source, WorldObject target)
         {
             if (target.ItemWorkmanship == null)
                 return false;
@@ -175,15 +176,41 @@ namespace ACE.Server.Managers
             if (isWeaponOrCaster && target.SlayerCreatureType == null && source.SlayerCreatureType != null)
             {
                 target.SlayerCreatureType = source.SlayerCreatureType;
-
                 target.SlayerDamageBonus = source.SlayerDamageBonus;
-                target.LongDesc = $"Slayer Damage Bonux: {target.SlayerDamageBonus?.ToString("0.00")}";
+                target.LongDesc = $"Slayer Damage Bonus: {target.SlayerDamageBonus?.ToString("0.00")}";
+                target.SaveBiotaToDatabase();
+                player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have applied the {source.Name} to {target.Name}.", ChatMessageType.Craft));
                 player.TryConsumeFromInventoryWithNetworking(source);
                 return true;
             }
 
             return false;
+        }
 
+        private static bool ApplySlayerExtractor(Player player, WorldObject source, WorldObject target)
+        {
+            if (target.CreatureType == null)
+                return false;
+
+            var creatureType = target.CreatureType;
+
+            var slayerMorphGem = WorldObjectFactory.CreateNewWorldObject((uint)MorphGems.SlayerMorphGem, RealmManager.GetRealm(player.HomeRealm, includeRulesets: false).StandardRules);
+
+            var damage = ThreadSafeRandom.Next((float)1.5, (float)3.0);
+
+            slayerMorphGem.Name = $"{creatureType} Slayer Skull";
+
+            if (creatureType == ACE.Entity.Enum.CreatureType.Human)
+                damage = ThreadSafeRandom.Next((float)1.1, (float)1.5);
+
+            slayerMorphGem.LongDesc = $"Use this skull on any loot-generated weapon or caster to give it a {creatureType} Slayer effect. The damage for this slayer skull is {damage.ToString("0.00")}";
+            slayerMorphGem.SlayerCreatureType = creatureType;
+            slayerMorphGem.SlayerDamageBonus = damage;
+            slayerMorphGem.SaveBiotaToDatabase();
+            player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have applied the {source.Name} to {slayerMorphGem.Name}.", ChatMessageType.Craft));
+            player.TryCreateInInventoryWithNetworking(slayerMorphGem);
+            player.TryConsumeFromInventoryWithNetworking(source);
+            return true;
         }
 
         private static bool TryHandleHardcodedRecipe(Player player, WorldObject source, WorldObject target)
@@ -191,13 +218,35 @@ namespace ACE.Server.Managers
             var isLeather = source.ItemType == ItemType.TinkeringMaterial && source.Structure == 100 && source.MaterialType == MaterialType.Leather;
             var isArmorOrShield = target.ValidLocations != null && (target.ValidLocations & (EquipMask.Extremity | EquipMask.Armor | EquipMask.Shield)) != 0 && target.ArmorLevel < target.OriginalArmorLevel;
 
+            if (source.IsMorphGem)
+                return ApplyMorphGem(player, source, target);
             if (isLeather && isArmorOrShield && target.ItemWorkmanship.HasValue && target.ItemWorkmanship.Value > 0)
                 return ApplyDurability(player, source, target);
             if (source.WeenieClassId == 604001)
-                return ApplySlayerSkull(player, source, target);
+                return ApplySlayer(player, source, target);
             if (target.GetProperty(PropertyBool.AllowRulesetStamp) == true && source.WeenieClassName == "realm-ruleset-stamp")
                 return ApplyRulesetStamp(player, source, target);
             return false;
+        }
+
+        private static bool ApplyMorphGem(Player player, WorldObject source, WorldObject target)
+        {
+            if (!Enum.IsDefined(typeof(MorphGems), source.WeenieClassId))
+            {
+                player.Session.Network.EnqueueSend(new GameMessageSystemChat("This morph gem does not exist in the morph gems table, please notify a server admin.", ChatMessageType.Craft));
+                return false;
+            }
+
+            switch ((MorphGems)source.WeenieClassId)
+            {
+                case MorphGems.SlayerExtractorGem:
+                    return ApplySlayerExtractor(player, source, target);
+                case MorphGems.SlayerMorphGem:
+                    return ApplySlayer(player, source, target);
+                default:
+                    player.Session.Network.EnqueueSend(new GameMessageSystemChat("This morph gem has not been implemented yet.", ChatMessageType.Craft));
+                    return false;
+            }
         }
 
         public static void ApplyDurability(WorldObject target)

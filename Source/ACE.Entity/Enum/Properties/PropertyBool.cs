@@ -228,6 +228,8 @@ namespace ACE.Entity.Enum.Properties
         // Pourtide props
 
         IsRiftMonster                    = 60000,
+
+        IsMorphGem                       = 60001,
     }
 
     public static class PropertyBoolExtensions
