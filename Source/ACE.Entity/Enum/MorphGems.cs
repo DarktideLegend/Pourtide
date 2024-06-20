@@ -14,8 +14,8 @@ namespace ACE.Entity.Enum
         SlayerMorphGem      = 606002,
         CantripExtractorGem = 606003,
         CantripMorphGem     = 606004,
-        MinorUpgradeGem     = 606005,
-        MajorUpgradeGem     = 606006,
-        EpicUpgradeGem      = 606007
+        MajorUpgradeGem     = 606005,
+        EpicUpgradeGem      = 606006,
+        LegendaryUpgradeGem = 606007
     }
 }

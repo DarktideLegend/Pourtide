@@ -205,11 +205,9 @@ namespace ACE.Server.Managers
                     return ApplyCantripExtractorGem(player, source, target);
                 case MorphGems.CantripMorphGem:
                     return ApplyCantripMorphGem(player, source, target);
-                case MorphGems.MinorUpgradeGem:
-                    return ApplyCantripUpgradeGem(player, source, target);
                 case MorphGems.MajorUpgradeGem:
-                    return ApplyCantripUpgradeGem(player, source, target);
                 case MorphGems.EpicUpgradeGem:
+                case MorphGems.LegendaryUpgradeGem:
                     return ApplyCantripUpgradeGem(player, source, target);
                 default:
                     player.Session.Network.EnqueueSend(new GameMessageSystemChat("This morph gem has not been implemented yet.", ChatMessageType.Craft));
