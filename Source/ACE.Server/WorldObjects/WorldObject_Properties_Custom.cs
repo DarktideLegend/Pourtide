@@ -15,5 +15,13 @@ namespace ACE.Server.WorldObjects
             get => GetProperty(PropertyBool.IsMorphGem) ?? false;
             set { if (!value) RemoveProperty(PropertyBool.IsMorphGem); else SetProperty(PropertyBool.IsMorphGem, value); }
         }
+
+        public double SpellChainChance
+        {
+            get => GetProperty(PropertyFloat.SpellChainChance) ?? 0d;
+            set { if (value == 0d) RemoveProperty(PropertyFloat.SpellChainChance); else SetProperty(PropertyFloat.SpellChainChance, value); }
+        }
+
+
     }
 }

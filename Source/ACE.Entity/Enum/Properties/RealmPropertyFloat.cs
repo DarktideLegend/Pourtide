@@ -169,11 +169,15 @@ namespace ACE.Entity.Enum.Properties
         LegendaryCantripDropRate = 37,
 
         // Pourtide props
-        [RealmPropertyFloat(1f, 0.01f, 100f)]
-        CreatureSpawnMultiplier = 1001,
+        [RealmPropertyFloat("creature_spawn_multiplier", 1f, 0.01f, 100f)]
+        CreatureSpawnMultiplier = 60001,
 
-        [RealmPropertyFloat(0f, 0f, 300f)]
-        CreatureRespawnDuration = 1002
+        [RealmPropertyFloat("creature_respawn_duration", 0f, 0f, 300f)]
+        CreatureRespawnDuration = 60002,
+
+        [Description("Scales the chance for a spell to chain to nearby monsters. Defaults to 0.0")]
+        [RealmPropertyFloat("spell_chain_chance", 0f, 0f, 300f)]
+        SpellChainChance = 60003
     }
 
     public static class RealmPropertyFloatExtensions

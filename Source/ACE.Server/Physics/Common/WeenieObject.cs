@@ -8,6 +8,10 @@ using ACE.Server.Entity;
 using ACE.Server.Physics.Animation;
 using ACE.Server.Physics.Collision;
 using ACE.Server.WorldObjects;
+using ACE.Common;
+using System.Linq;
+using ACE.Server.Network.GameMessages.Messages;
+using Microsoft.EntityFrameworkCore.ValueGeneration;
 
 namespace ACE.Server.Physics.Common
 {
@@ -216,6 +220,30 @@ namespace ACE.Server.Physics.Common
             Console.WriteLine("Target: " + obj.WeenieObj.WorldObject.Name);*/
 
             wo.OnCollideObject(targetWO);
+
+            if (wo is SpellProjectile spellProjectile && wo.ProjectileSource is Player player)
+            {
+                var chance = spellProjectile.SpellChainChance;
+                var projectileGuid = spellProjectile.Guid.Full;
+
+                var roll = ThreadSafeRandom.Next(0f, 1.0f);
+
+                if (chance > 0 && roll < chance)
+                {
+                    var t = player.GetSplashTargets(targetWO, 2, 30).FirstOrDefault();
+
+                    if (t == null)
+                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your {spellProjectile.Spell.Name} wants to chain after hitting {targetWO.Name} with {chance:P2} odds but failed.", ChatMessageType.System));
+                    else
+                    {
+                        var spell = new Spell(spellProjectile.Spell.Id);
+                        spell.SpellChainChance = chance - (chance * 0.01);
+                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Chaining {spellProjectile.Spell.Name} to {targetWO.Name} after hitting {targetWO.Name} with {chance:P2}.", ChatMessageType.System));
+                        var origin = targetWO.Location.SquaredDistanceTo(t.Location) < 2 ? null : targetWO;
+                        player.TryCastSpell_WithRedirects(spell, t, targetWO, targetWO, false, false, true, origin);
+                    }
+                }
+            }
 
             return 0;
         }

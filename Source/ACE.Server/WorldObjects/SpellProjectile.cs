@@ -563,6 +563,9 @@ namespace ACE.Server.WorldObjects
                 finalDamage = baseDamage + critDamageBonus + skillBonus;
 
                 finalDamage *= elementalDamageMod * slayerMod * resistanceMod * absorbMod;
+
+                if (Spell.SpellChainChance > 0)
+                    finalDamage *= 0.5f;
             }
 
             // show debug info

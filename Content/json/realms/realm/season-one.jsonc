@@ -9,6 +9,7 @@
     "MinorCantripDropRate": 0.1,
     "MajorCantripDropRate": 0,
     "EpicCantripDropRate": 0,
+    "SpellChainChance": 1.0,
     "LegendaryCantripDropRate": 0,
     "HasGearRatingDrops": false,
     "HasEquipmentSetDrops": false
