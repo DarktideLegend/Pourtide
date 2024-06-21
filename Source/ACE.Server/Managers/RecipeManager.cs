@@ -269,9 +269,6 @@ namespace ACE.Server.Managers
 
             var ids = source.Biota.GetKnownSpellsIds(target.BiotaDatabaseLock);
 
-            var isArmor = (target.ItemType & ItemType.Vestements) != 0;
-            var isJewelry = (target.ItemType & ItemType.Jewelry) != 0;
-
             foreach (var id in ids)
             {
                 var spell = Enum.GetName(typeof(SpellId), id);
@@ -291,10 +288,10 @@ namespace ACE.Server.Managers
                     if ((target.ItemType & ItemType.MissileWeapon) != 0 && !MissileCantrips.spells.Contains(spellId))
                         return false;
 
-                    if (isArmor && !ArmorCantrips.spells.Contains(spellId))
+                    if ((target.ItemType & ItemType.Vestements) != 0 && !ArmorCantrips.spells.Contains(spellId))
                         return false;
 
-                    if (isJewelry && !JewelryCantrips.spells.Contains(spellId))
+                    if ((target.ItemType & ItemType.Jewelry) != 0 && !JewelryCantrips.spells.Contains(spellId))
                         return false;
                 }
 
@@ -340,6 +337,7 @@ namespace ACE.Server.Managers
 
             return false;
         }
+
         private static bool ApplySlayerMorphGem(Player player, WorldObject source, WorldObject target)
         {
             if (target.ItemWorkmanship == null)
