@@ -224,7 +224,6 @@ namespace ACE.Server.Physics.Common
             if (wo is SpellProjectile spellProjectile && wo.ProjectileSource is Player player)
             {
                 var chance = spellProjectile.SpellChainChance;
-                var projectileGuid = spellProjectile.Guid.Full;
 
                 var roll = ThreadSafeRandom.Next(0f, 1.0f);
 
