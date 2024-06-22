@@ -3,6 +3,7 @@ using ACE.Entity;
 using ACE.Entity.Enum;
 using ACE.Server.Managers;
 using ACE.Server.WorldObjects;
+using log4net.Core;
 
 namespace ACE.Server.Entity
 {
@@ -134,6 +135,119 @@ namespace ACE.Server.Entity
             if (source == null || target == null) return;
 
             RecipeManager.UseObjectOnTarget(player, source, target, true);
+        }
+    }
+    public class Confirmation_ApplyCantripExtractor: Confirmation
+    {
+        public ObjectGuid SourceGuid;
+        public ObjectGuid TargetGuid;
+        public int Id;
+
+        public Confirmation_ApplyCantripExtractor(ObjectGuid playerGuid, ObjectGuid sourceGuid, ObjectGuid targetGuid, int id)
+            : base (playerGuid, ConfirmationType.Yes_No)
+        {
+            SourceGuid = sourceGuid;
+            TargetGuid = targetGuid;
+            Id = id;
+        }
+
+        public override void ProcessConfirmation(bool response, bool timeout = false)
+        {
+            var player = Player;
+            if (player == null) return;
+
+            if (!response)
+            {
+                player.SendWeenieError(WeenieError.YouChickenOut);
+
+                return;
+            }
+
+            // inventory only?
+            var source = player.FindObject(SourceGuid, Player.SearchLocations.LocationsICanMove);
+            var target = player.FindObject(TargetGuid, Player.SearchLocations.LocationsICanMove);
+
+            if (source == null || target == null) return;
+
+            RecipeManager.HandleApplyCantripExtractorGemConfirmed(player, source, target, Id);
+        }
+    }
+    public class Confirmation_ApplySlayerExtractor: Confirmation
+    {
+        public ObjectGuid SourceGuid;
+        public ObjectGuid TargetGuid;
+        public WorldObject Gem;
+
+        public Confirmation_ApplySlayerExtractor(ObjectGuid playerGuid, ObjectGuid sourceGuid, ObjectGuid targetGuid, WorldObject gem)
+            : base (playerGuid, ConfirmationType.Yes_No)
+        {
+            SourceGuid = sourceGuid;
+            TargetGuid = targetGuid;
+            Gem = gem;
+        }
+
+        public override void ProcessConfirmation(bool response, bool timeout = false)
+        {
+            var player = Player;
+            if (player == null) return;
+
+            if (!response)
+            {
+                player.SendWeenieError(WeenieError.YouChickenOut);
+
+                return;
+            }
+
+            // inventory only?
+            var source = player.FindObject(SourceGuid, Player.SearchLocations.LocationsICanMove);
+            var target = player.FindObject(TargetGuid, Player.SearchLocations.LocationsICanMove);
+
+            if (source == null || target == null) return;
+
+            RecipeManager.HandleApplySlayerExtractorConfirmed(player, source, target, Gem);
+        }
+    }
+
+    public class Confirmation_ApplyCantripUpgrade: Confirmation
+    {
+        public ObjectGuid SourceGuid;
+        public ObjectGuid TargetGuid;
+        public string Spell;
+        public char Level;
+        public int Value;
+        public int Id;
+
+
+        public Confirmation_ApplyCantripUpgrade(ObjectGuid playerGuid, ObjectGuid sourceGuid, ObjectGuid targetGuid, string spell, char level, int value, int id)
+            : base (playerGuid, ConfirmationType.Yes_No)
+        {
+            SourceGuid = sourceGuid;
+            TargetGuid = targetGuid;
+            Spell = spell;
+            Level = level;
+            Value = value;
+            Id = id;
+        }
+
+        public override void ProcessConfirmation(bool response, bool timeout = false)
+        {
+            var player = Player;
+            if (player == null) return;
+
+            if (!response)
+            {
+                player.SendWeenieError(WeenieError.YouChickenOut);
+
+                return;
+            }
+
+            // inventory only?
+            var source = player.FindObject(SourceGuid, Player.SearchLocations.LocationsICanMove);
+            var target = player.FindObject(TargetGuid, Player.SearchLocations.LocationsICanMove);
+
+            if (source == null || target == null) return;
+
+            RecipeManager.HandleApplyCantripUpgradeGemConfirmed(player, source, target, Spell, Level, Value, Id);
         }
     }
 

@@ -29,6 +29,7 @@ using Mono.Cecil;
 using ACE.Server.Factories.Tables;
 using ACE.Database.Models.Shard;
 using ACE.Server.Features.Spells.Managers;
+using System.Xml.Linq;
 
 namespace ACE.Server.Managers
 {
@@ -235,7 +236,6 @@ namespace ACE.Server.Managers
                     target.SpellChainChance = source.SpellChainChance;
                 }
 
-                var sb = new StringBuilder();
 
                 if ((target.ItemType & ItemType.Weapon) != 0)
                 {
@@ -245,12 +245,9 @@ namespace ACE.Server.Managers
                     target.Biota.GetOrAddKnownSpell(spell, target.BiotaDatabaseLock, out var _);
                     target.ProcSpellRate = source.SpellChainChance * 0.20;
                     target.ProcSpell = (uint?)spell;
-                    sb.Append($"Spell Proc Rate: {target.ProcSpellRate?.ToString("0.00")}\n");
-                    sb.Append($"Spell Chain Spell: {SpellsManager.GetSpellName((uint)spell)}\n");
                 }
 
-                sb.Append($"Spell Chain Chance: {source.SpellChainChance.ToString("0.00")}\n");
-                target.LongDesc = sb.ToString();
+                target.UpdateLongDescription();
                 target.SaveBiotaToDatabase();
                 player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have applied the {source.Name} to {target.Name}.", ChatMessageType.Craft));
                 player.TryConsumeFromInventoryWithNetworking(source);
@@ -266,46 +263,74 @@ namespace ACE.Server.Managers
             if (target.ItemWorkmanship == null)
                 return false;
 
+
             var ids = target.Biota.GetKnownSpellsIds(target.BiotaDatabaseLock);
 
-            foreach (var id in ids)
-            {
-                var spell = Enum.GetName(typeof(SpellId), id);
+            if (ids.Count <= 0)
+                return false;
 
-                if (spell.ToLower().Contains("cantrip"))
+            var cantrips = ids
+                .Where(id =>
                 {
+                    var spell = Enum.GetName(typeof(SpellId), id);
+
+                    if (!spell.ToLower().Contains("cantrip"))
+                        return false;
+
                     char level = spell[spell.Length - 1];
 
                     int value = level - '0';
 
-                    if (char.IsDigit(level))
-                    {
-                        var cantripLevel = source.GetProperty(PropertyInt.CantripLevel);
-                        if (value != cantripLevel)
-                            continue;
+                    if (!char.IsDigit(level))
+                        return false;
 
-                        int upgrade = value + 1;
+                    var cantripLevel = source.GetProperty(PropertyInt.CantripLevel);
 
-                        var upgradedSpell = spell.Replace(level, (char)(upgrade + '0'));
+                    return value == cantripLevel;
+                })
+                .ToList();
 
-                        if(SpellsManager.TryGetEnumValue(upgradedSpell, out SpellId spellId))
-                        {
-                            target.Biota.TryRemoveKnownSpell(id, target.BiotaDatabaseLock);
-                            target.Biota.GetOrAddKnownSpell((int)spellId, target.BiotaDatabaseLock, out bool added);
 
-                            if (!added)
-                                return false;
+            if (cantrips.Count <= 0)
+                return false;
 
-                            target.SaveBiotaToDatabase();
-                            player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have applied the {source.Name} to {target.Name}.", ChatMessageType.Craft));
-                            player.TryConsumeFromInventoryWithNetworking(source);
-                            return true;
-                        }
-                    }
-                }
+            var id = cantrips[ThreadSafeRandom.Next(0, cantrips.Count - 1)];
+
+            var spell = Enum.GetName(typeof(SpellId), id);
+
+            char level = spell[spell.Length - 1];
+
+            int value = level - '0';
+
+            var name = SpellsManager.GetSpellName((uint)id);
+
+            var message = $"Would you like to upgrade the cantrip {name} on {target.Name}?";
+
+            if (!player.ConfirmationManager.EnqueueSend(new Confirmation_ApplyCantripUpgrade(player.Guid, source.Guid, target.Guid, spell, level, value, id), message))
+                return false;
+
+            return true;
+        }
+
+        public static void HandleApplyCantripUpgradeGemConfirmed(Player player, WorldObject source, WorldObject target, string spell, char level, int value, int id)
+        {
+            int upgrade = value + 1;
+
+            var upgradedSpell = spell.Replace(level, (char)(upgrade + '0'));
+
+            if(SpellsManager.TryGetEnumValue(upgradedSpell, out SpellId spellId))
+            {
+                target.Biota.TryRemoveKnownSpell(id, target.BiotaDatabaseLock);
+                target.Biota.GetOrAddKnownSpell((int)spellId, target.BiotaDatabaseLock, out bool added);
+
+                if (!added)
+                    return;
+
+                target.SaveBiotaToDatabase();
+                player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have applied the {source.Name} to {target.Name}.", ChatMessageType.Craft));
+                player.TryConsumeFromInventoryWithNetworking(source);
+                return;
             }
-
-            return false;
         }
 
         private static bool ApplyCantripMorphGem(Player player, WorldObject source, WorldObject target)
@@ -362,26 +387,37 @@ namespace ACE.Server.Managers
 
             var ids = target.Biota.GetKnownSpellsIds(target.BiotaDatabaseLock);
 
-            foreach (var id in ids)
-            {
-                var spell = Enum.GetName(typeof(SpellId), id);
+            if (ids.Count <= 0)
+                return false;
 
-                if (spell.ToLower().Contains("cantrip"))
-                {
-                    target.Biota.TryRemoveKnownSpell(id, target.BiotaDatabaseLock);
+            var cantrips = ids.Where(id => Enum.GetName(typeof(SpellId), id).ToLower().Contains("cantrip")).ToList();
 
-                    var cantripMorphGem = WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.CantripMorphGem, RealmManager.GetRealm(player.HomeRealm, includeRulesets: false).StandardRules);
-                    cantripMorphGem.Name = $"{SpellsManager.GetSpellName((uint)id)} Gem";
-                    cantripMorphGem.Biota.GetOrAddKnownSpell(id, cantripMorphGem.BiotaDatabaseLock, out var _);
-                    player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have applied the {source.Name} to {cantripMorphGem.Name}.", ChatMessageType.Craft));
-                    player.TryConsumeFromInventoryWithNetworking(source);
-                    player.TryCreateInInventoryWithNetworking(cantripMorphGem);
-                    target.SaveBiotaToDatabase();
-                    return true;
-                }
-            }
+            if (cantrips.Count <= 0)
+                return false;
 
-            return false;
+            var id = cantrips[ThreadSafeRandom.Next(0, cantrips.Count - 1)];
+
+            var name = SpellsManager.GetSpellName((uint)id);
+
+            var message = $"Would you like to extract the cantrip {name} from {target.Name}?";
+
+            if (!player.ConfirmationManager.EnqueueSend(new Confirmation_ApplyCantripExtractor(player.Guid, source.Guid, target.Guid, id), message))
+                return false;
+
+            return true;
+        }
+
+        public static void HandleApplyCantripExtractorGemConfirmed(Player player, WorldObject source, WorldObject target, int id)
+        {
+            target.Biota.TryRemoveKnownSpell(id, target.BiotaDatabaseLock);
+
+            var cantripMorphGem = WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.CantripMorphGem, RealmManager.GetRealm(player.HomeRealm, includeRulesets: false).StandardRules);
+            cantripMorphGem.Name = $"{SpellsManager.GetSpellName((uint)id)} Gem";
+            cantripMorphGem.Biota.GetOrAddKnownSpell(id, cantripMorphGem.BiotaDatabaseLock, out var _);
+            player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have applied the {source.Name} to {cantripMorphGem.Name}.", ChatMessageType.Craft));
+            player.TryConsumeFromInventoryWithNetworking(source);
+            player.TryCreateInInventoryWithNetworking(cantripMorphGem);
+            target.SaveBiotaToDatabase();
         }
 
         private static bool ApplySlayerMorphGem(Player player, WorldObject source, WorldObject target)
@@ -394,7 +430,7 @@ namespace ACE.Server.Managers
             {
                 target.SlayerCreatureType = source.SlayerCreatureType;
                 target.SlayerDamageBonus = source.SlayerDamageBonus;
-                target.LongDesc = $"Slayer Damage Bonus: {target.SlayerDamageBonus?.ToString("0.00")}";
+                target.UpdateLongDescription();
                 target.SaveBiotaToDatabase();
                 player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have applied the {source.Name} to {target.Name}.", ChatMessageType.Craft));
                 player.TryConsumeFromInventoryWithNetworking(source);
@@ -409,10 +445,19 @@ namespace ACE.Server.Managers
             if (target.CreatureType == null)
                 return false;
 
-            var creatureType = target.CreatureType;
-
             var slayerMorphGem = WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.SlayerMorphGem, RealmManager.GetRealm(player.HomeRealm, includeRulesets: false).StandardRules);
 
+            var message = $"Would you like to create a slayer gem for creature type {target.CreatureType}?";
+
+            if (!player.ConfirmationManager.EnqueueSend(new Confirmation_ApplySlayerExtractor(player.Guid, source.Guid, target.Guid, slayerMorphGem), message))
+                return false;
+
+            return true;
+        }
+
+        public static void HandleApplySlayerExtractorConfirmed(Player player, WorldObject source, WorldObject target, WorldObject slayerMorphGem)
+        {
+            var creatureType = target.CreatureType;
             var damage = ThreadSafeRandom.Next((float)1.5, (float)3.0);
 
             slayerMorphGem.Name = $"{creatureType} Slayer Gem";
@@ -427,7 +472,6 @@ namespace ACE.Server.Managers
             player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have applied the {source.Name} to {slayerMorphGem.Name}.", ChatMessageType.Craft));
             player.TryCreateInInventoryWithNetworking(slayerMorphGem);
             player.TryConsumeFromInventoryWithNetworking(source);
-            return true;
         }
 
         public static void ApplyDurability(WorldObject target)
