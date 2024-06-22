@@ -151,6 +151,9 @@ namespace ACE.Server.WorldObjects
             {
                 // Retrieve casting item's spellcraft
                 magicSkill = (uint)caster.ItemSpellcraft;
+                // give spell chain weapons a boost in spellcraft
+                if (caster.SpellChainChance > 0)
+                    magicSkill = magicSkill + (uint)(magicSkill * 0.2);
             }
             else if (caster.Wielder is Creature wielder)
             {
@@ -2279,5 +2282,7 @@ namespace ACE.Server.WorldObjects
             }
             return null;
         }
+
+
     }
 }
