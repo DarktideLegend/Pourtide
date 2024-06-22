@@ -21,6 +21,8 @@ using ACE.Server.WorldObjects;
 using WeenieClassName = ACE.Server.Factories.Enum.WeenieClassName;
 using System.Collections.Immutable;
 using ACE.Server.Realms;
+using ACE.Entity.Models;
+using ACE.Server.Features.Spells.Managers;
 
 namespace ACE.Server.Factories
 {
@@ -1278,6 +1280,96 @@ namespace ACE.Server.Factories
 
             // as per retail pcaps, must be set to appear in client
             wo.WieldSkillType = 1;  
+        }
+
+        public Gem CreateSlayerMorphGem()
+        {
+            var creatureType = SlayerChance.GetCreatureType();
+            var slayer = WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.SlayerMorphGem);
+            var damage = ThreadSafeRandom.Next((float)1.5, (float)3.0);
+
+            if (creatureType == ACE.Entity.Enum.CreatureType.Human)
+                damage = ThreadSafeRandom.Next((float)1.1, (float)1.5);
+
+            slayer.Name = $"{creatureType} Slayer Morph Gem";
+            slayer.LongDesc = $"Use this gem on any loot-generated weapon or caster to give it a {creatureType} Slayer effect. The damage for this slayer morph gem is {damage.ToString("0.00")}";
+            slayer.SlayerCreatureType = creatureType;
+            slayer.SlayerDamageBonus = damage;
+            return (Gem)slayer;
+        }
+
+        private Gem CreateSlayerExtractor()
+        {
+            throw new NotImplementedException();
+        }
+
+        private Gem CreateCantripExtractorGem()
+        {
+            throw new NotImplementedException();
+        }
+
+        private Gem CreateCantripMorphGem()
+        {
+            throw new NotImplementedException();
+        }
+
+        private Gem CreateCantripUpgradeGem()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Gem CreateSpellChainMorphGem()
+        {
+            var elementType = SpellChainChance.GetElement();
+            var spellChain = WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.SpellChainMorphGem);
+            var spell = GetWeaponSpellForSpellChain((DamageType)elementType);
+            spellChain.W_DamageType = (DamageType)elementType;
+            spellChain.SpellChainChance = ThreadSafeRandom.Next(0.7f, 1.0f);
+            spellChain.Biota.GetOrAddKnownSpell((int)spell, spellChain.BiotaDatabaseLock, out var _);
+            spellChain.ProcSpellRate = 0.05f;
+            spellChain.ProcSpell = (uint)spell;
+            spellChain.Name = $"{elementType.GetName()} Spell Chain Gem";
+            spellChain.LongDesc = $"Spell Chain Chance: {spellChain.SpellChainChance.ToString("0.00")}";
+            return (Gem)spellChain;
+        }
+
+        private static SpellId GetWeaponSpellForSpellChain(DamageType damageType)
+        {
+            switch (damageType)
+            {
+                case DamageType.Acid:
+                    if (SpellsManager.GetSpellIdFromReadableName("Acid Stream IV", out var acidId))
+                        return (SpellId)acidId;
+                    break;
+                case DamageType.Cold:
+                    if (SpellsManager.GetSpellIdFromReadableName("Frost Bolt IV", out var frostId))
+                        return (SpellId)frostId;
+                    break;
+                case DamageType.Fire:
+                    if (SpellsManager.GetSpellIdFromReadableName("Flame Bolt IV", out var fireId))
+                        return (SpellId)fireId;
+                    break;
+                case DamageType.Electric:
+                    if (SpellsManager.GetSpellIdFromReadableName("Lightning Bolt IV", out var electricId))
+                        return (SpellId)electricId;
+                    break;
+                case DamageType.Slash:
+                    if (SpellsManager.GetSpellIdFromReadableName("Whirling Blade IV", out var slashId))
+                        return (SpellId)slashId;
+                    break;
+                case DamageType.Pierce:
+                    if (SpellsManager.GetSpellIdFromReadableName("Force Bolt IV", out var pierceId))
+                        return (SpellId)pierceId;
+                    break;
+                case DamageType.Bludgeon:
+                    if (SpellsManager.GetSpellIdFromReadableName("Shock Wave IV", out var bludgeId))
+                        return (SpellId)bludgeId;
+                    break;
+                default:
+                    throw new ArgumentException("Invalid DamageType");
+            }
+
+            throw new InvalidOperationException("Unable to find a matching spell ID.");
         }
     }         
 }

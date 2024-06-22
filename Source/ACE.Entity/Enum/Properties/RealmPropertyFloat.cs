@@ -177,7 +177,11 @@ namespace ACE.Entity.Enum.Properties
 
         [Description("Scales the chance for a spell to chain to nearby monsters. Defaults to 0.0")]
         [RealmPropertyFloat("spell_chain_chance", 0f, 0f, 300f)]
-        SpellChainChance = 60003
+        SpellChainChance = 60003,
+
+        [Description("Sets the max range of a spell chain target. Defaults to 20.0")]
+        [RealmPropertyFloat("max_spell_chain_range", 20f, 0f, 300f)]
+        MaxSpellChainRange = 60004
     }
 
     public static class RealmPropertyFloatExtensions

@@ -9,9 +9,23 @@ using System.Text;
 
 namespace ACE.Server.Features.Spells
 {
+
+    public class Spell
+    {
+        public uint Id { get; }
+        public string Name { get; }
+        public Spell(uint id, string name)
+        {
+            Id = id;
+            Name = name;
+        }
+    }
+
     internal static class SpellsRepository
     {
-        public readonly static Dictionary<uint, string> Spells = new Dictionary<uint, string>();
+        public readonly static Dictionary<uint, Spell> Spells = new Dictionary<uint, Spell>();
+
+        public readonly static Dictionary<uint, Spell> SpellsByName = new Dictionary<uint, Spell>();
 
         private static string CsvFile = "spells.csv";
 
@@ -44,7 +58,7 @@ namespace ACE.Server.Features.Spells
                     uint parsedId;
 
                     if (uint.TryParse(id, out parsedId))
-                        Spells[parsedId] = name;
+                        Spells[parsedId] = new Spell(parsedId, name);
                 }
             }
         }

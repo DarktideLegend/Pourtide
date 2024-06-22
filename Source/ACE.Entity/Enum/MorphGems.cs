@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace ACE.Entity.Enum
 {
     // wcid for morph gems
-    public enum MorphGems : uint
+    public enum MorphGem : uint
     {
         MorphGem            = 606000,
         SlayerExtractorGem  = 606001,
@@ -16,6 +16,7 @@ namespace ACE.Entity.Enum
         CantripMorphGem     = 606004,
         MajorUpgradeGem     = 606005,
         EpicUpgradeGem      = 606006,
-        LegendaryUpgradeGem = 606007
+        LegendaryUpgradeGem = 606007,
+        SpellChainMorphGem  = 606008,
     }
 }

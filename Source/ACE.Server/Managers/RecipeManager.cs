@@ -189,30 +189,76 @@ namespace ACE.Server.Managers
 
         private static bool ApplyMorphGem(Player player, WorldObject source, WorldObject target)
         {
-            if (!Enum.IsDefined(typeof(MorphGems), source.WeenieClassId))
+            if (!Enum.IsDefined(typeof(MorphGem), source.WeenieClassId))
             {
                 player.Session.Network.EnqueueSend(new GameMessageSystemChat("This morph gem does not exist in the morph gems table, please notify a server admin.", ChatMessageType.Craft));
                 return false;
             }
 
-            switch ((MorphGems)source.WeenieClassId)
+            switch ((MorphGem)source.WeenieClassId)
             {
-                case MorphGems.SlayerExtractorGem:
+                case MorphGem.SlayerExtractorGem:
                     return ApplySlayerExtractor(player, source, target);
-                case MorphGems.SlayerMorphGem:
+                case MorphGem.SlayerMorphGem:
                     return ApplySlayerMorphGem(player, source, target);
-                case MorphGems.CantripExtractorGem:
+                case MorphGem.CantripExtractorGem:
                     return ApplyCantripExtractorGem(player, source, target);
-                case MorphGems.CantripMorphGem:
+                case MorphGem.CantripMorphGem:
                     return ApplyCantripMorphGem(player, source, target);
-                case MorphGems.MajorUpgradeGem:
-                case MorphGems.EpicUpgradeGem:
-                case MorphGems.LegendaryUpgradeGem:
+                case MorphGem.MajorUpgradeGem:
+                case MorphGem.EpicUpgradeGem:
+                case MorphGem.LegendaryUpgradeGem:
                     return ApplyCantripUpgradeGem(player, source, target);
+                case MorphGem.SpellChainMorphGem:
+                    return ApplySpellChainMorphGem(player, source, target);
                 default:
                     player.Session.Network.EnqueueSend(new GameMessageSystemChat("This morph gem has not been implemented yet.", ChatMessageType.Craft));
                     return false;
             }
+        }
+
+        private static bool ApplySpellChainMorphGem(Player player, WorldObject source, WorldObject target)
+        {
+            if (target.ItemWorkmanship == null)
+                return false;
+
+            if (target.SpellChainChance > 0)
+                return false;
+
+            if ((target.ItemType & ItemType.WeaponOrCaster) != 0)
+            {
+                if (target.W_DamageType != DamageType.Undef && (source.W_DamageType & target.W_DamageType) != source.W_DamageType)
+                    return false;
+
+                if ((target.ItemType & ItemType.Caster) != 0)
+                {
+                    target.SpellChainChance = source.SpellChainChance;
+                }
+
+                var sb = new StringBuilder();
+
+                if ((target.ItemType & ItemType.Weapon) != 0)
+                {
+                    target.SpellChainChance = source.SpellChainChance;
+                    var ids = source.Biota.GetKnownSpellsIds(source.BiotaDatabaseLock);
+                    var spell = ids.FirstOrDefault();
+                    target.Biota.GetOrAddKnownSpell(spell, target.BiotaDatabaseLock, out var _);
+                    target.ProcSpellRate = source.SpellChainChance * 0.20;
+                    target.ProcSpell = (uint?)spell;
+                    sb.Append($"Spell Proc Rate: {target.ProcSpellRate?.ToString("0.00")}\n");
+                    sb.Append($"Spell Chain Spell: {SpellsManager.GetSpellName((uint)spell)}\n");
+                }
+
+                sb.Append($"Spell Chain Chance: {source.SpellChainChance.ToString("0.00")}\n");
+                target.LongDesc = sb.ToString();
+                target.SaveBiotaToDatabase();
+                player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have applied the {source.Name} to {target.Name}.", ChatMessageType.Craft));
+                player.TryConsumeFromInventoryWithNetworking(source);
+
+                return true;
+            }
+
+            return false;
         }
 
         private static bool ApplyCantripUpgradeGem(Player player, WorldObject source, WorldObject target)
@@ -324,7 +370,7 @@ namespace ACE.Server.Managers
                 {
                     target.Biota.TryRemoveKnownSpell(id, target.BiotaDatabaseLock);
 
-                    var cantripMorphGem = WorldObjectFactory.CreateNewWorldObject((uint)MorphGems.CantripMorphGem, RealmManager.GetRealm(player.HomeRealm, includeRulesets: false).StandardRules);
+                    var cantripMorphGem = WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.CantripMorphGem, RealmManager.GetRealm(player.HomeRealm, includeRulesets: false).StandardRules);
                     cantripMorphGem.Name = $"{SpellsManager.GetSpellName((uint)id)} Morph Gem";
                     cantripMorphGem.Biota.GetOrAddKnownSpell(id, cantripMorphGem.BiotaDatabaseLock, out var _);
                     player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have applied the {source.Name} to {cantripMorphGem.Name}.", ChatMessageType.Craft));
@@ -365,16 +411,16 @@ namespace ACE.Server.Managers
 
             var creatureType = target.CreatureType;
 
-            var slayerMorphGem = WorldObjectFactory.CreateNewWorldObject((uint)MorphGems.SlayerMorphGem, RealmManager.GetRealm(player.HomeRealm, includeRulesets: false).StandardRules);
+            var slayerMorphGem = WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.SlayerMorphGem, RealmManager.GetRealm(player.HomeRealm, includeRulesets: false).StandardRules);
 
             var damage = ThreadSafeRandom.Next((float)1.5, (float)3.0);
 
-            slayerMorphGem.Name = $"{creatureType} Slayer Skull";
+            slayerMorphGem.Name = $"{creatureType} Slayer Morph Gem";
 
             if (creatureType == ACE.Entity.Enum.CreatureType.Human)
                 damage = ThreadSafeRandom.Next((float)1.1, (float)1.5);
 
-            slayerMorphGem.LongDesc = $"Use this skull on any loot-generated weapon or caster to give it a {creatureType} Slayer effect. The damage for this slayer skull is {damage.ToString("0.00")}";
+            slayerMorphGem.LongDesc = $"Use this gem on any loot-generated weapon or caster to give it a {creatureType} Slayer effect. The damage for this slayer morph gem is {damage.ToString("0.00")}";
             slayerMorphGem.SlayerCreatureType = creatureType;
             slayerMorphGem.SlayerDamageBonus = damage;
             slayerMorphGem.SaveBiotaToDatabase();
