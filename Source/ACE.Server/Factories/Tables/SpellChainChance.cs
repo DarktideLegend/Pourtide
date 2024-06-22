@@ -13,7 +13,6 @@ namespace ACE.Server.Factories.Tables
         Fire = 0x10,
         Acid = 0x20,
         Electric = 0x40,
-        Nether = 0x400,
     };
 
     public static class SpellChainChanceExtensions
