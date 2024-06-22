@@ -6,10 +6,10 @@
     "Description": "The first season of Pourtide",
     "CanBeHomeworld": true,
     "HideoutEnabled": false,
-    "MinorCantripDropRate": 0.1,
-    "MajorCantripDropRate": 0,
-    "EpicCantripDropRate": 0,
-    "LegendaryCantripDropRate": 0,
+    "MinorCantripDropRate": 1,
+    "MajorCantripDropRate": 1,
+    "EpicCantripDropRate": 1,
+    "LegendaryCantripDropRate": 1,
     "HasGearRatingDrops": false,
     "HasEquipmentSetDrops": false
   }

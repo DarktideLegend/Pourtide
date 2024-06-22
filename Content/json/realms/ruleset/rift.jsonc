@@ -13,12 +13,12 @@
       "reroll": "landblock"
     },
     "CreatureRespawnDuration": {
-      "low": 120.0,
-      "high": 180.0,
+      "low": 300.0,
+      "high": 400.0,
       "reroll": "landblock"
     },
     "OreDropChance": {
-      "low": 30,
+      "low": 80,
       "high": 100,
       "reroll": "landblock"
     },
@@ -32,10 +32,10 @@
       "high": 5,
       "reroll": "landblock"
     },
-    "MinorCantripDropRate": 0.1,
-    "MajorCantripDropRate": 0,
-    "EpicCantripDropRate": 0,
-    "LegendaryCantripDropRate": 0,
+    "MinorCantripDropRate": 1,
+    "MajorCantripDropRate": 1,
+    "EpicCantripDropRate": 1,
+    "LegendaryCantripDropRate": 1,
     "HasGearRatingDrops": true,
     "HasEquipmentSetDrops": true
   }
