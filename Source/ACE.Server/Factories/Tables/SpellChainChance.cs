@@ -29,7 +29,6 @@ namespace ACE.Server.Factories.Tables
                 case Element.Fire: return "Fire";
                 case Element.Acid: return "Acid";
                 case Element.Electric: return "Electric";
-                case Element.Nether: return "Nether";
                 default:
                     return null;
             }
