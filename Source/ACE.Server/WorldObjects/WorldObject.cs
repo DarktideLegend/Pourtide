@@ -1122,5 +1122,23 @@ namespace ACE.Server.WorldObjects
                 return Math.Max(0, structureUnitValue);
             }
         }
+
+        public void UpdateLongDescription()
+        {
+            var sb = new StringBuilder();
+
+            if (SpellChainChance > 0)
+            {
+                if ((ItemType & ItemType.Weapon) != 0)
+                    sb.Append($"Spell Proc Rate: {ProcSpellRate?.ToString("0.00")}\n");
+
+                sb.Append($"Spell Chain Chance: {SpellChainChance.ToString("0.00")}\n");
+            }
+
+            if (SlayerCreatureType != null)
+                sb.Append($"Slayer Damage Bonus: {SlayerDamageBonus?.ToString("0.00")}\n");
+
+            LongDesc = sb.ToString();
+        }
     }
 }
