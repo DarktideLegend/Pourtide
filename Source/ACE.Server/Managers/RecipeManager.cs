@@ -445,6 +445,9 @@ namespace ACE.Server.Managers
             if (target.CreatureType == null)
                 return false;
 
+            if (target.CreatureType == CreatureType.Human)
+                return false;
+
             var slayerMorphGem = WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.SlayerMorphGem, RealmManager.GetRealm(player.HomeRealm, includeRulesets: false).StandardRules);
 
             var message = $"Would you like to create a slayer gem for creature type {target.CreatureType}?";
