@@ -1300,17 +1300,12 @@ namespace ACE.Server.Factories
 
         private Gem CreateSlayerExtractor()
         {
-            throw new NotImplementedException();
+            return (Gem)WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.SlayerExtractorGem);
         }
 
         private Gem CreateCantripExtractorGem()
         {
-            throw new NotImplementedException();
-        }
-
-        private Gem CreateCantripMorphGem()
-        {
-            throw new NotImplementedException();
+            return (Gem)WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.CantripExtractorGem);
         }
 
         private Gem CreateCantripUpgradeGem()
