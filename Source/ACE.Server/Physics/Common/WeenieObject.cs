@@ -12,6 +12,7 @@ using ACE.Common;
 using System.Linq;
 using ACE.Server.Network.GameMessages.Messages;
 using Microsoft.EntityFrameworkCore.ValueGeneration;
+using ACE.Server.Managers;
 
 namespace ACE.Server.Physics.Common
 {
@@ -235,7 +236,8 @@ namespace ACE.Server.Physics.Common
                     if (splashTarget != null)
                     {
                         var spell = new Spell(spellProjectile.Spell.Id);
-                        spell.SpellChainChance = chance - (chance * 0.01);
+                        var decreaseMod = PropertyManager.GetDouble("spell_chain_decrease_mod").Item;
+                        spell.SpellChainChance = chance - (chance * decreaseMod);
                         var origin = targetWO.Location.SquaredDistanceTo(splashTarget.Location) < 2 ? null : targetWO;
                         var equipped = player.GetEquippedMainHand();
                         var itemCaster = equipped != null && !equipped.IsCaster ? equipped : targetWO;
