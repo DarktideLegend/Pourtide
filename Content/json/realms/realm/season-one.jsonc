@@ -11,6 +11,7 @@
     "EpicCantripDropRate": 1,
     "LegendaryCantripDropRate": 1,
     "HasGearRatingDrops": false,
-    "HasEquipmentSetDrops": false
+    "HasEquipmentSetDrops": false,
+    "MaxSpellChainRange": 100
   }
 }
