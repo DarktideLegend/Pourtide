@@ -371,7 +371,7 @@ namespace ACE.Server.Managers
                     target.Biota.TryRemoveKnownSpell(id, target.BiotaDatabaseLock);
 
                     var cantripMorphGem = WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.CantripMorphGem, RealmManager.GetRealm(player.HomeRealm, includeRulesets: false).StandardRules);
-                    cantripMorphGem.Name = $"{SpellsManager.GetSpellName((uint)id)} Morph Gem";
+                    cantripMorphGem.Name = $"{SpellsManager.GetSpellName((uint)id)} Gem";
                     cantripMorphGem.Biota.GetOrAddKnownSpell(id, cantripMorphGem.BiotaDatabaseLock, out var _);
                     player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have applied the {source.Name} to {cantripMorphGem.Name}.", ChatMessageType.Craft));
                     player.TryConsumeFromInventoryWithNetworking(source);
@@ -415,7 +415,7 @@ namespace ACE.Server.Managers
 
             var damage = ThreadSafeRandom.Next((float)1.5, (float)3.0);
 
-            slayerMorphGem.Name = $"{creatureType} Slayer Morph Gem";
+            slayerMorphGem.Name = $"{creatureType} Slayer Gem";
 
             if (creatureType == ACE.Entity.Enum.CreatureType.Human)
                 damage = ThreadSafeRandom.Next((float)1.1, (float)1.5);
