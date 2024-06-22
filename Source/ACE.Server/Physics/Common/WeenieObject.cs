@@ -237,7 +237,9 @@ namespace ACE.Server.Physics.Common
                         var spell = new Spell(spellProjectile.Spell.Id);
                         spell.SpellChainChance = chance - (chance * 0.01);
                         var origin = targetWO.Location.SquaredDistanceTo(splashTarget.Location) < 2 ? null : targetWO;
-                        player.TryCastSpell_WithRedirects(spell, splashTarget, targetWO, targetWO, false, false, true, origin);
+                        var equipped = player.GetEquippedMainHand();
+                        var itemCaster = equipped != null && !equipped.IsCaster ? equipped : targetWO;
+                        player.TryCastSpell_WithRedirects(spell, splashTarget, itemCaster, itemCaster, itemCaster != targetWO, false, true, origin);
                     }
                 }
             }
