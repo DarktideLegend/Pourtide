@@ -9,7 +9,6 @@ namespace ACE.Entity.Enum
     // wcid for morph gems
     public enum MorphGem : uint
     {
-        MorphGem            = 606000,
         SlayerExtractorGem  = 606001,
         SlayerMorphGem      = 606002,
         CantripExtractorGem = 606003,
