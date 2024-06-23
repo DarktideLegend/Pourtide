@@ -137,6 +137,7 @@ namespace ACE.Server.Entity
             RecipeManager.UseObjectOnTarget(player, source, target, true);
         }
     }
+
     public class Confirmation_ApplyCantripExtractor: Confirmation
     {
         public ObjectGuid SourceGuid;
@@ -172,6 +173,43 @@ namespace ACE.Server.Entity
             RecipeManager.HandleApplyCantripExtractorGemConfirmed(player, source, target, Id);
         }
     }
+
+    public class Confirmation_ApplyCantripMorphGem: Confirmation
+    {
+        public ObjectGuid SourceGuid;
+        public ObjectGuid TargetGuid;
+        public int Id;
+
+        public Confirmation_ApplyCantripMorphGem(ObjectGuid playerGuid, ObjectGuid sourceGuid, ObjectGuid targetGuid, int id)
+            : base (playerGuid, ConfirmationType.Yes_No)
+        {
+            SourceGuid = sourceGuid;
+            TargetGuid = targetGuid;
+            Id = id;
+        }
+
+        public override void ProcessConfirmation(bool response, bool timeout = false)
+        {
+            var player = Player;
+            if (player == null) return;
+
+            if (!response)
+            {
+                player.SendWeenieError(WeenieError.YouChickenOut);
+
+                return;
+            }
+
+            // inventory only?
+            var source = player.FindObject(SourceGuid, Player.SearchLocations.LocationsICanMove);
+            var target = player.FindObject(TargetGuid, Player.SearchLocations.LocationsICanMove);
+
+            if (source == null || target == null) return;
+
+            RecipeManager.HandleApplyCantripMorphGemConfirmed(player, source, target, Id);
+        }
+    }
+
     public class Confirmation_ApplySlayerExtractor: Confirmation
     {
         public ObjectGuid SourceGuid;

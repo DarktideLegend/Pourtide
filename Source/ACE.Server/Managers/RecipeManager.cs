@@ -30,6 +30,8 @@ using ACE.Server.Factories.Tables;
 using ACE.Database.Models.Shard;
 using ACE.Server.Features.Spells.Managers;
 using System.Xml.Linq;
+using log4net.Core;
+using Newtonsoft.Json.Linq;
 
 namespace ACE.Server.Managers
 {
@@ -304,7 +306,7 @@ namespace ACE.Server.Managers
 
             var name = SpellsManager.GetSpellName((uint)id);
 
-            var message = $"Would you like to upgrade the cantrip {name} on {target.Name}?";
+            var message = $"Would you like to upgrade the cantrip {name} on {target.Name}? press no and try again if you'd like to select a different random cantrip.";
 
             if (!player.ConfirmationManager.EnqueueSend(new Confirmation_ApplyCantripUpgrade(player.Guid, source.Guid, target.Guid, spell, level, value, id), message))
                 return false;
@@ -338,46 +340,64 @@ namespace ACE.Server.Managers
             if (target.ItemWorkmanship == null)
                 return false;
 
-            var ids = source.Biota.GetKnownSpellsIds(target.BiotaDatabaseLock);
+            var targetIds = target.Biota.GetKnownSpellsIds(target.BiotaDatabaseLock);
 
-            foreach (var id in ids)
+            if (targetIds.Count <= 0)
+                return false;
+
+            var cantrips = targetIds.Where(id => Enum.GetName(typeof(SpellId), id).ToLower().Contains("cantrip")).ToList();
+
+            if (cantrips.Count >= 4)
+                return false;
+
+            int id = source.Biota.GetKnownSpellsIds(target.BiotaDatabaseLock).FirstOrDefault();
+
+            if (id == 0)
+                return false;
+
+            var spell = Enum.GetName(typeof(SpellId), id);
+
+            char lastChar = spell[spell.Length - 1];
+
+            var spellKey = spell.Replace(lastChar, '1');
+
+            if (SpellsManager.TryGetEnumValue(spellKey, out SpellId spellId))
             {
-                var spell = Enum.GetName(typeof(SpellId), id);
-
-                char lastChar = spell[spell.Length - 1];
-
-                var spellKey = spell.Replace(lastChar, '1');
-
-                if (SpellsManager.TryGetEnumValue(spellKey, out SpellId spellId))
-                {
-                    if ((target.ItemType & ItemType.Caster) != 0 && !WandCantrips.spells.Contains(spellId))
-                        return false;
-
-                    if ((target.ItemType & ItemType.MeleeWeapon) != 0 && !MeleeCantrips.spells.Contains(spellId))
-                        return false;
-
-                    if ((target.ItemType & ItemType.MissileWeapon) != 0 && !MissileCantrips.spells.Contains(spellId))
-                        return false;
-
-                    if ((target.ItemType & ItemType.Vestements) != 0 && !ArmorCantrips.spells.Contains(spellId))
-                        return false;
-
-                    if ((target.ItemType & ItemType.Jewelry) != 0 && !JewelryCantrips.spells.Contains(spellId))
-                        return false;
-                }
-
-                target.Biota.GetOrAddKnownSpell(id, target.BiotaDatabaseLock, out var added);
-
-                if (!added)
+                if ((target.ItemType & ItemType.Caster) != 0 && !WandCantrips.spells.Contains(spellId))
                     return false;
 
-                target.SaveBiotaToDatabase();
-                player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have applied the {source.Name} to {target.Name}.", ChatMessageType.Craft));
-                player.TryConsumeFromInventoryWithNetworking(source);
-                return true;
+                if ((target.ItemType & ItemType.MeleeWeapon) != 0 && !MeleeCantrips.spells.Contains(spellId))
+                    return false;
+
+                if ((target.ItemType & ItemType.MissileWeapon) != 0 && !MissileCantrips.spells.Contains(spellId))
+                    return false;
+
+                if ((target.ItemType & ItemType.Vestements) != 0 && !ArmorCantrips.spells.Contains(spellId))
+                    return false;
+
+                if ((target.ItemType & ItemType.Jewelry) != 0 && !JewelryCantrips.spells.Contains(spellId))
+                    return false;
             }
 
-            return false;
+            var message = $"Would you like to add the cantrip {SpellsManager.GetSpellName((uint)id)} on {target.Name}?";
+
+            if (!player.ConfirmationManager.EnqueueSend(new Confirmation_ApplyCantripMorphGem(player.Guid, source.Guid, target.Guid, id), message))
+                return false;
+
+            return true;
+
+        }
+
+        public static void HandleApplyCantripMorphGemConfirmed(Player player, WorldObject source, WorldObject target, int id)
+        {
+            target.Biota.GetOrAddKnownSpell(id, target.BiotaDatabaseLock, out var added);
+
+            if (!added)
+                return;
+
+            target.SaveBiotaToDatabase();
+            player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have applied the {source.Name} to {target.Name}.", ChatMessageType.Craft));
+            player.TryConsumeFromInventoryWithNetworking(source);
         }
 
         private static bool ApplyCantripExtractorGem(Player player, WorldObject source, WorldObject target)
@@ -399,7 +419,7 @@ namespace ACE.Server.Managers
 
             var name = SpellsManager.GetSpellName((uint)id);
 
-            var message = $"Would you like to extract the cantrip {name} from {target.Name}?";
+            var message = $"Would you like to extract the cantrip {name} from {target.Name}? press no and try again if you'd like to select a different random cantrip.";
 
             if (!player.ConfirmationManager.EnqueueSend(new Confirmation_ApplyCantripExtractor(player.Guid, source.Guid, target.Guid, id), message))
                 return false;
