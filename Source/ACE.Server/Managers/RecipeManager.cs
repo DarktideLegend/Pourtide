@@ -379,7 +379,7 @@ namespace ACE.Server.Managers
                     return false;
             }
 
-            var message = $"Would you like to add the cantrip {SpellsManager.GetSpellName((uint)id)} on {target.Name}?";
+            var message = $"Would you like to add the cantrip {SpellsManager.GetSpellName((uint)id)} on {target.Name}? you have a 33% chance of success, the morph gem will be destroyed if you fail.";
 
             if (!player.ConfirmationManager.EnqueueSend(new Confirmation_ApplyCantripMorphGem(player.Guid, source.Guid, target.Guid, id), message))
                 return false;
@@ -390,6 +390,15 @@ namespace ACE.Server.Managers
 
         public static void HandleApplyCantripMorphGemConfirmed(Player player, WorldObject source, WorldObject target, int id)
         {
+            var roll = ThreadSafeRandom.Next(1, 3);
+
+            if (roll != 1)
+            {
+                player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You failed to apply {source.Name} to {target.Name} the cantrip morph gem has been destroyed.", ChatMessageType.Craft));
+                player.TryConsumeFromInventoryWithNetworking(source);
+                return;
+            }
+
             target.Biota.GetOrAddKnownSpell(id, target.BiotaDatabaseLock, out var added);
 
             if (!added)
