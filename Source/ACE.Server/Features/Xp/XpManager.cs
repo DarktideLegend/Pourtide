@@ -76,6 +76,13 @@ namespace ACE.Server.Features.Xp
         public static void CalculateCurrentDailyXpCap()
         {
             DailyXpCache.Clear();
+            if (Week > 8)
+            {
+                DailyTimestamp = DateTime.MaxValue;
+                DailyXpCache.Add(new DailyXp(DailyTimestamp, WeeklyLevelWithCapXp[8]));
+                return;
+            }
+
             var week = Week;
             var totalWeeklyXp = week > 1 ? WeeklyLevelWithCapXp[week] - WeeklyLevelWithCapXp[week - 1] : WeeklyLevelWithCapXp[week];
             var dailyxp = totalWeeklyXp / 7;
