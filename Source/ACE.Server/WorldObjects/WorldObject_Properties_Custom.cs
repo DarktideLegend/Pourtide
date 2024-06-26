@@ -22,6 +22,10 @@ namespace ACE.Server.WorldObjects
             set { if (value == 0d) RemoveProperty(PropertyFloat.SpellChainChance); else SetProperty(PropertyFloat.SpellChainChance, value); }
         }
 
-
+        public double ReflectiveDamageMod
+        {
+            get => GetProperty(PropertyFloat.ReflectiveDamageMod) ?? 0d;
+            set { if (value == 0d) RemoveProperty(PropertyFloat.ReflectiveDamageMod); else SetProperty(PropertyFloat.ReflectiveDamageMod, value); }
+        }
     }
 }

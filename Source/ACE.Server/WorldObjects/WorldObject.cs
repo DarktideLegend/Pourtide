@@ -131,7 +131,8 @@ namespace ACE.Server.WorldObjects
             SetEphemeralValues();
             InitializeGenerator();
             InitializeHeartbeats();
-            UpdateDurability(this);
+            UpdateLongDescription();
+            //UpdateDurability(this);
         }
 
 
@@ -745,7 +746,7 @@ namespace ACE.Server.WorldObjects
             if (Generator != null)
                 Location = new InstancedPosition(Location, Generator.Location.Instance);
 
-            UpdateDurability(this);
+            //UpdateDurability(this);
 
             if (!LandblockManager.AddObject(this))
                 return false;
@@ -1137,6 +1138,9 @@ namespace ACE.Server.WorldObjects
 
             if (SlayerCreatureType != null)
                 sb.Append($"Slayer Damage Bonus: {SlayerDamageBonus?.ToString("0.00")}\n");
+
+            if (ReflectiveDamageMod > 0)
+                sb.Append($"Reflective Damage Mod: {ReflectiveDamageMod.ToString("0.00")}\n");
 
             LongDesc = sb.ToString();
         }

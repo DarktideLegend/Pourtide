@@ -17,5 +17,6 @@ namespace ACE.Entity.Enum
         EpicUpgradeGem      = 606006,
         LegendaryUpgradeGem = 606007,
         SpellChainMorphGem  = 606008,
+        ThornArmorMorphGem  = 606009,
     }
 }

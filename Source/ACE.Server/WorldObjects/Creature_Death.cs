@@ -749,6 +749,10 @@ namespace ACE.Server.WorldObjects
                 {
                     var spellChainGem = RealmRuleset.LootGenerationFactory.CreateSpellChainMorphGem();
                     corpse.TryAddToInventory(spellChainGem);
+
+                    var thornArmorGem = RealmRuleset.LootGenerationFactory.CreateThornArmorMorphGem();
+                    corpse.TryAddToInventory(thornArmorGem);
+
                     var tier = WeenieClassId == 603001 ? 1 : WeenieClassId == 603002 ? 2 : 3;
                     var amount = WeenieClassId == 603001 ? 1 : WeenieClassId == 603002 ? 10 : 20;
                     for (var i = 0; i < amount; ++i)

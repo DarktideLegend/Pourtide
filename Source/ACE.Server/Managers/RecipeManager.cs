@@ -214,10 +214,37 @@ namespace ACE.Server.Managers
                     return ApplyCantripUpgradeGem(player, source, target);
                 case MorphGem.SpellChainMorphGem:
                     return ApplySpellChainMorphGem(player, source, target);
+                case MorphGem.ThornArmorMorphGem:
+                    return ApplyThornArmorMorphGem(player, source, target);
                 default:
                     player.Session.Network.EnqueueSend(new GameMessageSystemChat("This morph gem has not been implemented yet.", ChatMessageType.Craft));
                     return false;
             }
+        }
+
+        private static bool ApplyThornArmorMorphGem(Player player, WorldObject source, WorldObject target)
+        {
+            if (target.ItemWorkmanship == null)
+                return false;
+
+            if ((target.ItemType & ItemType.Armor) == 0)
+                return false;
+
+            var message = $"Would you like to apply Thorn Armor on {target.Name}?.";
+
+            if (!player.ConfirmationManager.EnqueueSend(new Confirmation_ApplyThornArmor(player.Guid, source.Guid, target.Guid, (float)source.ReflectiveDamageMod), message))
+                return false;
+
+            return true;
+        }
+
+        public static void HandleApplyThornArmorMorphGemConfirmed(Player player, WorldObject source, WorldObject target, float reflectiveDamageModifier)
+        {
+            target.ReflectiveDamageMod = reflectiveDamageModifier;
+            target.UpdateLongDescription();
+            target.SaveBiotaToDatabase();
+            player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have applied the {source.Name} to {target.Name}.", ChatMessageType.Craft));
+            player.TryConsumeFromInventoryWithNetworking(source);
         }
 
         private static bool ApplySpellChainMorphGem(Player player, WorldObject source, WorldObject target)
@@ -509,7 +536,7 @@ namespace ACE.Server.Managers
         public static void ApplyDurability(WorldObject target)
         {
             target.ArmorLevel = target.OriginalArmorLevel;
-            WorldObject.UpdateDurability(target);
+            //WorldObject.UpdateDurability(target);
         }
 
         private static bool ApplyDurability(Player player, WorldObject source, WorldObject target)
@@ -1959,7 +1986,7 @@ namespace ACE.Server.Managers
             if (source.MaterialType == MaterialType.Steel)
                 target.OriginalArmorLevel = target.ArmorLevel;
 
-            WorldObject.UpdateDurability(target);
+            //WorldObject.UpdateDurability(target);
 
             target.TinkerLog += (uint?)source.MaterialType ?? source.WeenieClassId;
         }

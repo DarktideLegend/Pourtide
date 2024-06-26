@@ -221,7 +221,10 @@ namespace ACE.Entity.Enum.Properties
 
         // Pourtide
         [ServerOnly]
-        SpellChainChance               = 60001
+        SpellChainChance               = 60001,
+
+        [ServerOnly]
+        ReflectiveDamageMod            = 60002
     }
 
     public static class PropertyFloatExtensions

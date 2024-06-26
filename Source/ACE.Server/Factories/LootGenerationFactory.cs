@@ -1328,6 +1328,14 @@ namespace ACE.Server.Factories
             return (Gem)spellChain;
         }
 
+        public Gem CreateThornArmorMorphGem()
+        {
+            var thornGem = (Gem)WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.ThornArmorMorphGem);
+            thornGem.ReflectiveDamageMod = ThreadSafeRandom.Next(0.10f, 0.50f);
+            thornGem.LongDesc = $"Reflective Damage Mod: {thornGem.ReflectiveDamageMod.ToString("0.00")}";
+            return thornGem;
+        }
+
         private static SpellId GetWeaponSpellForSpellChain(DamageType damageType)
         {
             switch (damageType)

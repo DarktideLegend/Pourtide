@@ -289,6 +289,43 @@ namespace ACE.Server.Entity
         }
     }
 
+    public class Confirmation_ApplyThornArmor : Confirmation
+    {
+        public ObjectGuid SourceGuid;
+        public ObjectGuid TargetGuid;
+        public float ReflectiveDamageModifier;
+
+
+        public Confirmation_ApplyThornArmor(ObjectGuid playerGuid, ObjectGuid sourceGuid, ObjectGuid targetGuid, float reflectiveDamageModifier)
+            : base(playerGuid, ConfirmationType.Yes_No)
+        {
+            SourceGuid = sourceGuid;
+            TargetGuid = targetGuid;
+            ReflectiveDamageModifier = reflectiveDamageModifier;
+        }
+
+        public override void ProcessConfirmation(bool response, bool timeout = false)
+        {
+            var player = Player;
+            if (player == null) return;
+
+            if (!response)
+            {
+                player.SendWeenieError(WeenieError.YouChickenOut);
+
+                return;
+            }
+
+            // inventory only?
+            var source = player.FindObject(SourceGuid, Player.SearchLocations.LocationsICanMove);
+            var target = player.FindObject(TargetGuid, Player.SearchLocations.LocationsICanMove);
+
+            if (source == null || target == null) return;
+
+            RecipeManager.HandleApplyThornArmorMorphGemConfirmed(player, source, target, ReflectiveDamageModifier);
+        }
+    }
+
     public class Confirmation_Fellowship : Confirmation
     {
         public ObjectGuid InviterGuid;
