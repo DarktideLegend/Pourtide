@@ -203,18 +203,17 @@ namespace ACE.Server.Features.Xp
 
         public static void GetXpCapTimestamps()
         {
-            var (_, weekly, week) = DatabaseManager.Shard.BaseDatabase.GetXpCapTimestamps();
+            var (_, weekly, week) = DatabaseManager.Pourtide.GetXpCapTimestamps();
             WeeklyTimestamp = weekly;
             Week = week;
         }
 
         public static void GetUpdatedXpCapTimestamps()
         {
-            var (_, weekly, week) = DatabaseManager.Shard.BaseDatabase.UpdateXpCap();
+            var (_, weekly, week) = DatabaseManager.Pourtide.UpdateXpCap();
             WeeklyTimestamp = weekly;
             Week = week;
         }
-
 
         public static bool IsDailyTimestampExpired()
         {

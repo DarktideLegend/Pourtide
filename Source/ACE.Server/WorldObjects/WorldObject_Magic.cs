@@ -537,7 +537,7 @@ namespace ACE.Server.WorldObjects
                     {
                         targetCreature.DamageHistory.Add(this, DamageType.Health, (uint)-boost);
                         if (this is Player attacker && targetCreature is Player victim)
-                            DatabaseManager.Shard.BaseDatabase.TrackPkStatsDamage(attacker.HomeRealm, attacker.Location.RealmID, (uint)attacker.Guid.Full, (uint)victim.Guid.Full, (int)(uint)-boost, false, (uint)CombatType.Magic);
+                            DatabaseManager.Pourtide.TrackPkStatsDamage(attacker.HomeRealm, attacker.Location.RealmID, (uint)attacker.Guid.Full, (uint)victim.Guid.Full, (int)(uint)-boost, false, (uint)CombatType.Magic);
                     }
 
                     //if (targetPlayer != null && targetPlayer.Fellowship != null)
@@ -794,7 +794,7 @@ namespace ACE.Server.WorldObjects
                     transferSource.DamageHistory.Add(this, DamageType.Health, srcVitalChange);
 
                     if (this is Player attacker && caster is Player victim)
-                        DatabaseManager.Shard.BaseDatabase.TrackPkStatsDamage(attacker.HomeRealm, attacker.Location.RealmID, (uint)attacker.Guid.Full, (uint)victim.Guid.Full, -(int)srcVitalChange, false, (uint)CombatType.Magic);
+                        DatabaseManager.Pourtide.TrackPkStatsDamage(attacker.HomeRealm, attacker.Location.RealmID, (uint)attacker.Guid.Full, (uint)victim.Guid.Full, -(int)srcVitalChange, false, (uint)CombatType.Magic);
 
 
                     //var sourcePlayer = source as Player;
@@ -934,7 +934,7 @@ namespace ACE.Server.WorldObjects
                     damageType = DamageType.Health;
 
                     if (this is Player attacker && caster is Player victim)
-                        DatabaseManager.Shard.BaseDatabase.TrackPkStatsDamage(attacker.HomeRealm, attacker.Location.RealmID, (uint)attacker.Guid.Full, (uint)victim.Guid.Full, (int)damage, false, (uint)CombatType.Magic);
+                        DatabaseManager.Pourtide.TrackPkStatsDamage(attacker.HomeRealm, attacker.Location.RealmID, (uint)attacker.Guid.Full, (uint)victim.Guid.Full, (int)damage, false, (uint)CombatType.Magic);
 
                     //if (player != null && player.Fellowship != null)
                     //player.Fellowship.OnVitalUpdate(player);

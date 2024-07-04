@@ -116,7 +116,7 @@ namespace ACE.Server.Managers
 
         public static void BuildIpToPlayerGuidMap()
         {
-            var loginMap = DatabaseManager.Shard.BaseDatabase.GetIpToCharacterLoginMap();
+            var loginMap = DatabaseManager.Pourtide.GetIpToCharacterLoginMap();
             foreach (var realmId in loginMap.Keys)
             {
                 var ipCharacterMap = loginMap[realmId];

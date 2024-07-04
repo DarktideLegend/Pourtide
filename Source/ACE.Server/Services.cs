@@ -32,6 +32,7 @@ using System.Runtime;
 using ACE.Common.ACRealms;
 using ACE.Server.Managers.ACRealms;
 using ACE.Server.Features.Spells.Managers;
+using ACE.Database.Models.Pourtide;
 
 namespace ACE.Server
 {
@@ -215,6 +216,16 @@ namespace ACE.Server
                 {
                     options.UseLoggerFactory(dbLogger);
                     var config = ConfigManager.Config.MySql.Shard;
+                    var connectionString = $"server={config.Host};port={config.Port};user={config.Username};password={config.Password};database={config.Database};{config.ConnectionOptions}";
+                    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString), builder =>
+                    {
+                        builder.EnableRetryOnFailure(10);
+                    });
+                });
+                services.AddDbContextFactory<PourtideDbContext>(options =>
+                {
+                    options.UseLoggerFactory(dbLogger);
+                    var config = ConfigManager.Config.MySql.Pourtide;
                     var connectionString = $"server={config.Host};port={config.Port};user={config.Username};password={config.Password};database={config.Database};{config.ConnectionOptions}";
                     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString), builder =>
                     {

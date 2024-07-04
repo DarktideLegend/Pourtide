@@ -188,7 +188,7 @@ namespace ACE.Server.Command.Handlers
             message.Append("-----------------------\n");
 
             var homeRealm = session?.Player?.HomeRealm != null ? (ushort)session.Player.HomeRealm : RealmManager.CurrentSeason.Realm.Id;
-            var players = DatabaseManager.Shard.BaseDatabase.GetTopTenPlayersWithMostKills(homeRealm);
+            var players = DatabaseManager.Pourtide.GetTopTenPlayersWithMostKills(homeRealm);
 
             for (var i = 0; i < players.Count; i++)
             {
@@ -230,7 +230,7 @@ namespace ACE.Server.Command.Handlers
             message.Append("<Showing Kill Count>\n");
             message.Append("-----------------------\n");
 
-            var (count, last10Victims) = DatabaseManager.Shard.BaseDatabase.GetPersonalKillStats((uint)session.Player.Guid.Full);
+            var (count, last10Victims) = DatabaseManager.Pourtide.GetPersonalKillStats((uint)session.Player.Guid.Full);
 
             message.Append($"{session.Player.Name}, Total Kills = {count}\n");
 
@@ -282,7 +282,7 @@ namespace ACE.Server.Command.Handlers
 
 
             var homeRealm = session?.Player?.HomeRealm != null ? (ushort)session.Player.HomeRealm : RealmManager.CurrentSeason.Realm.Id;
-            var players = DatabaseManager.Shard.BaseDatabase.GetPlayerWithMostDeaths(homeRealm);
+            var players = DatabaseManager.Pourtide.GetPlayerWithMostDeaths(homeRealm);
 
             for (var i = 0; i < players.Count; i++)
             {

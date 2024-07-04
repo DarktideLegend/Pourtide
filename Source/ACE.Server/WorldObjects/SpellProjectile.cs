@@ -791,7 +791,7 @@ namespace ACE.Server.WorldObjects
                 target.DamageHistory.Add(ProjectileSource, Spell.DamageType, amount);
 
                 if (sourcePlayer != null && targetPlayer != null)
-                    DatabaseManager.Shard.BaseDatabase.TrackPkStatsDamage(targetPlayer.HomeRealm, Location.RealmID, (uint)sourcePlayer.Guid.Full, (uint)targetPlayer.Guid.Full, (int)amount, critical && !critDefended, (uint)CombatType.Magic);
+                    DatabaseManager.Pourtide.TrackPkStatsDamage(targetPlayer.HomeRealm, Location.RealmID, (uint)sourcePlayer.Guid.Full, (uint)targetPlayer.Guid.Full, (int)amount, critical && !critDefended, (uint)CombatType.Magic);
 
                 //if (targetPlayer != null && targetPlayer.Fellowship != null)
                     //targetPlayer.Fellowship.OnVitalUpdate(targetPlayer);

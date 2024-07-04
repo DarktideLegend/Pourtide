@@ -12,6 +12,7 @@ namespace ACE.Database
         public static AuthenticationDatabase Authentication { get; private set; }
 
         public static WorldDatabaseWithEntityCache World { get; private set; }
+        public static PourtideDatabase Pourtide { get; private set; }
 
         private static SerializedShardDatabase serializedShardDb;
 
@@ -25,8 +26,10 @@ namespace ACE.Database
         {
             Authentication = new AuthenticationDatabase(services);
             World = new WorldDatabaseWithEntityCache(services);
+            Pourtide = new PourtideDatabase(services);
 
             Authentication.Exists(true);
+            Pourtide.Exists(true);
 
             if (Authentication.GetListofAccountsByAccessLevel(ACE.Entity.Enum.AccessLevel.Admin).Count == 0)
             {
@@ -55,6 +58,7 @@ namespace ACE.Database
 
             // By default, we hold on to player biotas a little bit longer to help with offline updates like pass-up xp, allegiance updates, etc...
             var shardDb = new ShardDatabaseWithCaching(services, TimeSpan.FromMinutes(Common.ConfigManager.Config.Server.ShardPlayerBiotaCacheTime), TimeSpan.FromMinutes(Common.ConfigManager.Config.Server.ShardNonPlayerBiotaCacheTime));
+
             serializedShardDb = new SerializedShardDatabase(shardDb);
             Shard = serializedShardDb;
             ShardConfig = new ShardConfigDatabase(services);

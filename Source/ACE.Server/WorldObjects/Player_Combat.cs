@@ -518,7 +518,7 @@ namespace ACE.Server.WorldObjects
             DamageHistory.Add(source, damageType, damageTaken);
 
             if (source is Player)
-                DatabaseManager.Shard.BaseDatabase.TrackPkStatsDamage(HomeRealm, Location.RealmID, (uint)source.Guid.Full, (uint)Guid.Full, (int)damageTaken, crit, (uint)combatType);
+                DatabaseManager.Pourtide.TrackPkStatsDamage(HomeRealm, Location.RealmID, (uint)source.Guid.Full, (uint)Guid.Full, (int)damageTaken, crit, (uint)combatType);
 
             // update stamina
             if (CombatMode != CombatMode.NonCombat)

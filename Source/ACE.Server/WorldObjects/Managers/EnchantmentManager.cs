@@ -1400,7 +1400,7 @@ namespace ACE.Server.WorldObjects.Managers
                 creature.DamageHistory.Add(damager, damageType, (uint)Math.Round(tickAmount));
 
                 if (damager is Player attacker && creature is Player victim)
-                    DatabaseManager.Shard.BaseDatabase.TrackPkStatsDamage(attacker.HomeRealm, attacker.Location.RealmID, (uint)attacker.Guid.Full, (uint)victim.Guid.Full, (int)(uint)Math.Round(tickAmount), false, (uint)CombatType.Magic);
+                    DatabaseManager.Pourtide.TrackPkStatsDamage(attacker.HomeRealm, attacker.Location.RealmID, (uint)attacker.Guid.Full, (uint)victim.Guid.Full, (int)(uint)Math.Round(tickAmount), false, (uint)CombatType.Magic);
 
                 tickAmountTotal += tickAmount;
 

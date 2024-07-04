@@ -750,13 +750,13 @@ namespace ACE.Server.WorldObjects
 
         public void TrackKill(ushort homeRealmId, ulong killerId, ulong victimId)
         {
-            DatabaseManager.Shard.BaseDatabase.TrackPkStatsKill(homeRealmId, Location.RealmID, killerId, victimId);
+            DatabaseManager.Pourtide.TrackPkStatsKill(homeRealmId, Location.RealmID, killerId, victimId);
         }
 
         public bool UpdatePkTrophies(ulong killerId, ulong victimId)
         {
 
-            return DatabaseManager.Shard.BaseDatabase.UpdatePkTrophyCooldown(killerId, victimId);
+            return DatabaseManager.Pourtide.UpdatePkTrophyCooldown(killerId, victimId);
         }
 
         /// <summary>

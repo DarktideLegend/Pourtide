@@ -268,103 +268,105 @@ namespace ACE.Server
 
         private static void AutoApplyDatabaseUpdates()
         {
-            log.Info($"Automatic Database Patching not implemented for AC Realms.");
-            return;
+            log.Info($"Automatic Database Patching started...");
+            Thread.Sleep(1000);
 
-            //log.Info($"Automatic Database Patching started...");
-            //Thread.Sleep(1000);
+            PatchDatabase("Authentication", ConfigManager.Config.MySql.Authentication.Host, ConfigManager.Config.MySql.Authentication.Port, ConfigManager.Config.MySql.Authentication.Username, ConfigManager.Config.MySql.Authentication.Password, ConfigManager.Config.MySql.Authentication.Database, ConfigManager.Config.MySql.Shard.Database, ConfigManager.Config.MySql.World.Database, ConfigManager.Config.MySql.Pourtide.Database);
+            PatchDatabase("Shard", ConfigManager.Config.MySql.Shard.Host, ConfigManager.Config.MySql.Shard.Port, ConfigManager.Config.MySql.Shard.Username, ConfigManager.Config.MySql.Shard.Password, ConfigManager.Config.MySql.Authentication.Database, ConfigManager.Config.MySql.Shard.Database, ConfigManager.Config.MySql.World.Database, ConfigManager.Config.MySql.Pourtide.Database);
+            PatchDatabase("World", ConfigManager.Config.MySql.World.Host, ConfigManager.Config.MySql.World.Port, ConfigManager.Config.MySql.World.Username, ConfigManager.Config.MySql.World.Password, ConfigManager.Config.MySql.Authentication.Database, ConfigManager.Config.MySql.Shard.Database, ConfigManager.Config.MySql.World.Database, ConfigManager.Config.MySql.Pourtide.Database);
+            PatchDatabase("Pourtide", ConfigManager.Config.MySql.World.Host, ConfigManager.Config.MySql.World.Port, ConfigManager.Config.MySql.World.Username, ConfigManager.Config.MySql.World.Password, ConfigManager.Config.MySql.Authentication.Database, ConfigManager.Config.MySql.Shard.Database, ConfigManager.Config.MySql.World.Database, ConfigManager.Config.MySql.Pourtide.Database);
 
-            //PatchDatabase("Authentication", ConfigManager.Config.MySql.Authentication.Host, ConfigManager.Config.MySql.Authentication.Port, ConfigManager.Config.MySql.Authentication.Username, ConfigManager.Config.MySql.Authentication.Password, ConfigManager.Config.MySql.Authentication.Database, ConfigManager.Config.MySql.Shard.Database, ConfigManager.Config.MySql.World.Database);
-            //PatchDatabase("Shard", ConfigManager.Config.MySql.Shard.Host, ConfigManager.Config.MySql.Shard.Port, ConfigManager.Config.MySql.Shard.Username, ConfigManager.Config.MySql.Shard.Password, ConfigManager.Config.MySql.Authentication.Database, ConfigManager.Config.MySql.Shard.Database, ConfigManager.Config.MySql.World.Database);
-            //PatchDatabase("World", ConfigManager.Config.MySql.World.Host, ConfigManager.Config.MySql.World.Port, ConfigManager.Config.MySql.World.Username, ConfigManager.Config.MySql.World.Password, ConfigManager.Config.MySql.Authentication.Database, ConfigManager.Config.MySql.Shard.Database, ConfigManager.Config.MySql.World.Database);
-
-            //Thread.Sleep(1000);
-            //log.Info($"Automatic Database Patching complete.");
+            Thread.Sleep(1000);
+            log.Info($"Automatic Database Patching complete.");
         }
 
-        private static void PatchDatabase(string dbType, string host, uint port, string username, string password, string authDB, string shardDB, string worldDB)
+        private static void PatchDatabase(string dbType, string host, uint port, string username, string password, string authDB, string shardDB, string worldDB, string pourtideDB)
         {
-            //var updatesPath = $"DatabaseSetupScripts{Path.DirectorySeparatorChar}Updates{Path.DirectorySeparatorChar}{dbType}";
-            //var updatesFile = $"{updatesPath}{Path.DirectorySeparatorChar}applied_updates.txt";
+            var updatesPath = $"DatabaseSetupScripts{Path.DirectorySeparatorChar}Updates{Path.DirectorySeparatorChar}{dbType}";
+            var updatesFile = $"{updatesPath}{Path.DirectorySeparatorChar}applied_updates.txt";
 
-            //if (!Directory.Exists(updatesPath))
-            //{
-            //    // File not found in Environment.CurrentDirectory
-            //    // Lets try the ExecutingAssembly Location
-            //    var executingAssemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
+            if (!Directory.Exists(updatesPath))
+            {
+                // File not found in Environment.CurrentDirectory
+                // Lets try the ExecutingAssembly Location
+                var executingAssemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
 
-            //    var directoryName = Path.GetFullPath(Path.GetDirectoryName(executingAssemblyLocation));
+                var directoryName = Path.GetFullPath(Path.GetDirectoryName(executingAssemblyLocation));
 
-            //    updatesPath = Path.Combine(directoryName, $"DatabaseSetupScripts{Path.DirectorySeparatorChar}Updates{Path.DirectorySeparatorChar}{dbType}");
+                updatesPath = Path.Combine(directoryName, $"DatabaseSetupScripts{Path.DirectorySeparatorChar}Updates{Path.DirectorySeparatorChar}{dbType}");
 
-            //    if (!Directory.Exists(updatesPath))
-            //    {
-            //        Console.WriteLine($" error!");
-            //        Console.WriteLine($" Unable to locate updates directory");
-            //    }
-            //    else
-            //    {
-            //        updatesFile = $"{updatesPath}{Path.DirectorySeparatorChar}applied_updates.txt";
-            //    }
+                if (!Directory.Exists(updatesPath))
+                {
+                    Console.WriteLine($" error!");
+                    Console.WriteLine($" Unable to locate updates directory");
+                }
+                else
+                {
+                    updatesFile = $"{updatesPath}{Path.DirectorySeparatorChar}applied_updates.txt";
+                }
 
-            //}
+            }
 
-            //var appliedUpdates = Array.Empty<string>();
+            var appliedUpdates = Array.Empty<string>();
 
-            //var containerUpdatesFile = $"/ace/Config/{dbType}_applied_updates.txt";
-            //if (IsRunningInContainer && File.Exists(containerUpdatesFile))
-            //    File.Copy(containerUpdatesFile, updatesFile, true);
+            var containerUpdatesFile = $"/ace/Config/{dbType}_applied_updates.txt";
+            if (Program.IsRunningInContainer && File.Exists(containerUpdatesFile))
+                File.Copy(containerUpdatesFile, updatesFile, true);
 
-            //if (File.Exists(updatesFile))
-            //    appliedUpdates = File.ReadAllLines(updatesFile);
+            if (File.Exists(updatesFile))
+                appliedUpdates = File.ReadAllLines(updatesFile);
 
-            //Console.WriteLine($"Searching for {dbType} update SQL scripts .... ");
-            //foreach (var file in new DirectoryInfo(updatesPath).GetFiles("*.sql").OrderBy(f => f.Name))
-            //{
-            //    if (appliedUpdates.Contains(file.Name))
-            //        continue;
+            Console.WriteLine($"Searching for {dbType} update SQL scripts .... ");
+            foreach (var file in new DirectoryInfo(updatesPath).GetFiles("*.sql").OrderBy(f => f.Name))
+            {
+                if (appliedUpdates.Contains(file.Name))
+                    continue;
 
-            //    Console.Write($"Found {file.Name} .... ");
-            //    var sqlDBFile = File.ReadAllText(file.FullName);
-            //    var database = "";
-            //    switch (dbType)
-            //    {
-            //        case "Authentication":
-            //            database = authDB;
-            //            break;
-            //        case "Shard":
-            //            database = shardDB;
-            //            break;
-            //        case "World":
-            //            database = worldDB;
-            //            break;
-            //    }
-            //    var sqlConnect = new MySqlConnector.MySqlConnection($"server={host};port={port};user={username};password={password};database={database};DefaultCommandTimeout=120;SslMode=None;AllowPublicKeyRetrieval=true");
-            //    sqlDBFile = sqlDBFile.Replace("realms_auth", authDB);
-            //    sqlDBFile = sqlDBFile.Replace("realms_shard", shardDB);
-            //    sqlDBFile = sqlDBFile.Replace("realms_world", worldDB);
-            //    var script = new MySqlConnector.MySqlCommand(sqlDBFile, sqlConnect);
+                Console.Write($"Found {file.Name} .... ");
+                var sqlDBFile = File.ReadAllText(file.FullName);
+                var database = "";
+                switch (dbType)
+                {
+                    case "Authentication":
+                        database = authDB;
+                        break;
+                    case "Shard":
+                        database = shardDB;
+                        break;
+                    case "World":
+                        database = worldDB;
+                        break;
+                    case "Pourtide":
+                        database = pourtideDB;
+                        break;
+                }
+                var sqlConnect = new MySqlConnector.MySqlConnection($"server={host};port={port};user={username};password={password};database={database};DefaultCommandTimeout=120;SslMode=None;AllowPublicKeyRetrieval=true");
+                sqlDBFile = sqlDBFile.Replace("ace_auth", authDB);
+                sqlDBFile = sqlDBFile.Replace("ace_shard", shardDB);
+                sqlDBFile = sqlDBFile.Replace("ace_world", worldDB);
+                sqlDBFile = sqlDBFile.Replace("pourtide", worldDB);
+                var script = new MySqlConnector.MySqlCommand(sqlDBFile, sqlConnect);
 
-            //    Console.Write($"Importing into {database} database on SQL server at {host}:{port} .... ");
-            //    try
-            //    {
-            //        ExecuteScript(script);
-            //        //Console.Write($" {count} database records affected ....");
-            //        Console.WriteLine(" complete!");
-            //    }
-            //    catch (MySqlConnector.MySqlException ex)
-            //    {
-            //        Console.WriteLine($" error!");
-            //        Console.WriteLine($" Unable to apply patch due to following exception: {ex}");
-            //    }
-            //    File.AppendAllText(updatesFile, file.Name + Environment.NewLine);
-            //    CleanupConnection(sqlConnect);
-            //}
+                Console.Write($"Importing into {database} database on SQL server at {host}:{port} .... ");
+                try
+                {
+                    ExecuteScript(script);
+                    //Console.Write($" {count} database records affected ....");
+                    Console.WriteLine(" complete!");
+                }
+                catch (MySqlConnector.MySqlException ex)
+                {
+                    Console.WriteLine($" error!");
+                    Console.WriteLine($" Unable to apply patch due to following exception: {ex}");
+                }
+                File.AppendAllText(updatesFile, file.Name + Environment.NewLine);
+                CleanupConnection(sqlConnect);
+            }
 
-            //if (IsRunningInContainer && File.Exists(updatesFile))
-            //    File.Copy(updatesFile, containerUpdatesFile, true);
+            if (Program.IsRunningInContainer && File.Exists(updatesFile))
+                File.Copy(updatesFile, containerUpdatesFile, true);
 
-            //Console.WriteLine($"{dbType} update SQL scripts import complete!");
+            Console.WriteLine($"{dbType} update SQL scripts import complete!");
         }
     }
 }
