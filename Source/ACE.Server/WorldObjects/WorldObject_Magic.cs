@@ -958,7 +958,7 @@ namespace ACE.Server.WorldObjects
                 {
                     foreach (var projectile in projectiles)
                     {
-                        projectile.SpellChainChance = chainChance;
+                        projectile.Spell.SpellChainChance = chainChance;
                     }
                 }
             }

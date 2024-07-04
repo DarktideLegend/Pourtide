@@ -13,6 +13,8 @@ using System.Linq;
 using ACE.Server.Network.GameMessages.Messages;
 using Microsoft.EntityFrameworkCore.ValueGeneration;
 using ACE.Server.Managers;
+using System.CommandLine.Parsing;
+using ACE.Server.Entity.Actions;
 
 namespace ACE.Server.Physics.Common
 {
@@ -224,24 +226,28 @@ namespace ACE.Server.Physics.Common
 
             if (wo is SpellProjectile spellProjectile && wo.ProjectileSource is Player player)
             {
-                var chance = spellProjectile.SpellChainChance;
+                var chance = spellProjectile.Spell.SpellChainChance;
 
                 var roll = ThreadSafeRandom.Next(0f, 1.0f);
 
                 if (chance > 0 && roll < chance)
                 {
                     var maxSpellChainRange = targetWO.CurrentLandblock.RealmRuleset.GetProperty(ACE.Entity.Enum.Properties.RealmPropertyFloat.MaxSpellChainRange);
-                    var splashTarget = player.GetSplashTargets(targetWO, 2, (float)maxSpellChainRange).FirstOrDefault();
+                    var splashTargets = player.GetSplashTargets(targetWO, 2, (float)maxSpellChainRange).ToList();
 
-                    if (splashTarget != null)
+                    if (splashTargets.Count > 0)
                     {
+                        var splashTarget = splashTargets[ThreadSafeRandom.Next(0, splashTargets.Count - 1)];
                         var spell = new Spell(spellProjectile.Spell.Id);
                         var decreaseMod = PropertyManager.GetDouble("spell_chain_decrease_mod").Item;
                         spell.SpellChainChance = chance - (chance * decreaseMod);
-                        var origin = targetWO.Location.SquaredDistanceTo(splashTarget.Location) < 2 ? null : targetWO;
+                        //var origin = targetWO.Location.SquaredDistanceTo(splashTarget.Location) < 2 ? null : targetWO;
                         var equipped = player.GetEquippedMainHand();
                         var itemCaster = equipped != null && !equipped.IsCaster ? equipped : targetWO;
-                        player.TryCastSpell_WithRedirects(spell, splashTarget, itemCaster, itemCaster, itemCaster != targetWO, false, true, origin);
+                        var actionChain = new ActionChain();
+                        actionChain.AddDelaySeconds(0.3);
+                        actionChain.AddAction(player, () => player.TryCastSpell_WithRedirects(spell, splashTarget, itemCaster, itemCaster, itemCaster != targetWO, false, true, targetWO));
+                        actionChain.EnqueueChain();
                     }
                 }
             }
