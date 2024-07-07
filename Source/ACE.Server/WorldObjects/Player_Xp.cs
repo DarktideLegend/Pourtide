@@ -140,6 +140,10 @@ namespace ACE.Server.WorldObjects
                         LifetimePvpXp += actualXpToAdd;
                     }
                     break;
+
+                case XpType.Admin:
+                    actualXpToAdd = amount;
+                    break;
             }
 
             // Subtract the added XP from the daily XP remaining
