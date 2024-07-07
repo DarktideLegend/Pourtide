@@ -291,7 +291,7 @@ namespace ACE.Server.Managers
                 } else
                 {
                     target.ProcSpellChainRate = source.ProcSpellChainRate;
-                    var ids = target.Biota.GetKnownSpellsIds(source.BiotaDatabaseLock);
+                    var ids = target.Biota.GetKnownSpellsIds(target.BiotaDatabaseLock);
                     var highestLevelSpell = ids.Select(id => new ACE.Server.Entity.Spell(id)).OrderByDescending(spell => spell.Level).Select(spell => spell.Level).FirstOrDefault(); 
                     var baseSpell = LootGenerationFactory.GetCustomWeaponSpellByDamageType(target.W_DamageType);
                     var tier = highestLevelSpell > 0 ? (int)highestLevelSpell : 1;
