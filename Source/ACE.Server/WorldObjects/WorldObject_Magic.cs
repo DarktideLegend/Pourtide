@@ -152,8 +152,11 @@ namespace ACE.Server.WorldObjects
                 // Retrieve casting item's spellcraft
                 magicSkill = (uint)caster.ItemSpellcraft;
                 // give spell chain weapons a boost in spellcraft
-                if (caster.SpellChainChance > 0)
-                    magicSkill = magicSkill + (uint)(magicSkill * 0.2);
+                if (caster.ProcSpellChainRate > 0 && this is Player owner)
+                {
+                    var skill = owner.GetEffectiveAttackSkill();
+                    magicSkill = skill;
+                }
             }
             else if (caster.Wielder is Creature wielder)
             {
@@ -946,19 +949,25 @@ namespace ACE.Server.WorldObjects
             if (this is Player && projectiles.Count == 1 && spell.IsHarmful)
             {
                 var realmChainChance = CurrentLandblock.RealmRuleset.GetProperty(RealmPropertyFloat.SpellChainChance);
-                var chainChance = weapon.SpellChainChance;
+                var spellChainChance = weapon.ProcSpellChainRate;
 
                 if (realmChainChance > 0)
-                    chainChance = chainChance > 0 ? realmChainChance * realmChainChance : realmChainChance;
+                    spellChainChance = spellChainChance > 0 ? realmChainChance * realmChainChance : realmChainChance;
 
                 if (spell.SpellChainChance > 0)
-                    chainChance = spell.SpellChainChance;
+                    spellChainChance = spell.SpellChainChance;
 
-                if (chainChance > 0)
+                var slowChance = weapon.ProcSlowRate;
+
+                if (spell.SlowChance > 0)
+                    slowChance = spell.SlowChance;
+
+                if (spellChainChance > 0 || slowChance > 0)
                 {
                     foreach (var projectile in projectiles)
                     {
-                        projectile.Spell.SpellChainChance = chainChance;
+                        projectile.Spell.SpellChainChance = spellChainChance;
+                        projectile.Spell.SlowChance = slowChance;
                     }
                 }
             }

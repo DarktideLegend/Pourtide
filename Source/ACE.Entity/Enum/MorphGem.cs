@@ -18,5 +18,6 @@ namespace ACE.Entity.Enum
         LegendaryUpgradeGem = 606007,
         SpellChainMorphGem  = 606008,
         ThornArmorMorphGem  = 606009,
+        SlowWeaponMorphGem  = 606010,
     }
 }

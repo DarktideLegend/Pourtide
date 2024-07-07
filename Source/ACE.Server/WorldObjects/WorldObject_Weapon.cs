@@ -1,9 +1,12 @@
 using System;
-
+using System.Collections.Generic;
 using ACE.Common;
 using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
 using ACE.Server.Entity;
+using ACE.Server.Entity.Actions;
+using ACE.Server.Factories;
+using ACE.Server.Factories.Tables;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.WorldObjects.Entity;
 
@@ -945,6 +948,8 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public bool HasProc => ProcSpell != null;
 
+        public bool HasCustomProc => ProcSlowRate > 0;
+
         /// <summary>
         /// Returns TRUE if this item has a proc spell
         /// that matches the input spell
@@ -962,6 +967,9 @@ namespace ACE.Server.WorldObjects
             // special handling for aetheria
             if (Aetheria.IsAetheria(WeenieClassId) && attacker is Creature wielder)
                 chance = Aetheria.CalcProcRate(this, wielder);
+
+            if (ProcSlowRate > 0)
+                HandleProcSlow(attacker, target);
 
             var rng = ThreadSafeRandom.Next(0.0f, 1.0f);
             if (rng >= chance)
@@ -1005,6 +1013,57 @@ namespace ACE.Server.WorldObjects
             }
             else
                 attacker.TryCastSpell(spell, target, itemCaster, itemCaster, true, true);
+        }
+
+        public void HandleProcSlow(WorldObject attacker, Creature target)
+        {
+            if (attacker == target)
+                return;
+
+            if (DateTime.UtcNow - target.LastSlowTimeStamp < TimeSpan.FromMinutes(2))
+                return;
+
+            var roll = ThreadSafeRandom.Next(0.0f, 1.0f);
+
+            if (roll < ProcSlowRate && attacker is Player player)
+            {
+                var spells = new List<Spell>();
+
+                var damageType = W_DamageType;
+                var slowAttackId = SpellLevelProgression.GetSpellAtLevel(SpellId.LeadenWeapon1, 8, true);
+                var slowStrengthId = SpellLevelProgression.GetSpellAtLevel(SpellId.WeaknessOther1, 8, true);
+                var slowQuick = new Spell(SpellId.ParalyzingFear);
+                var slowRun = new Spell(SpellId.MireFoot);
+                var slowAttack = new Spell(slowAttackId);
+                var slowStrength = new Spell(slowStrengthId);
+
+                slowQuick.Duration = 10;
+                slowRun.Duration = 10;
+                slowAttack.Duration = 10;
+                slowStrength.Duration = 10;
+
+                spells.Add(slowQuick);
+                spells.Add(slowRun);
+                spells.Add(slowAttack);
+                spells.Add(slowStrength);
+
+                var actionDelay = 0.2;
+
+                foreach (var spell in spells)
+                {
+                    var equipped = player.GetEquippedMainHand();
+                    var itemCaster = target;
+                    var actionChain = new ActionChain();
+                    actionChain.AddDelaySeconds(actionDelay);
+                    actionChain.AddAction(player, () => player.TryCastSpell(spell, target, this, this, true, false));
+                    actionChain.EnqueueChain();
+                    actionDelay += 0.2;
+                }
+
+                target.EnqueueBroadcast(new GameMessageUpdateMotion(target, new Motion(target, target.Location)));
+                target.LastSlowTimeStamp = DateTime.UtcNow;
+            }
+
         }
 
         private bool? isMasterable;

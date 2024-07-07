@@ -16,10 +16,16 @@ namespace ACE.Server.WorldObjects
             set { if (!value) RemoveProperty(PropertyBool.IsMorphGem); else SetProperty(PropertyBool.IsMorphGem, value); }
         }
 
-        public double SpellChainChance
+        public double ProcSpellChainRate
         {
-            get => GetProperty(PropertyFloat.SpellChainChance) ?? 0d;
-            set { if (value == 0d) RemoveProperty(PropertyFloat.SpellChainChance); else SetProperty(PropertyFloat.SpellChainChance, value); }
+            get => GetProperty(PropertyFloat.ProcSpellChainRate) ?? 0d;
+            set { if (value == 0d) RemoveProperty(PropertyFloat.ProcSpellChainRate); else SetProperty(PropertyFloat.ProcSpellChainRate, value); }
+        }
+
+        public double ProcSlowRate
+        {
+            get => GetProperty(PropertyFloat.ProcSlowRate) ?? 0;
+            set { if (value == 0) RemoveProperty(PropertyFloat.ProcSlowRate); else SetProperty(PropertyFloat.ProcSlowRate, value); }
         }
 
         public double ReflectiveDamageMod

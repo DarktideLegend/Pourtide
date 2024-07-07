@@ -1128,12 +1128,12 @@ namespace ACE.Server.WorldObjects
         {
             var sb = new StringBuilder();
 
-            if (SpellChainChance > 0)
+            if (ProcSpellChainRate > 0)
             {
                 if ((ItemType & ItemType.Weapon) != 0)
                     sb.Append($"Spell Proc Rate: {ProcSpellRate?.ToString("0.00")}\n");
 
-                sb.Append($"Spell Chain Chance: {SpellChainChance.ToString("0.00")}\n");
+                sb.Append($"Spell Chain Proc Rate: {ProcSpellChainRate.ToString("0.00")}\n");
             }
 
             if (SlayerCreatureType != null)
@@ -1141,6 +1141,9 @@ namespace ACE.Server.WorldObjects
 
             if (ReflectiveDamageMod > 0)
                 sb.Append($"Reflective Damage Mod: {ReflectiveDamageMod.ToString("0.00")}\n");
+
+            if (ProcSlowRate > 0)
+                sb.Append($"Slow Proc Rate: {ProcSlowRate.ToString("0.00")}\n");
 
             LongDesc = sb.ToString();
         }

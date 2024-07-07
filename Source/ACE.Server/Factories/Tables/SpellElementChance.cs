@@ -15,7 +15,7 @@ namespace ACE.Server.Factories.Tables
         Electric = 0x40,
     };
 
-    public static class SpellChainChanceExtensions
+    public static class SpellElementChanceExtensions
     {
         public static string GetName(this Element damageType)
         {
@@ -34,7 +34,7 @@ namespace ACE.Server.Factories.Tables
         }
     }
 
-    public static class SpellChainChance
+    public static class SpellElementChance
     {
         public static Element GetElement()
         {

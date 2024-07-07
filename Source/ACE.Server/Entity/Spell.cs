@@ -39,6 +39,8 @@ namespace ACE.Server.Entity
 
         public double SpellChainChance = 0f;
 
+        public double SlowChance = 0f;
+
         /// <summary>
         /// The components required to cast the spell
         /// </summary>

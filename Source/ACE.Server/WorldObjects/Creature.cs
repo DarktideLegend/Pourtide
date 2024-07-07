@@ -25,6 +25,8 @@ namespace ACE.Server.WorldObjects
 
         public bool IsExhausted { get => Stamina.Current == 0; }
 
+        public DateTime LastSlowTimeStamp = DateTime.MinValue;
+
         protected QuestManager _questManager;
 
         public QuestManager QuestManager

@@ -216,10 +216,35 @@ namespace ACE.Server.Managers
                     return ApplySpellChainMorphGem(player, source, target);
                 case MorphGem.ThornArmorMorphGem:
                     return ApplyThornArmorMorphGem(player, source, target);
+                case MorphGem.SlowWeaponMorphGem:
+                    return ApplySlowWeaponMorphGem(player, source, target);
                 default:
                     player.Session.Network.EnqueueSend(new GameMessageSystemChat("This morph gem has not been implemented yet.", ChatMessageType.Craft));
                     return false;
             }
+        }
+
+        private static bool ApplySlowWeaponMorphGem(Player player, WorldObject source, WorldObject target)
+        {
+            if (target.ItemWorkmanship == null)
+                return false;
+
+            if (target.ProcSlowRate > 0)
+                return false;
+
+            if ((target.ItemType & ItemType.WeaponOrCaster) != 0)
+            {
+                target.ProcSlowRate = source.ProcSlowRate;
+
+                target.UpdateLongDescription();
+                target.SaveBiotaToDatabase();
+                player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have applied the {source.Name} to {target.Name}.", ChatMessageType.Craft));
+                player.TryConsumeFromInventoryWithNetworking(source);
+
+                return true;
+            }
+
+            return false;
         }
 
         private static bool ApplyThornArmorMorphGem(Player player, WorldObject source, WorldObject target)
@@ -252,27 +277,27 @@ namespace ACE.Server.Managers
             if (target.ItemWorkmanship == null)
                 return false;
 
-            if (target.SpellChainChance > 0)
+            if (target.ProcSpellChainRate > 0)
                 return false;
 
             if ((target.ItemType & ItemType.WeaponOrCaster) != 0)
             {
-                if (target.W_DamageType != DamageType.Undef && (source.W_DamageType & target.W_DamageType) != source.W_DamageType)
+                if (target.W_DamageType == DamageType.Undef)
                     return false;
 
                 if ((target.ItemType & ItemType.Caster) != 0)
                 {
-                    target.SpellChainChance = source.SpellChainChance;
-                }
-
-
-                if ((target.ItemType & ItemType.Weapon) != 0)
+                    target.ProcSpellChainRate = source.ProcSpellChainRate;
+                } else
                 {
-                    target.SpellChainChance = source.SpellChainChance;
-                    var ids = source.Biota.GetKnownSpellsIds(source.BiotaDatabaseLock);
-                    var spell = ids.FirstOrDefault();
-                    target.Biota.GetOrAddKnownSpell(spell, target.BiotaDatabaseLock, out var _);
-                    target.ProcSpellRate = source.SpellChainChance * 0.20;
+                    target.ProcSpellChainRate = source.ProcSpellChainRate;
+                    var ids = target.Biota.GetKnownSpellsIds(source.BiotaDatabaseLock);
+                    var highestLevelSpell = ids.Select(id => new ACE.Server.Entity.Spell(id)).OrderByDescending(spell => spell.Level).Select(spell => spell.Level).FirstOrDefault(); 
+                    var baseSpell = LootGenerationFactory.GetCustomWeaponSpellByDamageType(target.W_DamageType);
+                    var tier = highestLevelSpell > 0 ? (int)highestLevelSpell : 1;
+                    var spell = SpellLevelProgression.GetSpellAtLevel(baseSpell, SpellLevelChance.Roll(tier));
+                    target.Biota.GetOrAddKnownSpell((int)spell, target.BiotaDatabaseLock, out var _);
+                    target.ProcSpellRate = source.ProcSpellRate;
                     target.ProcSpell = (uint?)spell;
                 }
 

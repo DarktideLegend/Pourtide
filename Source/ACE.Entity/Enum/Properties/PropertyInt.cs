@@ -670,7 +670,7 @@ namespace ACE.Entity.Enum.Properties
         DailyXpTimestamp                        = 60005,
 
         [ServerOnly]
-        CantripLevel                     = 60006,
+        CantripLevel                            = 60006,
     }
 
     public static class PropertyIntExtensions

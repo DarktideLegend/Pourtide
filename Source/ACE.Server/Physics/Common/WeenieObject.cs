@@ -226,11 +226,11 @@ namespace ACE.Server.Physics.Common
 
             if (wo is SpellProjectile spellProjectile && wo.ProjectileSource is Player player)
             {
-                var chance = spellProjectile.Spell.SpellChainChance;
+                var spellChainChance = spellProjectile.Spell.SpellChainChance;
 
                 var roll = ThreadSafeRandom.Next(0f, 1.0f);
 
-                if (chance > 0 && roll < chance)
+                if (spellChainChance > 0 && roll < spellChainChance)
                 {
                     var maxSpellChainRange = targetWO.CurrentLandblock.RealmRuleset.GetProperty(ACE.Entity.Enum.Properties.RealmPropertyFloat.MaxSpellChainRange);
                     var splashTargets = player.GetSplashTargets(targetWO, 2, (float)maxSpellChainRange).ToList();
@@ -240,10 +240,13 @@ namespace ACE.Server.Physics.Common
                         var splashTarget = splashTargets[ThreadSafeRandom.Next(0, splashTargets.Count - 1)];
                         var spell = new Spell(spellProjectile.Spell.Id);
                         var decreaseMod = PropertyManager.GetDouble("spell_chain_decrease_mod").Item;
-                        spell.SpellChainChance = chance - (chance * decreaseMod);
-                        //var origin = targetWO.Location.SquaredDistanceTo(splashTarget.Location) < 2 ? null : targetWO;
+                        spell.SpellChainChance = spellChainChance - (spellChainChance * decreaseMod);
                         var equipped = player.GetEquippedMainHand();
                         var itemCaster = equipped != null && !equipped.IsCaster ? equipped : targetWO;
+
+                        if (equipped.ProcSlowRate > 0)
+                            equipped.HandleProcSlow(player, splashTarget);
+
                         var actionChain = new ActionChain();
                         actionChain.AddDelaySeconds(0.3);
                         actionChain.AddAction(player, () => player.TryCastSpell_WithRedirects(spell, splashTarget, itemCaster, itemCaster, itemCaster != targetWO, false, true, targetWO));

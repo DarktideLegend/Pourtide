@@ -1315,17 +1315,21 @@ namespace ACE.Server.Factories
 
         public Gem CreateSpellChainMorphGem()
         {
-            var elementType = SpellChainChance.GetElement();
             var spellChain = WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.SpellChainMorphGem);
-            var spell = GetWeaponSpellForSpellChain((DamageType)elementType);
-            spellChain.W_DamageType = (DamageType)elementType;
-            spellChain.SpellChainChance = ThreadSafeRandom.Next(0.7f, 1.0f);
-            spellChain.Biota.GetOrAddKnownSpell((int)spell, spellChain.BiotaDatabaseLock, out var _);
-            spellChain.ProcSpellRate = 0.05f;
-            spellChain.ProcSpell = (uint)spell;
-            spellChain.Name = $"{elementType.GetName()} Spell Chain Gem";
-            spellChain.LongDesc = $"Spell Chain Chance: {spellChain.SpellChainChance.ToString("0.00")}";
+            spellChain.ProcSpellChainRate = ThreadSafeRandom.Next(0.7f, 1.0f);
+            spellChain.ProcSpellRate = 0.25f;
+            spellChain.Name = $"Spell Chain Gem";
+            spellChain.UpdateLongDescription();
             return (Gem)spellChain;
+        }
+
+        public Gem CreateSlowWeaponMorphGem()
+        {
+            var spellSlow = WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.SlowWeaponMorphGem);
+            spellSlow.ProcSlowRate = 0.10f;
+            spellSlow.Name = $"Slow Weapon Gem";
+            spellSlow.UpdateLongDescription();
+            return (Gem)spellSlow;
         }
 
         public Gem CreateThornArmorMorphGem()
@@ -1336,36 +1340,36 @@ namespace ACE.Server.Factories
             return thornGem;
         }
 
-        private static SpellId GetWeaponSpellForSpellChain(DamageType damageType)
+        public static SpellId GetCustomWeaponSpellByDamageType(DamageType damageType)
         {
             switch (damageType)
             {
                 case DamageType.Acid:
-                    if (SpellsManager.GetSpellIdFromReadableName("Acid Stream IV", out var acidId))
+                    if (SpellsManager.GetSpellIdFromReadableName("Acid Stream I", out var acidId))
                         return (SpellId)acidId;
                     break;
                 case DamageType.Cold:
-                    if (SpellsManager.GetSpellIdFromReadableName("Frost Bolt IV", out var frostId))
+                    if (SpellsManager.GetSpellIdFromReadableName("Frost Bolt I", out var frostId))
                         return (SpellId)frostId;
                     break;
                 case DamageType.Fire:
-                    if (SpellsManager.GetSpellIdFromReadableName("Flame Bolt IV", out var fireId))
+                    if (SpellsManager.GetSpellIdFromReadableName("Flame Bolt I", out var fireId))
                         return (SpellId)fireId;
                     break;
                 case DamageType.Electric:
-                    if (SpellsManager.GetSpellIdFromReadableName("Lightning Bolt IV", out var electricId))
+                    if (SpellsManager.GetSpellIdFromReadableName("Lightning Bolt I", out var electricId))
                         return (SpellId)electricId;
                     break;
                 case DamageType.Slash:
-                    if (SpellsManager.GetSpellIdFromReadableName("Whirling Blade IV", out var slashId))
+                    if (SpellsManager.GetSpellIdFromReadableName("Whirling Blade I", out var slashId))
                         return (SpellId)slashId;
                     break;
                 case DamageType.Pierce:
-                    if (SpellsManager.GetSpellIdFromReadableName("Force Bolt IV", out var pierceId))
+                    if (SpellsManager.GetSpellIdFromReadableName("Force Bolt I", out var pierceId))
                         return (SpellId)pierceId;
                     break;
                 case DamageType.Bludgeon:
-                    if (SpellsManager.GetSpellIdFromReadableName("Shock Wave IV", out var bludgeId))
+                    if (SpellsManager.GetSpellIdFromReadableName("Shock Wave I", out var bludgeId))
                         return (SpellId)bludgeId;
                     break;
                 default:
