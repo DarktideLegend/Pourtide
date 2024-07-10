@@ -1313,6 +1313,15 @@ namespace ACE.Server.Factories
             throw new NotImplementedException();
         }
 
+        public Gem CreateRootMorphGem()
+        {
+            var spellRoot = WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.RootWeaponMorphGem);
+            spellRoot.ProcRootRate = 0.10f;
+            spellRoot.Name = $"Root Weapon Gem";
+            spellRoot.UpdateLongDescription();
+            return (Gem)spellRoot;
+        }
+
         public Gem CreateSpellChainMorphGem()
         {
             var spellChain = WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.SpellChainMorphGem);

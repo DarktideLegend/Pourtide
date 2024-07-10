@@ -218,16 +218,18 @@ namespace ACE.Entity.Enum.Properties
         [ServerOnly]
         PCAPRecordeOmegaZ              = 8018,
 
-
         // Pourtide
         [ServerOnly]
-        ProcSpellChainRate               = 60001,
+        ProcSpellChainRate             = 60001,
 
         [ServerOnly]
         ReflectiveDamageMod            = 60002,
 
         [ServerOnly]
-        ProcSlowRate                   = 60003
+        ProcSlowRate                   = 60003,
+
+        [ServerOnly]
+        ProcRootRate                   = 60004
     }
 
     public static class PropertyFloatExtensions

@@ -19,5 +19,6 @@ namespace ACE.Entity.Enum
         SpellChainMorphGem  = 606008,
         ThornArmorMorphGem  = 606009,
         SlowWeaponMorphGem  = 606010,
+        RootWeaponMorphGem  = 606011,
     }
 }

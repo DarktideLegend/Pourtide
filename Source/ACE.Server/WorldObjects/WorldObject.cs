@@ -1145,6 +1145,9 @@ namespace ACE.Server.WorldObjects
             if (ProcSlowRate > 0)
                 sb.Append($"Slow Proc Rate: {ProcSlowRate.ToString("0.00")}\n");
 
+            if (ProcRootRate > 0)
+                sb.Append($"Root Proc Rate: {ProcRootRate.ToString("0.00")}\n");
+
             LongDesc = sb.ToString();
         }
     }

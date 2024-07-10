@@ -218,10 +218,35 @@ namespace ACE.Server.Managers
                     return ApplyThornArmorMorphGem(player, source, target);
                 case MorphGem.SlowWeaponMorphGem:
                     return ApplySlowWeaponMorphGem(player, source, target);
+                case MorphGem.RootWeaponMorphGem:
+                    return ApplyRootWeaponMorphGem(player, source, target);
                 default:
                     player.Session.Network.EnqueueSend(new GameMessageSystemChat("This morph gem has not been implemented yet.", ChatMessageType.Craft));
                     return false;
             }
+        }
+
+        private static bool ApplyRootWeaponMorphGem(Player player, WorldObject source, WorldObject target)
+        {
+            if (target.ItemWorkmanship == null)
+                return false;
+
+            if (target.ProcRootRate > 0)
+                return false;
+
+            if ((target.ItemType & ItemType.WeaponOrCaster) != 0)
+            {
+                target.ProcRootRate = source.ProcRootRate;
+
+                target.UpdateLongDescription();
+                target.SaveBiotaToDatabase();
+                player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have applied the {source.Name} to {target.Name}.", ChatMessageType.Craft));
+                player.TryConsumeFromInventoryWithNetworking(source);
+
+                return true;
+            }
+
+            return false;
         }
 
         private static bool ApplySlowWeaponMorphGem(Player player, WorldObject source, WorldObject target)

@@ -948,7 +948,7 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public bool HasProc => ProcSpell != null;
 
-        public bool HasCustomProc => ProcSlowRate > 0;
+        public bool HasCustomProc => ProcSlowRate > 0 || ProcRootRate > 0;
 
         /// <summary>
         /// Returns TRUE if this item has a proc spell
@@ -968,8 +968,11 @@ namespace ACE.Server.WorldObjects
             if (Aetheria.IsAetheria(WeenieClassId) && attacker is Creature wielder)
                 chance = Aetheria.CalcProcRate(this, wielder);
 
-            if (ProcSlowRate > 0)
+            if (!IsCaster && ProcSlowRate > 0)
                 HandleProcSlow(attacker, target);
+
+            if (!IsCaster && ProcRootRate > 0)
+                HandleProcRoot(attacker, target);
 
             var rng = ThreadSafeRandom.Next(0.0f, 1.0f);
             if (rng >= chance)
@@ -1013,6 +1016,36 @@ namespace ACE.Server.WorldObjects
             }
             else
                 attacker.TryCastSpell(spell, target, itemCaster, itemCaster, true, true);
+        }
+
+        public void HandleProcRoot(WorldObject attacker, Creature target)
+        {
+            if (attacker == target)
+                return;
+
+            if (DateTime.UtcNow - target.LastRootTimeStamp < TimeSpan.FromMinutes(2))
+                return;
+
+            var roll = ThreadSafeRandom.Next(0.0f, 1.0f);
+
+            if (roll < ProcRootRate && attacker is Player player)
+                RootTarget(player, target);
+        }
+
+        private void RootTarget(Player player, Creature target)
+        {
+            target.IsFrozen = true;
+            target.EnqueueBroadcastPhysicsState();
+            target.LastRootTimeStamp = DateTime.UtcNow;
+
+            var actionChain = new ActionChain();
+            actionChain.AddDelaySeconds(3);
+            actionChain.AddAction(player, () =>
+            {
+                target.IsFrozen = false;
+                target.EnqueueBroadcastPhysicsState();
+            });
+            actionChain.EnqueueChain();
         }
 
         public void HandleProcSlow(WorldObject attacker, Creature target)

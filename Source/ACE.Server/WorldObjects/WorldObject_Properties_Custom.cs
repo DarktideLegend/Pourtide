@@ -27,6 +27,11 @@ namespace ACE.Server.WorldObjects
             get => GetProperty(PropertyFloat.ProcSlowRate) ?? 0;
             set { if (value == 0) RemoveProperty(PropertyFloat.ProcSlowRate); else SetProperty(PropertyFloat.ProcSlowRate, value); }
         }
+        public double ProcRootRate
+        {
+            get => GetProperty(PropertyFloat.ProcRootRate) ?? 0;
+            set { if (value == 0) RemoveProperty(PropertyFloat.ProcRootRate); else SetProperty(PropertyFloat.ProcRootRate, value); }
+        }
 
         public double ReflectiveDamageMod
         {
