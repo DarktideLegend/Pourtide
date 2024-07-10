@@ -1034,9 +1034,9 @@ namespace ACE.Server.WorldObjects
 
         private void RootTarget(Player player, Creature target)
         {
+            target.LastRootTimeStamp = DateTime.UtcNow;
             target.IsFrozen = true;
             target.EnqueueBroadcastPhysicsState();
-            target.LastRootTimeStamp = DateTime.UtcNow;
 
             var actionChain = new ActionChain();
             actionChain.AddDelaySeconds(3);
@@ -1060,6 +1060,8 @@ namespace ACE.Server.WorldObjects
 
             if (roll < ProcSlowRate && attacker is Player player)
             {
+                target.LastSlowTimeStamp = DateTime.UtcNow;
+
                 var spells = new List<Spell>();
 
                 var damageType = W_DamageType;
@@ -1094,7 +1096,6 @@ namespace ACE.Server.WorldObjects
                 }
 
                 target.EnqueueBroadcast(new GameMessageUpdateMotion(target, new Motion(target, target.Location)));
-                target.LastSlowTimeStamp = DateTime.UtcNow;
             }
 
         }
