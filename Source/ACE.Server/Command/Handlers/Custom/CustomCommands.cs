@@ -534,5 +534,46 @@ namespace ACE.Server.Command.Handlers
 
             DuelRealmHelpers.AddScarabsToInventory(session.Player);
         }
+
+        private static List<string> MorphGems = new List<string>()
+        {
+            "slow",
+            "spell-chain",
+            "root"
+        };
+
+        [CommandHandler("create-morph-gem", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, 0, "Create slow morph gem.")]
+        public static void HandleCreateMorphGem(ISession session, params string[] parameters)
+        {
+            if (!PropertyManager.GetBool("test_server").Item)
+                return;
+
+            var gemName = "";
+            if (parameters.Length > 0)
+                gemName = string.Join(" ", parameters);
+
+            if (string.IsNullOrEmpty(gemName))
+                return;
+
+            if (MorphGems.Contains(gemName))
+            {
+                Gem gem = null;
+                switch (gemName)
+                {
+                    case "slow":
+                        gem = session.Player.CurrentLandblock.RealmRuleset.LootGenerationFactory.CreateSlowWeaponMorphGem();
+                        break;
+                    case "spell-chain":
+                        gem = session.Player.CurrentLandblock.RealmRuleset.LootGenerationFactory.CreateSpellChainMorphGem();
+                        break;
+                    case "root":
+                        gem = session.Player.CurrentLandblock.RealmRuleset.LootGenerationFactory.CreateRootMorphGem();
+                        break;
+                }
+
+                if (gem != null)
+                    session.Player.TryCreateInInventoryWithNetworking(gem);
+            }
+        }
     }
 }
