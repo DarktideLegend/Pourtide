@@ -27,6 +27,7 @@ namespace ACE.Server.WorldObjects
 
         public DateTime LastSlowTimeStamp = DateTime.MinValue;
         public DateTime LastRootTimeStamp = DateTime.MinValue;
+        public DateTime LastBurnTimeStamp = DateTime.MinValue;
 
         protected QuestManager _questManager;
 

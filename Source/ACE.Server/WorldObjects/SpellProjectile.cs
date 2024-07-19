@@ -387,15 +387,13 @@ namespace ACE.Server.WorldObjects
 
                 var itemCaster = equipped != null && !equipped.IsCaster ? equipped : creatureTarget;
 
-                var spellChainRoll = ThreadSafeRandom.Next(0f, 1.0f);
-
                 if (equipped.ProcSlowRate > 0)
                     equipped.HandleProcSlow(player, creatureTarget);
 
                 if (equipped.ProcRootRate > 0)
                     equipped.HandleProcRoot(player, creatureTarget);
 
-                if (spellChainChance > 0 && spellChainRoll < spellChainChance)
+                if (spellChainChance > 0 && ThreadSafeRandom.Next(0f, 1.0f) < spellChainChance)
                 {
                     var maxSpellChainRange = creatureTarget.CurrentLandblock.RealmRuleset.GetProperty(ACE.Entity.Enum.Properties.RealmPropertyFloat.MaxSpellChainRange);
                     var splashTargets = player.GetSplashTargets(creatureTarget, 2, (float)maxSpellChainRange).ToList();

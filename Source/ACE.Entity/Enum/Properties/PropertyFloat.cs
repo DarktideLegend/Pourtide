@@ -229,7 +229,10 @@ namespace ACE.Entity.Enum.Properties
         ProcSlowRate                   = 60003,
 
         [ServerOnly]
-        ProcRootRate                   = 60004
+        ProcRootRate                   = 60004,
+
+        [ServerOnly]
+        ProcBurnRate                   = 60005
     }
 
     public static class PropertyFloatExtensions

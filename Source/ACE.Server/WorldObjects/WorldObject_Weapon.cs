@@ -1031,6 +1031,25 @@ namespace ACE.Server.WorldObjects
             if (roll < ProcRootRate && attacker is Player player)
                 RootTarget(player, target);
         }
+        public void HandleProcBurn(WorldObject attacker, Creature target)
+        {
+            if (attacker == target)
+                return;
+
+            if (DateTime.UtcNow - target.LastBurnTimeStamp < TimeSpan.FromMinutes(2))
+                return;
+
+            var roll = ThreadSafeRandom.Next(0.0f, 1.0f);
+
+            if (roll < ProcBurnRate && attacker is Player player)
+                BurnTarget(player, target);
+        }
+
+        private void BurnTarget(Player player, Creature target)
+        {
+            target.LastBurnTimeStamp = DateTime.UtcNow;
+            //target.EnchantmentManager.Add(SpellId)
+        }
 
         private void RootTarget(Player player, Creature target)
         {
