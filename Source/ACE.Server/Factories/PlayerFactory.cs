@@ -13,9 +13,10 @@ using ACE.Entity.Enum.Properties;
 using ACE.Entity.Models;
 using ACE.Server.WorldObjects;
 using ACE.Server.Managers;
-using ACE.Server.Features.Xp;
 using ACE.Server.Realms;
 using ACE.Common.ACRealms;
+using ACE.Server.Entity.Actions;
+using ACE.Server.Features.DailyXp;
 
 namespace ACE.Server.Factories
 {
@@ -43,33 +44,29 @@ namespace ACE.Server.Factories
         public static void TeachPourtideAugmentations(Player player)
         {
             foreach (var augtype in RealmConstants.PourtideAugmentations)
-            {
                 AugmentationDevice.DoAugmentation(player, augtype, null, false, false);
-                player.SaveBiotaToDatabase();
-            }
         }
 
         public static void AddStarterEssentials(Player player)
         {
-            /*for (uint spellLevel = 1; spellLevel <= 3; spellLevel++)
-            {
-                player.LearnSpellsInBulk(MagicSchool.CreatureEnchantment, spellLevel, true);
-                player.LearnSpellsInBulk(MagicSchool.ItemEnchantment, spellLevel, true);
-                player.LearnSpellsInBulk(MagicSchool.LifeMagic, spellLevel, true);
-                player.LearnSpellsInBulk(MagicSchool.VoidMagic, spellLevel, true);
-                player.LearnSpellsInBulk(MagicSchool.WarMagic, spellLevel, true);
-            }*/
+            player.GrantXP((long)player.GetXPBetweenLevels(1, 50), XpType.Admin, ShareType.None);
+            TeachPourtideAugmentations(player);
 
-            /*foreach (var id in Foci)
+            var actionChain = new ActionChain();
+            actionChain.AddDelaySeconds(1.0f);
+            actionChain.AddAction(player, () =>
             {
-                var wo = WorldObjectFactory.CreateNewWorldObject(id);
-                player.TryCreateInInventoryWithNetworking(wo);
-            }*/
+                for (uint spellLevel = 1; spellLevel <= 5; spellLevel++)
+                {
+                    player.LearnSpellsInBulk(MagicSchool.CreatureEnchantment, spellLevel, true);
+                    player.LearnSpellsInBulk(MagicSchool.ItemEnchantment, spellLevel, true);
+                    player.LearnSpellsInBulk(MagicSchool.LifeMagic, spellLevel, true);
+                    player.LearnSpellsInBulk(MagicSchool.VoidMagic, spellLevel, true);
+                    player.LearnSpellsInBulk(MagicSchool.WarMagic, spellLevel, true);
+                }
+            });
 
-            /*var dailyCap = XpManager.DailyXpCap;
-            player.QuestXpDailyMax = (long)dailyCap;
-            player.MonsterXpDailyMax = (long)dailyCap;
-            player.PvpXpDailyMax = (long)dailyCap;*/
+            actionChain.EnqueueChain();
         }
 
         public static CreateResult Create(CharacterCreateInfo characterCreateInfo, Weenie weenie, ObjectGuid guid, uint accountId, WeenieType weenieType, out Player player)

@@ -26,13 +26,13 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ACE.Server.Features.HotDungeons.Managers;
-using ACE.Server.Features.Xp;
 using ACE.Server.Features.Discord;
 using System.Runtime;
 using ACE.Common.ACRealms;
 using ACE.Server.Managers.ACRealms;
 using ACE.Server.Features.Spells.Managers;
 using ACE.Database.Models.Pourtide;
+using ACE.Server.Features.DailyXp;
 
 namespace ACE.Server
 {
@@ -415,7 +415,7 @@ namespace ACE.Server
             EventManager.Initialize();
 
             log.Info("Initializing XpManager...");
-            XpManager.Initialize();
+            DailyXpManager.Initialize();
 
             log.Info("Initializing DungeonManager...");
             DungeonManager.Initialize();

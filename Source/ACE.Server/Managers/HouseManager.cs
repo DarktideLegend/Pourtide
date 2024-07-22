@@ -23,7 +23,7 @@ using System.Threading.Tasks;
 using System.Runtime.CompilerServices;
 using ACE.Common;
 using ACE.Server.Managers.ACRealms;
-using ACE.Server.Features.Xp;
+using ACE.Server.Features.DailyXp;
 
 
 namespace ACE.Server.Managers
@@ -350,7 +350,7 @@ namespace ACE.Server.Managers
         [MethodImpl(MethodImplOptions.Synchronized)]
         public static void Tick()
         {
-            XpManager.Tick();
+            DailyXpManager.Tick();
 
             if (PausedDuringACEMigrationFinalization)
                 return;

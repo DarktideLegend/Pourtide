@@ -4,22 +4,18 @@ using ACE.Entity;
 using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
 using ACE.Entity.Models;
-using ACE.Server.Entity;
 using ACE.Server.Entity.Actions;
+using ACE.Server.Features.DailyXp;
 using ACE.Server.Features.Discord;
 using ACE.Server.Features.HotDungeons.Managers;
 using ACE.Server.Features.Rifts;
-using ACE.Server.Features.Xp;
 using ACE.Server.Managers;
 using ACE.Server.Network;
-using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
-using ACE.Server.Physics.Common;
 using ACE.Server.Realms;
 using ACE.Server.WorldObjects;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -125,12 +121,12 @@ namespace ACE.Server.Command.Handlers
             if (!string.IsNullOrEmpty(playerName))
             {
                 session.Network.EnqueueSend(new GameMessageSystemChat($"\n<Resetting Daily Xp Cap for {playerName}>", ChatMessageType.System));
-                XpManager.ResetPlayersForDaily(playerName);
+                DailyXpManager.ResetPlayersForDaily(playerName);
             }
             else
             {
                 session.Network.EnqueueSend(new GameMessageSystemChat($"\n<Resetting Daily Xp Cap for all players>", ChatMessageType.System));
-                XpManager.ResetPlayersForDaily();
+                DailyXpManager.ResetPlayersForDaily();
             }
         }
 
@@ -147,19 +143,18 @@ namespace ACE.Server.Command.Handlers
             var pvpXp = player.PvpXp;
             var monsterXp = player.MonsterXp;
 
-            var globalAverageModifier = XpManager.GetPlayerLevelXpModifier((int)player.Level).ToString("0.00");
+            var globalAverageModifier = DailyXpManager.GetPlayerLevelXpModifier((int)player.Level).ToString("0.00");
 
-            session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> The current week is {XpManager.Week}.", ChatMessageType.System));
-            session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> The daily xp cap today for all players is {Formatting.FormatIntWithCommas(XpManager.CurrentDailyXp.XpCap)}.", ChatMessageType.System));
-            session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> The current highest level player for the server is {(uint)XpManager.MaxLevel}.", ChatMessageType.System));
+            session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> The current week is {DailyXpManager.Week}.", ChatMessageType.System));
+            session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> The daily xp cap today for all players is {Formatting.FormatIntWithCommas(DailyXpManager.CurrentDailyXp.XpCap)}.", ChatMessageType.System));
+            session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> The current highest level player for the server is {(uint)DailyXpManager.MaxLevel}.", ChatMessageType.System));
             session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> The most xp you can earn for a single category today is {Formatting.FormatIntWithCommas((ulong)player.DailyXpMaxPerCategory)}.", ChatMessageType.System));
             session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> Your current global xp modifier is {globalAverageModifier}x.", ChatMessageType.System));
             session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> You have {Formatting.FormatIntWithCommas((ulong)player.DailyXpRemaining)} daily xp remaining.", ChatMessageType.System));
             session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> You have currently earned {Formatting.FormatIntWithCommas((ulong)queryXp)} quest xp for the day.", ChatMessageType.System));
             session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> You have currently earned {Formatting.FormatIntWithCommas((ulong)pvpXp)} pvp xp for the day.", ChatMessageType.System));
             session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> You have currently earned {Formatting.FormatIntWithCommas((ulong)monsterXp)} monster xp for the day.", ChatMessageType.System));
-            session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> The next daily xp reset will happen on {Formatting.FormatUtcToPst(XpManager.CurrentDailyXp.DailyExpiration)}.", ChatMessageType.System));
-            session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> The next weekly xp reset will happen on {Formatting.FormatUtcToPst(XpManager.WeeklyTimestamp)}.", ChatMessageType.System));
+            session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> The next daily xp reset will happen on {Formatting.FormatUtcToPst(DailyXpManager.CurrentDailyXp.EndTimeStamp)}.", ChatMessageType.System));
         }
         /** Xp Cap End **/
 

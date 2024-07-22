@@ -435,9 +435,6 @@ namespace ACE.Server.Managers
             if (olthoiPlayerReturnedToLifestone)
                 session.Player.Location = session.Player.Sanctuary.AsInstancedPosition(session.Player, PlayerInstanceSelectMode.HomeRealm);
 
-            // teach pourtide augs
-            PlayerFactory.TeachPourtideAugmentations(player);
-
             session.Player.PlayerEnterWorld();
 
             var success = LandblockManager.AddObject(session.Player, true);
@@ -479,11 +476,7 @@ namespace ACE.Server.Managers
                 if (player.IsOlthoiPlayer)
                     session.Network.EnqueueSend(new GameEventPopupString(session, AppendLines(popup_welcome, popup_motd)));
                 else
-                {
-
-                    PlayerFactory.AddStarterEssentials(player);
                     session.Network.EnqueueSend(new GameEventPopupString(session, AppendLines(popup_header, popup_motd, popup_welcome)));
-                }
             }
             else if (!string.IsNullOrEmpty(popup_motd))
             {

@@ -14,92 +14,107 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ACE.Server.Features.Xp
+namespace ACE.Server.Features.DailyXp
 {
-    internal class XpManager
+    internal class DailyXpManager
     {
         private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        private static readonly object xpLock = new object();
-        public static DateTime DailyTimestamp { get; set; }
-        public static DateTime WeeklyTimestamp { get; set; }
-
-        public static List<DailyXp> DailyXpCache { get; set; } = new List<DailyXp>();
-        public static uint Week { get; private set; }
-
-        public static DailyXp CurrentDailyXp
+        public class DailyXp(DateTime endTimeStamp, DateTime startTimeStamp, uint week, uint day, ulong xpCap)
         {
-            get
-            {
-                DailyXp firstDay = DailyXpCache[0];
-                for (var i = 0; i < DailyXpCache.Count; i++)
-                    if (DailyXpCache[i].DailyExpiration > DateTime.UtcNow)
-                        return DailyXpCache[i];
-
-                return firstDay;
-            }
+            public readonly DateTime EndTimeStamp = endTimeStamp;
+            public readonly DateTime StartTimestamp = startTimeStamp;
+            public readonly uint Day = day;
+            public readonly uint Week = week;
+            public readonly ulong XpCap = xpCap;
         }
+
+        public static DateTime DailyTimestamp { get; private set; }
+
+        public static DailyXp CurrentDailyXp { get; private set; }
+
+        public static uint Week => CurrentDailyXp.Week;
+
+        private static bool IsDailyTimestampExpired => DailyTimestamp < DateTime.UtcNow;
 
         private static bool Initialized = false;
 
         public static readonly Dictionary<uint, ulong> WeeklyLevelWithCapXp = new Dictionary<uint, ulong>()
         {
-            { 1, 46465302 },
-            { 2, 246555428 },
-            { 3, 859755734  },
-            { 4, 2333712089 },
-            { 5, 10940644110 },
-            { 6, 35555554692 },
-            { 7, 92221953273 },
-            { 8, 191226310247 }
+            { 1, 38335275 },
+            { 2, 150013037 },
+            { 3, 387419625 },
+            { 4, 859755734 },
+            { 5, 1709581309 },
+            { 6, 3128116563 },
+            { 7, 5362412965 },
+            { 8, 8722524219 },
+            { 9, 13588677261 },
+            { 10, 20418443236 },
+            { 11, 29753908491 },
+            { 12, 42228845559 },
+            { 13, 58575884147 },
+            { 14, 79633682122 },
+            { 15, 106354096497 },
+            { 16, 191226310247 }
         };
+
+        private static Dictionary<(uint, uint), ulong> DistributeWeeklyXp(Dictionary<uint, ulong> weeklyXp)
+        {
+            var dailyXp = new Dictionary<(uint, uint), ulong>();
+            ulong previousWeekXp = 0; // Starting XP
+
+            foreach (var week in weeklyXp.Keys.OrderBy(w => w))
+            {
+                ulong maxXp = weeklyXp[week];
+                const uint totalDays = 7;
+
+                ulong totalXpToDistribute = maxXp - previousWeekXp;
+
+                ulong baseXp = totalXpToDistribute / totalDays;
+
+                for (uint day = 1; day <= totalDays; day++)
+                {
+                    ulong xpForDay = baseXp + previousWeekXp;
+
+                    if (day == totalDays)
+                        xpForDay = maxXp;
+
+                    dailyXp[(week, day)] = xpForDay;
+
+                    previousWeekXp = xpForDay;
+                }
+            }
+
+            return dailyXp;
+        }
+
+        public static void ResetDailyXpCap()
+        {
+            var dailyXpData = DistributeWeeklyXp(WeeklyLevelWithCapXp);
+            DatabaseManager.Pourtide.ResetDailyXpCaps(dailyXpData);
+        }
+
+        private static DailyXp FetchDailyXpCap()
+        {
+            var currentDailyXpCap = DatabaseManager.Pourtide.GetCurrentDailyXpCap();
+
+            if (currentDailyXpCap != null)
+                return new DailyXp(currentDailyXpCap.EndTimestamp, currentDailyXpCap.StartTimestamp, currentDailyXpCap.Week, currentDailyXpCap.Day, currentDailyXpCap.DailyXp);
+            else
+                return new DailyXp(DateTime.MaxValue, DateTime.MinValue, 0, 0, 0);
+        }
+
+        private static void FetchDailyXp()
+        {
+            CurrentDailyXp = FetchDailyXpCap();
+            DailyTimestamp = CurrentDailyXp.EndTimeStamp;
+        }
 
         public static void Initialize()
         {
-            GetXpCapTimestamps();
-            CalculateCurrentDailyXpCap();
+            FetchDailyXp();
             Initialized = true;
-        }
-
-        public class DailyXp
-        {
-            public readonly DateTime DailyExpiration;
-            public readonly ulong XpCap;
-
-            public DailyXp(DateTime dailyExpiration, ulong xpCap)
-            {
-                DailyExpiration = dailyExpiration;
-                XpCap = xpCap;
-            }
-        }
-
-        public static void CalculateCurrentDailyXpCap()
-        {
-            DailyXpCache.Clear();
-            if (Week > 8)
-            {
-                DailyTimestamp = DateTime.MaxValue;
-                DailyXpCache.Add(new DailyXp(DailyTimestamp, WeeklyLevelWithCapXp[8]));
-                return;
-            }
-
-            var week = Week;
-            var totalWeeklyXp = week > 1 ? WeeklyLevelWithCapXp[week] - WeeklyLevelWithCapXp[week - 1] : WeeklyLevelWithCapXp[week];
-            var dailyxp = totalWeeklyXp / 7;
-            var endOfWeek = WeeklyTimestamp;
-
-            ulong previous = week > 1 ? WeeklyLevelWithCapXp[week - 1] : 0;
-            for (var i = 7; i >= 1; i--)
-            {
-                var day = endOfWeek.AddDays(-i);
-                day = day.AddDays(1);
-                var newDaily = dailyxp + previous;
-                previous = newDaily;
-                var dailyXp = new DailyXp(day, newDaily);
-                DailyXpCache.Add(dailyXp);
-            }
-
-            DailyTimestamp = CurrentDailyXp.DailyExpiration;
         }
 
         public static void Tick()
@@ -110,16 +125,8 @@ namespace ACE.Server.Features.Xp
                 return;
             }
 
-            if (IsDailyTimestampExpired())
-            {
-                GetUpdatedXpCapTimestamps();
-
-                // season ends at week 8
-                if (Week > 8)
-                    return;
-
-                CalculateCurrentDailyXpCap();
-            }
+            if (IsDailyTimestampExpired)
+                FetchDailyXp();
         }
 
         public static void ResetPlayersForDaily()
@@ -199,26 +206,6 @@ namespace ACE.Server.Features.Xp
             }
 
            return (double)MaxLevel / (double)level;
-        }
-
-        public static void GetXpCapTimestamps()
-        {
-            var (_, weekly, week) = DatabaseManager.Pourtide.GetXpCapTimestamps();
-            WeeklyTimestamp = weekly;
-            Week = week;
-        }
-
-        public static void GetUpdatedXpCapTimestamps()
-        {
-            var (_, weekly, week) = DatabaseManager.Pourtide.UpdateXpCap();
-            WeeklyTimestamp = weekly;
-            Week = week;
-        }
-
-        public static bool IsDailyTimestampExpired()
-        {
-            // Check if the daily timestamp is before the current time
-            return DailyTimestamp < DateTime.UtcNow;
         }
     }
 }

@@ -11,7 +11,7 @@ using ACE.Entity.Models;
 using ACE.Server.Entity;
 using ACE.Server.Entity.Actions;
 using ACE.Server.Factories;
-using ACE.Server.Features.Xp;
+using ACE.Server.Features.DailyXp;
 using ACE.Server.Managers;
 using ACE.Server.Network;
 using ACE.Server.Network.Enum;
@@ -156,8 +156,8 @@ namespace ACE.Server.WorldObjects
 
         private void PlayerDailyXpTick()
         {
-            if (DailyXpTimestamp != (int)Time.GetUnixTime(XpManager.DailyTimestamp))
-                XpManager.SetPlayerXpCap(this);
+            if (DailyXpTimestamp != (int)Time.GetUnixTime(DailyXpManager.DailyTimestamp))
+                DailyXpManager.SetPlayerXpCap(this);
         }
 
         public static float MaxSpeed = 50;

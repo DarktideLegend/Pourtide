@@ -23,6 +23,8 @@ using ACE.Common.ACRealms;
 using System.Configuration;
 using ACE.Entity;
 using ACE.Server.Realms.Peripherals;
+using ACE.Server.Factories;
+using ACE.Server.Features.DailyXp;
 
 namespace ACE.Server.Managers
 {
@@ -774,8 +776,13 @@ namespace ACE.Server.Managers
                 player.Sanctuary = loc.AsLocalPosition();
                 WorldManager.ThreadSafeTeleport(player, loc, false, new Entity.Actions.ActionEventDelegate(() =>
                 {
+                    if (realmId == CurrentSeason.Realm.Id)
+                        DailyXpManager.SetPlayerXpCap(player);
+
                     if (realm.StandardRules.GetProperty(RealmPropertyBool.IsDuelingRealm))
                         DuelRealmHelpers.SetupNewCharacter(player);
+                    else
+                        PlayerFactory.SetupNewCharacter(player);
                 }));
             }
             bool validate = saveImmediately;

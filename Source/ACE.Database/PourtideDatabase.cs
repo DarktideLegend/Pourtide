@@ -335,5 +335,67 @@ namespace ACE.Database
                 }
             }
         }
+
+        public void ResetDailyXpCaps(Dictionary<(uint, uint), ulong> dailyXpData)
+        {
+            using (var context = new PourtideDbContext())
+            {
+                var oldEntries = context.DailyXpCaps.ToList();
+                context.DailyXpCaps.RemoveRange(oldEntries);
+
+                DateTime currentDate = DateTime.UtcNow;
+                foreach (var entry in dailyXpData)
+                {
+                    var week = entry.Key.Item1;
+                    var day = entry.Key.Item2;
+                    var xp = entry.Value;
+
+                    // Calculate start and end timestamps
+                    var startTimestamp = GetStartTimestamp(currentDate, week, day);
+                    var endTimestamp = GetEndTimestamp(startTimestamp);
+
+                    var dailyXpCap = new DailyXpCap
+                    {
+                        Week = week,
+                        Day = day,
+                        DailyXp = xp,
+                        StartTimestamp = startTimestamp,
+                        EndTimestamp = endTimestamp
+                    };
+
+                    context.DailyXpCaps.Add(dailyXpCap);
+                }
+
+                context.SaveChanges();
+            }
+        }
+
+        private DateTime GetStartTimestamp(DateTime baseDate, uint week, uint day)
+        {
+            DateTime startDate = baseDate.Date.AddDays((week - 1) * 7 + (day - 1));
+
+            DateTime startTimestamp = startDate.AddHours(baseDate.Hour).AddMinutes(baseDate.Minute).AddSeconds(baseDate.Second);
+
+            return startTimestamp;
+        }
+
+        private DateTime GetEndTimestamp(DateTime startTimestamp)
+        {
+            return startTimestamp.AddDays(1).AddTicks(-1);
+        }
+
+        public DailyXpCap GetCurrentDailyXpCap()
+        {
+            using (var context = new PourtideDbContext())
+            {
+                DateTime currentDate = DateTime.UtcNow;
+
+                // Retrieve the current DailyXpCap based on the current date
+                var currentDailyXpCap = context.DailyXpCaps
+                    .FirstOrDefault(d => d.StartTimestamp <= currentDate && d.EndTimestamp >= currentDate);
+
+                return currentDailyXpCap;
+            }
+        }
     }
 }

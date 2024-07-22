@@ -26,6 +26,8 @@ namespace ACE.Database.Models.Pourtide
         public DbSet<PKStatsKill> PKStatsKills { get; set; }
         public DbSet<PkTrophyCooldown> PkTrophyCooldowns { get; set; }
 
+        public DbSet<DailyXpCap> DailyXpCaps { get; set; }
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             if (!optionsBuilder.IsConfigured)
@@ -141,6 +143,28 @@ namespace ACE.Database.Models.Pourtide
                 entity.Property(e => e.HomeRealmId).HasColumnName("home_realm_id"); 
                 entity.Property(e => e.CurrentRealmId).HasColumnName("current_realm_id"); 
                 entity.Property(e => e.CooldownEndTime).HasColumnName("cooldown_end_time"); 
+            });
+
+            modelBuilder.Entity<DailyXpCap>(entity =>
+            {
+                entity.ToTable("daily_xp_cap"); 
+
+                entity.HasKey(e => new { e.Week, e.Day });
+
+                entity.Property(e => e.Week)
+                      .IsRequired();
+
+                entity.Property(e => e.Day)
+                      .IsRequired();
+
+                entity.Property(e => e.DailyXp)
+                      .IsRequired();
+
+                entity.Property(e => e.StartTimestamp)
+                      .IsRequired();
+
+                entity.Property(e => e.EndTimestamp)
+                      .IsRequired();
             });
 
 
