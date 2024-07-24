@@ -44,19 +44,18 @@ namespace ACE.Server.Factories
         public static void TeachPourtideAugmentations(Player player)
         {
             foreach (var augtype in RealmConstants.PourtideAugmentations)
-                AugmentationDevice.DoAugmentation(player, augtype, null, false, false);
+                AugmentationDevice.DoAugmentation(player, augtype, null, false, true);
         }
 
-        public static void AddStarterEssentials(Player player)
+        public static void SetupNewCharacter(Player player)
         {
-            player.GrantXP((long)player.GetXPBetweenLevels(1, 50), XpType.Admin, ShareType.None);
-            TeachPourtideAugmentations(player);
-
             var actionChain = new ActionChain();
             actionChain.AddDelaySeconds(1.0f);
             actionChain.AddAction(player, () =>
             {
-                for (uint spellLevel = 1; spellLevel <= 5; spellLevel++)
+                TeachPourtideAugmentations(player);
+
+                for (uint spellLevel = 1; spellLevel <= 3; spellLevel++)
                 {
                     player.LearnSpellsInBulk(MagicSchool.CreatureEnchantment, spellLevel, true);
                     player.LearnSpellsInBulk(MagicSchool.ItemEnchantment, spellLevel, true);
@@ -64,6 +63,8 @@ namespace ACE.Server.Factories
                     player.LearnSpellsInBulk(MagicSchool.VoidMagic, spellLevel, true);
                     player.LearnSpellsInBulk(MagicSchool.WarMagic, spellLevel, true);
                 }
+
+                player.SaveBiotaToDatabase();
             });
 
             actionChain.EnqueueChain();
