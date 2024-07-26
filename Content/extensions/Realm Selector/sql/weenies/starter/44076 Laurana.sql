@@ -208,7 +208,8 @@ VALUES (44076, 2, 28237, -1, 0, 0, False) /* Create Zapping Yumi (28237) for Wie
      , (44076, 4, 20628, -1, 0, 0, False) /* Create Trade Note (150,000) (20628) for Shop */
      , (44076, 4, 20629, -1, 0, 0, False) /* Create Trade Note (200,000) (20629) for Shop */
      , (44076, 4, 20630, -1, 0, 0, False) /* Create Trade Note (250,000) (20630) for Shop */
-     , (44076, 4, 22000, -1, 0, 0, False) /* Create Wrapped Bundle of Deadly Chorizite Arrowheads (22000) for Shop */;
+     , (44076, 4, 22000, -1, 0, 0, False) /* Create Wrapped Bundle of Deadly Chorizite Arrowheads (22000) for Shop */
+     , (44076, 4, 21999, -1, 0, 0, False) /* Create Wrapped Bundle of Chorizite Arrowheads (21999) for Shop */;
 
 /* Lifestoned Changelog:
 {
