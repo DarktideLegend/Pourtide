@@ -3,20 +3,11 @@
   "type": "Ruleset",
   "properties": {
     "Description": "This represents a dungeon rift",
-    //"IsFullLootOnDeath": false,
     "IsNeutralZone": true,
     "ReplaceMobs": false,
     "HasRecalls": false,
-    "ExperienceMultiplierAll": {
-      "low": 4.0,
-      "high": 10.0,
-      "reroll": "landblock"
-    },
-    "CreatureRespawnDuration": {
-      "low": 300.0,
-      "high": 400.0,
-      "reroll": "landblock"
-    },
+    "ExperienceMultiplierAll": 2,
+    "CreatureRespawnDuration": 200,
     "OreDropChance": {
       "low": 5,
       "high": 10,
