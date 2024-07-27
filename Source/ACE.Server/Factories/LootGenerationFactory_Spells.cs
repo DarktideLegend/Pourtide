@@ -266,12 +266,7 @@ namespace ACE.Server.Factories
             var numCantrips = CantripChance.RollNumCantrips(profile, Ruleset);
 
             if (numCantrips == 0)
-            {
-                if (profile.CantripAmount > 0)
-                    numCantrips = profile.CantripAmount;
-                else
-                    return null;
-            }
+                return null;
 
             var numAttempts = numCantrips * 3;
 
@@ -292,21 +287,6 @@ namespace ACE.Server.Factories
             foreach (var cantrip in cantrips)
             {
                 var cantripLevel = CantripChance.RollCantripLevel(profile, Ruleset);
-
-                if (cantripLevel == 1 && profile.Tier == 4 && profile.CantripAmount > 0)
-                    cantripLevel = ThreadSafeRandom.Next(1, 4) == 1 ? 2 : 1;
-
-                if (cantripLevel == 1 && profile.Tier == 5 && profile.CantripAmount > 0)
-                    cantripLevel = ThreadSafeRandom.Next(1, 3) == 1 ? 2 : 1;
-
-                if (cantripLevel == 1 && profile.Tier == 6 && profile.CantripAmount > 0)
-                    cantripLevel = ThreadSafeRandom.Next(1, 2) == 1 ? 2 : 1;
-
-                if (cantripLevel == 1 && profile.Tier == 7 && profile.CantripAmount > 0)
-                    cantripLevel = ThreadSafeRandom.Next(1, 2) == 1 ? 2 : 1;
-
-                if (cantripLevel == 2 && profile.Tier == 7 && profile.CantripAmount > 0)
-                    cantripLevel = ThreadSafeRandom.Next(1, 2) == 1 ? 3 : 2;
 
                 var cantripLevels = SpellLevelProgression.GetSpellLevels(cantrip);
 
@@ -562,3 +542,4 @@ namespace ACE.Server.Factories
         }
     }
 }
+
