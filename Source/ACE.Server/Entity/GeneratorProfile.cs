@@ -554,7 +554,7 @@ namespace ACE.Server.Entity
             {
                 // TODO: get randomly generated death treasure from LootGenerationFactory
                 //log.DebugFormat("{0}.TreasureGenerator(): found death treasure {1}", _generator.Name, Biota.WeenieClassId);
-                return Ruleset.LootGenerationFactory.CreateRandomLootObjects(deathTreasure);
+                return Generator.RealmRuleset.LootGenerationFactory.CreateRandomLootObjects(deathTreasure);
             }
             else
             {
