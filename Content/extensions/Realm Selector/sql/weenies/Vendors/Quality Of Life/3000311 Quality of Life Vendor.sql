@@ -163,12 +163,8 @@ VALUES (3000311, 2, 25703,  0, 93, 1, False) /* Create Dapper Suit (25703) for W
      , (3000311, 4, 30224, -1, 0, 0, False) /* Create Resister's Crystal (30224) for Shop */
      , (3000311, 4, 30228, -1, 0, 0, False) /* Create Evader's Crystal (30228) for Shop */
      , (3000311, 4, 30229, -1, 0, 0, False) /* Create Dodger's Crystal (30229) for Shop */
-     , (3000311, 4, 30184, -1, 0, 0, False) /* Create Scholar's Crystal (30184) for Shop */
-     , (3000311, 4, 606001, -1, 0, 0, False) /* Create  (606001) for Shop */
-     , (3000311, 4, 606003, -1, 0, 0, False) /* Create  (606003) for Shop */
-     , (3000311, 4, 606005, -1, 0, 0, False) /* Create  (606005) for Shop */
-     , (3000311, 4, 606006, -1, 0, 0, False) /* Create  (606006) for Shop */
-     , (3000311, 4, 606007, -1, 0, 0, False) /* Create  (606007) for Shop */;
+     , (3000311, 4, 30184, -1, 0, 0, False) /* Create Scholar's Crystal (30184) for Shop */;
+     
 
 /* Lifestoned Changelog:
 {
