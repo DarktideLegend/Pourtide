@@ -5,6 +5,13 @@
   "properties": {
     "Description": "The second season of Pourtide",
     "CanBeHomeworld": true,
-    "HideoutEnabled": false
+    "HideoutEnabled": false,
+    "MinorCantripDropRate": 1,
+    "MajorCantripDropRate": 0.005,
+    "EpicCantripDropRate": 0.003,
+    "LegendaryCantripDropRate": 0.001,
+    "HasGearRatingDrops": false,
+    "HasEquipmentSetDrops": false,
+    "MaxSpellChainRange": 20
   }
 }

@@ -7,11 +7,11 @@
     "CanBeHomeworld": true,
     "HideoutEnabled": false,
     "MinorCantripDropRate": 1,
-    "MajorCantripDropRate": 1,
-    "EpicCantripDropRate": 1,
-    "LegendaryCantripDropRate": 1,
+    "MajorCantripDropRate": 0.005,
+    "EpicCantripDropRate": 0.003,
+    "LegendaryCantripDropRate": 0.001,
     "HasGearRatingDrops": false,
     "HasEquipmentSetDrops": false,
-    "MaxSpellChainRange": 100
+    "MaxSpellChainRange": 20
   }
 }
