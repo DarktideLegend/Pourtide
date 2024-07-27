@@ -312,11 +312,3 @@ VALUES (0x701C904A,  1596, 0x01C90231, 80, -20, 0, 0, 0, 0, -1, False, '2005-02-
 INSERT INTO `landblock_instance` (`guid`, `weenie_Class_Id`, `obj_Cell_Id`, `origin_X`, `origin_Y`, `origin_Z`, `angles_W`, `angles_X`, `angles_Y`, `angles_Z`, `is_Link_Child`, `last_Modified`)
 VALUES (0x701C904B,   568, 0x01C90233, 80, -24.75, 0, 0, 0, 0, -1, False, '2005-02-09 10:00:00'); /* Door */
 /* @teleloc 0x01C90233 [80.000000 -24.750000 0.000000] 0.000000 0.000000 0.000000 -1.000000 */
-
-INSERT INTO `landblock_instance` (`guid`, `weenie_Class_Id`, `obj_Cell_Id`, `origin_X`, `origin_Y`, `origin_Z`, `angles_W`, `angles_X`, `angles_Y`, `angles_Z`, `is_Link_Child`, `last_Modified`)
-VALUES (0x701C904C, 600005, 0x01C901D1, 57.0201, -80.0544, -6.063, 0.684474, 0, 0, 0.729037, False, '2024-04-26 08:33:45'); /* Rift Entrance Portal */
-/* @teleloc 0x01C901D1 [57.020100 -80.054398 -6.063000] 0.684474 0.000000 0.000000 0.729037 */
-
-INSERT INTO `landblock_instance` (`guid`, `weenie_Class_Id`, `obj_Cell_Id`, `origin_X`, `origin_Y`, `origin_Z`, `angles_W`, `angles_X`, `angles_Y`, `angles_Z`, `is_Link_Child`, `last_Modified`)
-VALUES (0x701C904D, 30058, 0x01C901E2, 79.93327, -106.6286, -6.063, 0.002606, 0, 0, -0.999997, False, '2024-06-16 14:54:47'); /* Augmentation Realm Main Level */
-/* @teleloc 0x01C901E2 [79.933273 -106.628601 -6.063000] 0.002606 0.000000 0.000000 -0.999997 */
