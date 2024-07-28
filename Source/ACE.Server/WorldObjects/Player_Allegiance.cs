@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Runtime.CompilerServices;
@@ -82,15 +83,17 @@ namespace ACE.Server.WorldObjects
 
         public bool IsAlly(ushort realmId, IPlayer potentialAlly)
         {
-            if (potentialAlly == this)
-                return true;
-            if (potentialAlly.IsAllyForTesting || ((IPlayer)this).IsAllyForTesting)
-                return true;
-            if (potentialAlly.IsEnemyForTesting || ((IPlayer)this).IsEnemyForTesting)
-                return false;
+            Stopwatch stopwatch = Stopwatch.StartNew(); 
 
             try
             {
+                if (potentialAlly == this)
+                    return true;
+                if (potentialAlly.IsAllyForTesting || ((IPlayer)this).IsAllyForTesting)
+                    return true;
+                if (potentialAlly.IsEnemyForTesting || ((IPlayer)this).IsEnemyForTesting)
+                    return false;
+
                 var selfIp = GetCharacterIp(this);
                 var potentialAllyIp = GetCharacterIp(potentialAlly);
 
@@ -98,10 +101,19 @@ namespace ACE.Server.WorldObjects
             }
             catch (Exception ex)
             {
-                log.Error("An error occurred while trying to get allegiance associated with ip address");
+                log.Error("An error occurred while trying to get allegiance associated with IP address");
                 log.Error(ex.Message);
                 log.Error(ex.StackTrace);
                 return false;
+            }
+            finally
+            {
+                stopwatch.Stop();
+                Trace(new PlayerCheckAllyEntry()
+                {
+                    PlayerName = Name,
+                    Elapsed = stopwatch.ElapsedMilliseconds
+                });
             }
         }
 

@@ -607,6 +607,7 @@ namespace ACE.Server.Managers
                 ("player_trace_lum", new Property<bool>(true, "If player_trace is enabled, toggles logging of luminance rewards.")),
                 ("player_trace_item_reward", new Property<bool>(true, "If player_trace is enabled, toggles logging of item rewards.")),
                 ("player_trace_item_give", new Property<bool>(true, "If player_trace is enabled, toggles logging of giving of items.")),
+                ("player_trace_check_ally", new Property<bool>(true, "If player_trace is enabled, toggles logging of elapsed execution time for checking ally method.")),
 
 
                 ("player_config_command", new Property<bool>(false, "If enabled, players can use /config to change their settings via text commands")),
