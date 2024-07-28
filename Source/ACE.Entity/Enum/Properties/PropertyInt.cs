@@ -671,6 +671,12 @@ namespace ACE.Entity.Enum.Properties
 
         [ServerOnly]
         CantripLevel                            = 60006,
+
+        [ServerOnly]
+        BountyCreationTimestamp                 = 60007,
+
+        [ServerOnly]
+        PlayerBountyTrackingCount             = 60009,
     }
 
     public static class PropertyIntExtensions

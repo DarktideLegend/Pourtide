@@ -650,6 +650,7 @@ namespace ACE.Server.Managers
 
         public static readonly ReadOnlyDictionary<string, Property<long>> DefaultLongProperties =
             DictOf(
+                ("bounty_expiration_time", new Property<long>(60, "the amount of time in minutes a bounty expires")),
                 ("current_season", new Property<long>(6, "Sets the current season realm id for the server. Defaults to id 6 <Season One>")),
                 ("char_delete_time", new Property<long>(3600, "the amount of time in seconds a deleted character can be restored")),
                 ("chat_requires_account_time_seconds", new Property<long>(0, "the amount of time in seconds an account is required to have existed for for global chat privileges")),

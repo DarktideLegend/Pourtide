@@ -23,7 +23,6 @@ namespace ACE.Server.Factories.Tables
             CreatureType.Golem,
             CreatureType.Gurog,
             CreatureType.Gromnie,
-            CreatureType.Human,
             CreatureType.Knathtead,
             CreatureType.Lugian,
             CreatureType.Mattekar,

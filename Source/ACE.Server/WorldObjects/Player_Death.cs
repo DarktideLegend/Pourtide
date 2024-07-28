@@ -755,7 +755,6 @@ namespace ACE.Server.WorldObjects
 
         public bool UpdatePkTrophies(ulong killerId, ulong victimId)
         {
-
             return DatabaseManager.Pourtide.UpdatePkTrophyCooldown(killerId, victimId);
         }
 

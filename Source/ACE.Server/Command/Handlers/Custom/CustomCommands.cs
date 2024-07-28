@@ -345,8 +345,6 @@ namespace ACE.Server.Command.Handlers
             else
                 DiscordChatBridge.SendMessage(discordChannel, $"`{message.ToString()}`");
 
-
-
         }
 
         /** Leadearboards/Stats End **/
@@ -463,33 +461,10 @@ namespace ACE.Server.Command.Handlers
         }
         /** Player Utility Commands End **/
 
-        [CommandHandler("bounty", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, 0, "Get bounty information from Pour Collector")]
-        public static void HandleBountyInfo(ISession session, params string[] paramters)
+        [CommandHandler("track-bounty", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, 0, "Get bounty information from Pour Collector")]
+        public static void HandleTrackBounty(ISession session, params string[] paramters)
         {
-            var player = session?.Player;
-            var holtburg = DatabaseManager.World.GetCachedPointOfInterest("holtburg");
-            var weenie = DatabaseManager.World.GetCachedWeenie(holtburg.WeenieClassId);
-
-            if (weenie == null)
-            {
-                session.Network.EnqueueSend(new GameMessageSystemChat("Pour Collector is not available at this time!", ChatMessageType.Broadcast));
-                return;
-            }
-
-            var weeniePosition = weenie.GetPosition(PositionType.Destination);
-            var loc = new LocalPosition(weeniePosition).AsInstancedPosition(session.Player, ACE.Entity.Enum.RealmProperties.PlayerInstanceSelectMode.Same);
-
-            var lbId = new LandblockId(loc.GetCell());
-            var lb = LandblockManager.GetLandblock(lbId, loc.Instance, null, false);
-            var collector = lb.GetAllWorldObjectsForDiagnostics().Where(wo => wo.WeenieClassId == 3000381).FirstOrDefault();
-
-            if (collector == null)
-            {
-                session.Network.EnqueueSend(new GameMessageSystemChat("Pour Collector is not available at this time!", ChatMessageType.Broadcast));
-                return;
-            }
-
-            Player.GetBounty((Creature)collector, player, true);
+            session.Player.TrackBounty();
         }
 
         [CommandHandler("reload-all-landblocks", AccessLevel.Admin, CommandHandlerFlag.None, 0, "Reloads all landblocks currently loaded.")]
@@ -568,6 +543,28 @@ namespace ACE.Server.Command.Handlers
 
                 if (gem != null)
                     session.Player.TryCreateInInventoryWithNetworking(gem);
+            }
+        }
+
+        [CommandHandler("forcepk", AccessLevel.Envoy, CommandHandlerFlag.RequiresWorld, 0, "force an npk player to be pk")]
+        public static void HandleForcePk(ISession session, params string[] parameters)
+        {
+            var objectId = ObjectGuid.Invalid;
+
+            var target = session.Player.CurrentAppraisalTarget;
+
+            if (target.HasValue)
+                objectId = new ObjectGuid((uint)session.Player.CurrentAppraisalTarget);
+
+            var wo = session.Player.CurrentLandblock?.GetObject(objectId);
+
+            if (wo is null)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Unable to locate what you have selected.", ChatMessageType.Broadcast));
+            }
+            else if (wo is Player player && player.IsNPK)
+            {
+                player.MinimumTimeSincePk = PropertyManager.GetDouble("pk_respite_timer").Item;
             }
         }
     }

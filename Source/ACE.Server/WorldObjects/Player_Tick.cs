@@ -131,6 +131,8 @@ namespace ACE.Server.WorldObjects
 
             PlayerDailyXpTick();
 
+            PlayerBountyTick();
+
             PhysicsObj.ObjMaint.DestroyObjects();
 
             if (!Location.IsEphemeralRealm && Ethereal.HasValue && Ethereal.Value == true)
@@ -152,6 +154,12 @@ namespace ACE.Server.WorldObjects
             }
 
             base.Heartbeat(currentUnixTime);
+        }
+
+        private void PlayerBountyTick()
+        {
+            if (BountyGuid != null && IsBountyExpired)
+                RefundBounty();
         }
 
         private void PlayerDailyXpTick()

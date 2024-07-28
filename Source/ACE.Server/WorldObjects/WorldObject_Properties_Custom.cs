@@ -43,5 +43,35 @@ namespace ACE.Server.WorldObjects
             get => GetProperty(PropertyFloat.ReflectiveDamageMod) ?? 0d;
             set { if (value == 0d) RemoveProperty(PropertyFloat.ReflectiveDamageMod); else SetProperty(PropertyFloat.ReflectiveDamageMod, value); }
         }
+
+        public int? BountyGuid
+        {
+            get => GetProperty(PropertyInt.BountyGuid);
+            set { if (value == null) RemoveProperty(PropertyInt.BountyGuid); else SetProperty(PropertyInt.BountyGuid, value.Value); }
+        }
+
+        public int? BountyTrophyGuid
+        {
+            get => GetProperty(PropertyInt.BountyTrophyGuid);
+            set { if (value == null) RemoveProperty(PropertyInt.BountyTrophyGuid); else SetProperty(PropertyInt.BountyTrophyGuid, value.Value); }
+        }
+
+        public int ForgottenOreTier
+        {
+            get => GetProperty(PropertyInt.ForgottenOreTier) ?? 4;
+            set { if (value == 0) RemoveProperty(PropertyInt.ForgottenOreTier); else SetProperty(PropertyInt.ForgottenOreTier, value); }
+        }
+
+        public int? BountyCreationTimeStamp
+        {
+            get => GetProperty(PropertyInt.BountyCreationTimestamp);
+            set { if (!value.HasValue) RemoveProperty(PropertyInt.BountyCreationTimestamp); else SetProperty(PropertyInt.BountyCreationTimestamp, value.Value); }
+        }
+
+        public int PlayerBountyTrackingCount
+        {
+            get => GetProperty(PropertyInt.PlayerBountyTrackingCount) ?? 0;
+            set { if (value == 0) RemoveProperty(PropertyInt.PlayerBountyTrackingCount); else SetProperty(PropertyInt.PlayerBountyTrackingCount, value); }
+        }
     }
 }
