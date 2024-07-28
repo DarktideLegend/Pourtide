@@ -1094,7 +1094,7 @@ namespace ACE.Server.Managers
                 var homeRealm = online.HomeRealm; 
                 if (homeRealm != currentSeasonRealmId)
                 {
-                    var realm = RealmManager.GetRealm(pos.RealmID, includeRulesets: true);
+                    var realm = RealmManager.GetRealm(homeRealm, includeRulesets: true);
                     if (!realm.StandardRules.GetProperty(RealmPropertyBool.IsDuelingRealm))
                         if (!online.Name.Contains('['))
                         {

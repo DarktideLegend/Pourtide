@@ -3,6 +3,7 @@
   "type": "Ruleset",
   "properties": {
     "Description": "This represents a dungeon rift",
+    "Alias": "Rift",
     "IsNeutralZone": true,
     "ReplaceMobs": false,
     "HasRecalls": false,
