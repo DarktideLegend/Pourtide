@@ -647,7 +647,7 @@ namespace ACE.Server.WorldObjects
                 if (hasDurability && item.ArmorLevel != null && item.ArmorLevel > 10)
                 {
                     item.ArmorLevel -= (int)(item.OriginalArmorLevel * 0.05);
-                    UpdateDurability(item);
+                    //UpdateDurability(item);
                 }
             }
 
@@ -662,9 +662,6 @@ namespace ACE.Server.WorldObjects
 
                 DeathItemLog(dropItems, corpse);
             }
-
-
-
 
             return dropItems;
         }
@@ -706,6 +703,10 @@ namespace ACE.Server.WorldObjects
                 {
                     var mod = (double)victim.Level / (double)killer.Level;
                     var playerXp = (victim.GetProperty(PropertyInt64.TotalExperience) ?? 0) * 0.01;
+
+                    if (playerXp == 0)
+                        playerXp = 500 * 0.01;
+
                     var earnedPvpXp = playerXp * mod;
                     var killerPlayer = PlayerManager.GetOnlinePlayer(killer.Guid);
                     killerPlayer?.EarnXP((long)Math.Round((double)earnedPvpXp), XpType.Pvp, ShareType.None);
@@ -717,13 +718,11 @@ namespace ACE.Server.WorldObjects
                 if (!isAlly && UpdatePkTrophies(corpse.KillerId.Value, corpse.VictimId.Value))
                 {
                     // add player head
-                    {
-                        var playerHead = WorldObjectFactory.CreateNewWorldObject(60000212);
-                        playerHead.Name = $"Head of {victim.Name}";
-                        playerHead.LongDesc = $"The severed head of {victim.Name}, killed by {killer.Name}";
-                        playerHead.BountyTrophyGuid = (int?)victim.Guid.Full;
-                        corpse.TryAddToInventory(playerHead);
-                    }
+                    var playerHead = WorldObjectFactory.CreateNewWorldObject(60000212);
+                    playerHead.Name = $"Head of {victim.Name}";
+                    playerHead.LongDesc = $"The severed head of {victim.Name}, killed by {killer.Name}";
+                    playerHead.BountyTrophyGuid = (int?)victim.Guid.Full;
+                    corpse.TryAddToInventory(playerHead);
                 }
             } catch (Exception ex)
             {
@@ -750,13 +749,12 @@ namespace ACE.Server.WorldObjects
 
         public void TrackKill(ushort homeRealmId, ulong killerId, ulong victimId)
         {
-            DatabaseManager.Shard.BaseDatabase.TrackPkStatsKill(homeRealmId, Location.RealmID, killerId, victimId);
+            DatabaseManager.Pourtide.TrackPkStatsKill(homeRealmId, Location.RealmID, killerId, victimId);
         }
 
         public bool UpdatePkTrophies(ulong killerId, ulong victimId)
         {
-
-            return DatabaseManager.Shard.BaseDatabase.UpdatePkTrophyCooldown(killerId, victimId);
+            return DatabaseManager.Pourtide.UpdatePkTrophyCooldown(killerId, victimId);
         }
 
         /// <summary>
@@ -1208,7 +1206,7 @@ namespace ACE.Server.WorldObjects
         {
             if (killerIsOlthoiPlayer)
             {
-                var slag = LootGenerationFactory.RollSlag(this, hadVitae);
+                var slag = RealmRuleset.LootGenerationFactory.RollSlag(this, hadVitae);
 
                 if (slag == null)
                     return new();
@@ -1223,9 +1221,9 @@ namespace ACE.Server.WorldObjects
                 if (hadVitae)
                     return new();
 
-                var items = LootGenerationFactory.CreateRandomLootObjects(OlthoiDeathTreasureType);
+                var items = RealmRuleset.LootGenerationFactory.CreateRandomLootObjects(OlthoiDeathTreasureType);
 
-                var gland = LootGenerationFactory.RollGland(this, hadVitae);
+                var gland = RealmRuleset.LootGenerationFactory.RollGland(this, hadVitae);
 
                 if (gland != null)
                 {

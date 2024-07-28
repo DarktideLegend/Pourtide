@@ -21,6 +21,10 @@ using System.IO;
 using ACE.Entity.ACRealms;
 using ACE.Common.ACRealms;
 using System.Configuration;
+using ACE.Entity;
+using ACE.Server.Realms.Peripherals;
+using ACE.Server.Factories;
+using ACE.Server.Features.DailyXp;
 
 namespace ACE.Server.Managers
 {
@@ -28,6 +32,7 @@ namespace ACE.Server.Managers
     {
         private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
+        internal static Peripherals Peripherals { get; private set; }
         public static IReadOnlyCollection<WorldRealm> Realms { get; private set; }
         public static IReadOnlyCollection<WorldRealm> Rulesets { get; private set; }
         public static IReadOnlyCollection<WorldRealm> RealmsAndRulesets { get; private set; }
@@ -58,6 +63,9 @@ namespace ACE.Server.Managers
 
         public static LocalPosition UltimateDefaultLocation = Player.MarketplaceDrop;
 
+        public static WorldRealm ServerDefaultRealm => DefaultRealmConfigured ?? DefaultRealmFallback;
+        public static AppliedRuleset ServerDefaultRuleset => ServerDefaultRealm.StandardRules;
+
         public static uint CurrentSeasonInstance
         {
             get
@@ -68,9 +76,6 @@ namespace ACE.Server.Managers
 
         public static void Initialize(bool liveEnvironment = true)
         {
-            RealmConverter.Initialize();
-
-
             SetupReservedRealms();
 
             /* var results = DatabaseManager.World.GetAllRealms();
@@ -89,12 +94,10 @@ namespace ACE.Server.Managers
                 RealmDataCommands.HandleImportRealms(null, null);
                 if (!FirstImportCompleted)
                     throw new Exception("Import of realms.jsonc did not complete successfully.");
-
                 log.Info($"The current season is Name = {CurrentSeason.Realm.Name}, Id = {CurrentSeason.Realm.Id}, Instance = {CurrentSeasonInstance}");
             }
-
         }
-
+        
         public static string GetRealmList()
         {
             var sb = new StringBuilder();
@@ -143,6 +146,13 @@ namespace ACE.Server.Managers
 
             return sb.ToString().Replace("\r", "");
         }
+
+        public static void ReloadPeripherals()
+        {
+            Peripherals = Peripherals.Load();
+            log.Info("Loaded Peripheral Configuration");
+        }
+
 
         private static void SetupReservedRealms()
         {
@@ -676,8 +686,17 @@ namespace ACE.Server.Managers
             return false;
         }
 
+
+        internal static bool SetHomeRealm(ObjectGuid playerGuidOfflinePlayer, WorldRealm realm)
+        {
+            var player = PlayerManager.GetOfflinePlayer(playerGuidOfflinePlayer);
+            if (player == null)
+                log.Error($"SetHomeRealm: Could not find offline player with guid {playerGuidOfflinePlayer}");
+            return SetHomeRealm(player, realm);
+        }
+
         // This will be used for auto home realm migration from older servers, but may also be used from an admin command.
-        public static void SetHomeRealm(OfflinePlayer offlinePlayer, WorldRealm realm)
+        public static bool SetHomeRealm(OfflinePlayer offlinePlayer, WorldRealm realm)
         {
             log.Info($"Setting HomeRealm for offline character '{offlinePlayer.Name}' to '{realm.Realm.Name}' (ID {realm.Realm.Id}).");
             int oldHomeRealmInt = offlinePlayer.GetProperty(PropertyInt.HomeRealm) ?? 0;
@@ -689,7 +708,7 @@ namespace ACE.Server.Managers
 
             // var oldHomeRealm = GetRealm(oldHomeRealmId);
 
-            foreach(var type in Enum.GetValues<PositionType>())
+            foreach (var type in Enum.GetValues<PositionType>())
             {
                 var previousPosition = offlinePlayer.GetPositionUnsafe(type);
                 if (previousPosition == null)
@@ -712,11 +731,36 @@ namespace ACE.Server.Managers
                 offlinePlayer.SetPositionUnsafe(type, destPosition);
             }
 
-            //TODO: Housing
             offlinePlayer.SetProperty(PropertyInt.HomeRealm, realm.Realm.Id);
+            var result = TryMoveHousesToNewRealm(offlinePlayer, realm);
+            offlinePlayer.SaveBiotaToDatabase();
+            return result;
         }
 
-        public static void SetHomeRealm(Player player, ushort realmId, bool settingFromRealmSelector, bool saveImmediately = true)
+        public static bool SetHomeRealm(IPlayer player, WorldRealm realm)
+        {
+            return player switch
+            {
+                OfflinePlayer offline => SetHomeRealm(offline, realm),
+                Player online => SetHomeRealm(online, realm.Realm.Id, false),
+                _ => throw new NotImplementedException()
+            };
+        }
+
+        private static bool TryMoveHousesToNewRealm(IPlayer player, WorldRealm destinationRealm)
+        {
+            var houses = HouseManager.GetCharacterHouses(player.Guid.Full);
+            bool failed = false;
+
+            foreach (var house in houses)
+            {
+                var srcHouse = HouseManager.GetHouseSynchronously(house.Guid, true, isRealmMigration: true);
+                failed |= !srcHouse.TryMoveHouseToNewRealmInstance(destinationRealm.StandardRules.GetDefaultInstanceID(player, house.Location.AsLocalPosition()));
+            }
+            return !failed;
+        }
+
+        public static bool SetHomeRealm(Player player, ushort realmId, bool settingFromRealmSelector, bool saveImmediately = true)
         {
             var realm = GetRealm(realmId, includeRulesets: false);
             if (realm == null)
@@ -724,7 +768,7 @@ namespace ACE.Server.Managers
 
             log.Info($"Setting HomeRealm for character '{player.Name}' to '{realm.Realm.Name}' (ID {realm.Realm.Id}).");
             player.HomeRealm = realm.Realm.Id;
-            
+
             if (settingFromRealmSelector)
             {
                 player.SetProperty(PropertyBool.RecallsDisabled, false);
@@ -732,8 +776,13 @@ namespace ACE.Server.Managers
                 player.Sanctuary = loc.AsLocalPosition();
                 WorldManager.ThreadSafeTeleport(player, loc, false, new Entity.Actions.ActionEventDelegate(() =>
                 {
+                    if (realmId == CurrentSeason.Realm.Id)
+                        DailyXpManager.SetPlayerXpCap(player);
+
                     if (realm.StandardRules.GetProperty(RealmPropertyBool.IsDuelingRealm))
                         DuelRealmHelpers.SetupNewCharacter(player);
+                    else
+                        PlayerFactory.SetupNewCharacter(player);
                 }));
             }
             bool validate = saveImmediately;
@@ -741,7 +790,13 @@ namespace ACE.Server.Managers
                 player.ValidateCurrentRealm();
             if (saveImmediately)
                 player.SavePlayerToDatabase();
-            
+
+            if (!TryMoveHousesToNewRealm(player, realm))
+            {
+                player.Session.Network.EnqueueSend(new Network.GameMessages.Messages.GameMessageSystemChat("Your house was unable to be transferred to the new realm.", ChatMessageType.Broadcast));
+                return false;
+            }
+            return true;
         }
     }
 }

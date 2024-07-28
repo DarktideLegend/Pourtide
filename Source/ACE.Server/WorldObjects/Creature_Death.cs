@@ -747,6 +747,12 @@ namespace ACE.Server.WorldObjects
 
                 if (RiftManager.TryGetActiveRift(Location.Instance, out Rift activeRift))
                 {
+                    var spellChainGem = RealmRuleset.LootGenerationFactory.CreateSpellChainMorphGem();
+                    corpse.TryAddToInventory(spellChainGem);
+
+                    var thornArmorGem = RealmRuleset.LootGenerationFactory.CreateThornArmorMorphGem();
+                    corpse.TryAddToInventory(thornArmorGem);
+
                     var tier = WeenieClassId == 603001 ? 1 : WeenieClassId == 603002 ? 2 : 3;
                     var amount = WeenieClassId == 603001 ? 1 : WeenieClassId == 603002 ? 10 : 20;
                     for (var i = 0; i < amount; ++i)
@@ -761,18 +767,7 @@ namespace ACE.Server.WorldObjects
                     var slayerDropChance = RealmRuleset.GetProperty(RealmPropertyInt.OreSlayerDropChance);
                     if (ThreadSafeRandom.Next(1, slayerDropChance) == 1)
                     {
-                        var creatureType = SlayerChance.GetCreatureType();
-                        var slayer = WorldObjectFactory.CreateNewWorldObject(604001);
-                        var damage = ThreadSafeRandom.Next((float)1.5, (float)3.0);
-
-                        slayer.Name = $"{creatureType} Slayer Skull";
-
-                        if (creatureType == ACE.Entity.Enum.CreatureType.Human)
-                            damage = ThreadSafeRandom.Next((float)1.1, (float)1.5);
-
-                        slayer.LongDesc = $"Use this skull on any loot-generated weapon or caster to give it a {creatureType} Slayer effect. The damage for this slayer skull is {damage.ToString("0.00")}";
-                        slayer.SlayerCreatureType = creatureType;
-                        slayer.SlayerDamageBonus = damage;
+                        var slayer = RealmRuleset.LootGenerationFactory.CreateSlayerMorphGem();
                         corpse.TryAddToInventory(slayer);
                     }
 
@@ -829,7 +824,8 @@ namespace ACE.Server.WorldObjects
                     };
                 }
 
-                List<WorldObject> items = LootGenerationFactory.CreateRandomLootObjects(dt);
+                List<WorldObject> items = RealmRuleset.LootGenerationFactory.CreateRandomLootObjects(dt);
+
                 foreach (WorldObject wo in items)
                 {
                     if (corpse != null)
@@ -896,7 +892,7 @@ namespace ACE.Server.WorldObjects
         {
             if (DeathTreasure == null) return;
 
-            var slag = LootGenerationFactory.RollSlag(DeathTreasure);
+            var slag = RealmRuleset.LootGenerationFactory.RollSlag(DeathTreasure);
 
             if (slag == null) return;
 

@@ -37,6 +37,10 @@ namespace ACE.Server.Entity
         /// </summary>
         public bool NotFound { get => _spellBase == null || _spell == null; }
 
+        public double SpellChainChance = 0f;
+
+        public double SlowChance = 0f;
+
         /// <summary>
         /// The components required to cast the spell
         /// </summary>

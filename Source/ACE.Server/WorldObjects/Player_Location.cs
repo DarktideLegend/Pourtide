@@ -830,7 +830,7 @@ namespace ACE.Server.WorldObjects
 
             if (newPosition.Instance != Location.Instance)
             {
-                if (!OnTransitionToNewRealm(Location.RealmID, newPosition.RealmID, newPosition))
+                if (!OnTransitionToNewInstance(Location.RealmID, newPosition.RealmID, newPosition))
                     return;
             }
 
@@ -885,7 +885,7 @@ namespace ACE.Server.WorldObjects
         }
 
         // Assumes instance is loaded! Do not call directly
-        private bool OnTransitionToNewRealm(ushort prevRealmId, ushort newRealmId, InstancedPosition newLocation)
+        private bool OnTransitionToNewInstance(ushort prevRealmId, ushort newRealmId, InstancedPosition newLocation)
         {
             var prevrealm = RealmManager.GetRealm(prevRealmId, includeRulesets: true);
             var newRealm = RealmManager.GetRealm(newRealmId, includeRulesets: true);

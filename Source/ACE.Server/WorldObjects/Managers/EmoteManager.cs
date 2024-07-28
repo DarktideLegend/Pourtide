@@ -45,6 +45,8 @@ namespace ACE.Server.WorldObjects.Managers
 
         public bool Debug = false;
 
+        public AppliedRuleset Ruleset => WorldObject?.RealmRuleset ?? RealmManager.ServerDefaultRuleset;
+
         public EmoteManager(WorldObject worldObject)
         {
             _worldObject = worldObject;
@@ -277,7 +279,7 @@ namespace ACE.Server.WorldObjects.Managers
                             UnknownChances = 21
                         };
 
-                        var treasure = LootGenerationFactory.CreateRandomLootObjects_New(profile, treasureType, treasureClass);
+                        var treasure = Ruleset.LootGenerationFactory.CreateRandomLootObjects_New(profile, treasureType, treasureClass);
                         if (treasure != null)
                         {
                             player.TryCreateForGive(WorldObject, treasure);
@@ -1348,7 +1350,7 @@ namespace ACE.Server.WorldObjects.Managers
                             if (emote.ObjCellId.Value > 0)
                             {
                                 var destination = new LocalPosition(emote.ObjCellId.Value, emote.OriginX.Value, emote.OriginY.Value, emote.OriginZ.Value, emote.AnglesX.Value, emote.AnglesY.Value, emote.AnglesZ.Value, emote.AnglesW.Value)
-                                    .AsInstancedPosition(player, PlayerInstanceSelectMode.SameIfSameLandblock, PlayerInstanceSelectMode.HomeRealm);
+                                    .AsInstancedPosition(player, PlayerInstanceSelectMode.SameIfSameLandblock, PlayerInstanceSelectMode.RealmDefaultInstanceID);
 
                                 destination = WorldObject.AdjustDungeon(destination);
                                 WorldManager.ThreadSafeTeleport(player, destination, false);

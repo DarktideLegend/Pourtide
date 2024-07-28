@@ -35,7 +35,7 @@ namespace ACE.Server.WorldObjects
 
             // handle proc spells for weapon
             // this could be a melee weapon, or a missile launcher
-            if (weapon != null && weapon.HasProc && weapon.ProcSpellSelfTargeted == selfTarget)
+            if (weapon != null && (weapon.HasCustomProc || weapon.HasProc && weapon.ProcSpellSelfTargeted == selfTarget))
             {
                 // weapon
                 weapon.TryProcItem(attacker, target, selfTarget);

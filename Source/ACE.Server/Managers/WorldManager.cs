@@ -29,6 +29,7 @@ using ACE.Database.Entity;
 using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
 using ACE.Common.ACRealms;
+using ACE.Server.Managers.ACRealms;
 using ACE.Entity.Enum.RealmProperties;
 using ACE.Common.Performance;
 
@@ -81,6 +82,7 @@ namespace ACE.Server.Managers
 
         internal static void Open(Player player)
         {
+            ACE.Entity.ACRealms.RealmsFromACESetupHelper.UnsafeInstanceIDTemporarilyAllowed = false;
             WorldStatus = WorldStatusState.Open;
             PlayerManager.BroadcastToAuditChannel(player, "World is now open");
         }
@@ -100,6 +102,20 @@ namespace ACE.Server.Managers
 
         public static void PlayerInitForWorld(ISession session, uint guid, string clientString)
         {
+            if (!RealmsFromACESetup.StatusQueriedDuringStartup)
+            {
+                log.Error($"FATAL: RealmsFromACESetup was not allowed to query migration status during startup (bad git merge or manually disabled). Rejecting login to prevent player data corruption.");
+                session.SendCharacterError(CharacterError.EnterGameCouldntPlaceCharacter);
+                return;
+            }
+
+            if (ACE.Entity.ACRealms.RealmsFromACESetupHelper.UnsafeInstanceIDTemporarilyAllowed)
+            {
+                log.Error($"FATAL: RealmsFromACESetupHelper.UnsafeInstanceIDTemporarilyAllowed was erroneously set to true, or migration from ACE did not complete successfully. Rejecting login to prevent player data corruption.");
+                session.SendCharacterError(CharacterError.EnterGameCouldntPlaceCharacter);
+                return;
+            }
+
             if (ServerManager.ShutdownInProgress)
             {
                 session.SendCharacterError(CharacterError.LogonServerFull);
@@ -228,7 +244,7 @@ namespace ACE.Server.Managers
 
                 var currentRealmId = playerLocation?.RealmID ?? 0;
 
-                DatabaseManager.Shard.BaseDatabase.LogCharacterLogin((ushort)homeRealmId, currentRealmId, session.AccountId, session.Account, session.EndPointC2S.Address.ToString(), character.Id, character.Name);
+                DatabaseManager.Pourtide.LogCharacterLogin((ushort)homeRealmId, currentRealmId, session.AccountId, session.Account, session.EndPointC2S.Address.ToString(), character.Id, character.Name);
                 PlayerManager.UpdatePlayerToIpMap((ushort)homeRealmId, session.EndPointC2S.Address.ToString(), character.Id);
 
             }
@@ -419,9 +435,6 @@ namespace ACE.Server.Managers
             if (olthoiPlayerReturnedToLifestone)
                 session.Player.Location = session.Player.Sanctuary.AsInstancedPosition(session.Player, PlayerInstanceSelectMode.HomeRealm);
 
-            // teach pourtide augs
-            PlayerFactory.TeachPourtideAugmentations(player);
-
             session.Player.PlayerEnterWorld();
 
             var success = LandblockManager.AddObject(session.Player, true);
@@ -463,11 +476,7 @@ namespace ACE.Server.Managers
                 if (player.IsOlthoiPlayer)
                     session.Network.EnqueueSend(new GameEventPopupString(session, AppendLines(popup_welcome, popup_motd)));
                 else
-                {
-
-                    PlayerFactory.AddStarterEssentials(player);
                     session.Network.EnqueueSend(new GameEventPopupString(session, AppendLines(popup_header, popup_motd, popup_welcome)));
-                }
             }
             else if (!string.IsNullOrEmpty(popup_motd))
             {

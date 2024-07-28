@@ -54,9 +54,12 @@ namespace ACE.Server.WorldObjects
             return cylDist <= useRadius;
         }
 
-        public float GetCylinderDistance(WorldObject wo)
+        public float GetCylinderDistance(WorldObject wo, WorldObject spellOrigin = null) 
         {
-            return (float)Physics.Common.PhysicsPosition.CylinderDistance(PhysicsObj.GetRadius(), PhysicsObj.GetHeight(), PhysicsObj.Position,
+            if (spellOrigin == null)
+                spellOrigin = this;
+
+            return (float)Physics.Common.PhysicsPosition.CylinderDistance(spellOrigin.PhysicsObj.GetRadius(), spellOrigin.PhysicsObj.GetHeight(), spellOrigin.PhysicsObj.Position,
                 wo.PhysicsObj.GetRadius(), wo.PhysicsObj.GetHeight(), wo.PhysicsObj.Position);
         }
 

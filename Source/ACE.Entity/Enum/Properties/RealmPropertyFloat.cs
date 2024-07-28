@@ -2,8 +2,13 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
+using RealmPropertyFloatAttribute = ACE.Entity.Enum.Properties.RealmPropertyPrimaryMinMaxAttribute<double>;
+
 namespace ACE.Entity.Enum.Properties
 {
+    #pragma warning disable IDE0001
+    [RequiresPrimaryAttribute<RealmPropertyPrimaryMinMaxAttribute<double>, double>]
+    #pragma warning restore IDE0001
     public enum RealmPropertyFloat : ushort
     {
         [RealmPropertyFloat(defaultValue: 0f, minValue: 0f, maxValue: 0f)]
@@ -138,11 +143,45 @@ namespace ACE.Entity.Enum.Properties
         [RealmPropertyFloat(33f, -10f, 100f)]
         TinkeringBaseImbueChanceCap = 32,
 
-        [RealmPropertyFloat(1f, 0.01f, 100f)]
-        CreatureSpawnMultiplier = 33,
+        [Description("Scales the chance for cantrips to drop in each tier. Defaults to 1.0, as per end of retail")]
+        [RerollRestrictedTo(RealmPropertyRerollType.landblock)]
+        [RealmPropertyFloat("cantrip_drop_rate", 1f, 0f, 100000.0)]
+        CantripDropRate = 33,
 
-        [RealmPropertyFloat(0f, 0f, 300f)]
-        CreatureRespawnDuration = 34
+        [Description("Scales the chance for minor cantrips to drop, relative to other cantrip levels in the tier. Defaults to 1.0, as per end of retail")]
+        [RerollRestrictedTo(RealmPropertyRerollType.landblock)]
+        [RealmPropertyFloat("minor_cantrip_drop_rate", 1f, 0f, 100000.0)]
+        MinorCantripDropRate = 34,
+
+        [Description("Scales the chance for major cantrips to drop, relative to other cantrip levels in the tier. Defaults to 1.0, as per end of retail")]
+        [RerollRestrictedTo(RealmPropertyRerollType.landblock)]
+        [RealmPropertyFloat("major_cantrip_drop_rate", 1f, 0f, 100000.0)]
+        MajorCantripDropRate = 35,
+
+        [Description("Scales the chance for epic cantrips to drop, relative to other cantrip levels in the tier. Defaults to 1.0, as per end of retail")]
+        [RerollRestrictedTo(RealmPropertyRerollType.landblock)]
+        [RealmPropertyFloat("epic_cantrip_drop_rate", 1f, 0f, 100000.0)]
+        EpicCantripDropRate = 36,
+
+        [Description("Scales the chance for legendary cantrips to drop, relative to other cantrip levels in the tier. Defaults to 1.0, as per end of retail")]
+        [RerollRestrictedTo(RealmPropertyRerollType.landblock)]
+        [RealmPropertyFloat("legendary_cantrip_drop_rate", 1f, 0f, 100000.0)]
+        LegendaryCantripDropRate = 37,
+
+        // Pourtide props
+        [RealmPropertyFloat("creature_spawn_multiplier", 1f, 0.01f, 100f)]
+        CreatureSpawnMultiplier = 60001,
+
+        [RealmPropertyFloat("creature_respawn_duration", 0f, 0f, 300f)]
+        CreatureRespawnDuration = 60002,
+
+        [Description("Scales the chance for a spell to chain to nearby monsters. Defaults to 0.0")]
+        [RealmPropertyFloat("spell_chain_chance", 0f, 0f, 300f)]
+        SpellChainChance = 60003,
+
+        [Description("Sets the max range of a spell chain target. Defaults to 20.0")]
+        [RealmPropertyFloat("max_spell_chain_range", 20f, 0f, 300f)]
+        MaxSpellChainRange = 60004
     }
 
     public static class RealmPropertyFloatExtensions

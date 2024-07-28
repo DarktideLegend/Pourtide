@@ -13,9 +13,10 @@ using ACE.Entity.Enum.Properties;
 using ACE.Entity.Models;
 using ACE.Server.WorldObjects;
 using ACE.Server.Managers;
-using ACE.Server.Features.Xp;
 using ACE.Server.Realms;
 using ACE.Common.ACRealms;
+using ACE.Server.Entity.Actions;
+using ACE.Server.Features.DailyXp;
 
 namespace ACE.Server.Factories
 {
@@ -43,35 +44,30 @@ namespace ACE.Server.Factories
         public static void TeachPourtideAugmentations(Player player)
         {
             foreach (var augtype in RealmConstants.PourtideAugmentations)
-            {
-                AugmentationDevice.DoAugmentation(player, augtype, null, false, false);
-                player.SaveBiotaToDatabase();
-            }
+                AugmentationDevice.DoAugmentation(player, augtype, null, false, true);
         }
 
-        public static void AddStarterEssentials(Player player)
+        public static void SetupNewCharacter(Player player)
         {
-            /*for (uint spellLevel = 1; spellLevel <= 3; spellLevel++)
+            var actionChain = new ActionChain();
+            actionChain.AddDelaySeconds(1.0f);
+            actionChain.AddAction(player, () =>
             {
-                player.LearnSpellsInBulk(MagicSchool.CreatureEnchantment, spellLevel, true);
-                player.LearnSpellsInBulk(MagicSchool.ItemEnchantment, spellLevel, true);
-                player.LearnSpellsInBulk(MagicSchool.LifeMagic, spellLevel, true);
-                player.LearnSpellsInBulk(MagicSchool.VoidMagic, spellLevel, true);
-                player.LearnSpellsInBulk(MagicSchool.WarMagic, spellLevel, true);
-            }*/
+                TeachPourtideAugmentations(player);
 
-            /*foreach (var id in Foci)
-            {
-                var wo = WorldObjectFactory.CreateNewWorldObject(id);
-                player.TryCreateInInventoryWithNetworking(wo);
-            }*/
+                for (uint spellLevel = 1; spellLevel <= 3; spellLevel++)
+                {
+                    player.LearnSpellsInBulk(MagicSchool.CreatureEnchantment, spellLevel, true);
+                    player.LearnSpellsInBulk(MagicSchool.ItemEnchantment, spellLevel, true);
+                    player.LearnSpellsInBulk(MagicSchool.LifeMagic, spellLevel, true);
+                    player.LearnSpellsInBulk(MagicSchool.VoidMagic, spellLevel, true);
+                    player.LearnSpellsInBulk(MagicSchool.WarMagic, spellLevel, true);
+                }
 
-            /*var dailyCap = XpManager.DailyXpCap;
-            player.QuestXpDailyMax = (long)dailyCap;
-            player.MonsterXpDailyMax = (long)dailyCap;
-            player.PvpXpDailyMax = (long)dailyCap;*/
+                player.SaveBiotaToDatabase();
+            });
 
-            XpManager.SetPlayerXpCap(player);
+            actionChain.EnqueueChain();
         }
 
         public static CreateResult Create(CharacterCreateInfo characterCreateInfo, Weenie weenie, ObjectGuid guid, uint accountId, WeenieType weenieType, out Player player)
@@ -449,7 +445,7 @@ namespace ACE.Server.Factories
             else
             {
                 var realmSelector = RealmManager.GetReservedRealm(ReservedRealm.RealmSelector);
-                var blaineRoom = new LocalPosition(0xB96F0100, 83.7821f, 107.123f, 10.005f, 0f, 0f, -0.068597f, -0.997645f);
+                var blaineRoom = new LocalPosition(0x8903012E, 87.738312f, -47.704556f, .005f, 0f, 0f, -0.926821f, 0.375504f);
                 var iid = realmSelector.StandardRules.GetDefaultInstanceID(player, blaineRoom);
                 var startPos = blaineRoom.AsInstancedPosition(iid);
                 RealmManager.SetHomeRealm(player, realmSelector.Realm.Id, false, saveImmediately: false);

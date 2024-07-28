@@ -1,7 +1,7 @@
 DELETE FROM `weenie` WHERE `class_Id` = 3000311;
 
 INSERT INTO `weenie` (`class_Id`, `class_Name`, `type`, `last_Modified`)
-VALUES (3000311, 'ace3000311-qualityoflifevendor', 12, '2024-05-13 23:40:24') /* Vendor */;
+VALUES (3000311, 'ace3000311-qualityoflifevendor', 12, '2024-06-22 09:27:32') /* Vendor */;
 
 INSERT INTO `weenie_properties_int` (`object_Id`, `type`, `value`)
 VALUES (3000311,   1,         16) /* ItemType - Creature */
@@ -164,10 +164,11 @@ VALUES (3000311, 2, 25703,  0, 93, 1, False) /* Create Dapper Suit (25703) for W
      , (3000311, 4, 30228, -1, 0, 0, False) /* Create Evader's Crystal (30228) for Shop */
      , (3000311, 4, 30229, -1, 0, 0, False) /* Create Dodger's Crystal (30229) for Shop */
      , (3000311, 4, 30184, -1, 0, 0, False) /* Create Scholar's Crystal (30184) for Shop */;
+     
 
 /* Lifestoned Changelog:
 {
-  "LastModified": "2024-05-13T16:39:41.2032035-07:00",
+  "LastModified": "2024-06-22T02:26:17.1951467-07:00",
   "ModifiedBy": "pourman",
   "Changelog": [
     {
@@ -187,6 +188,11 @@ VALUES (3000311, 2, 25703,  0, 93, 1, False) /* Create Dapper Suit (25703) for W
     },
     {
       "created": "0001-01-01T00:00:00",
+      "author": "ACE.Adapter",
+      "comment": "Weenie exported from ACEmulator world database using ACE.Adapter"
+    },
+    {
+      "created": "2024-06-22T09:18:39.5295955Z",
       "author": "ACE.Adapter",
       "comment": "Weenie exported from ACEmulator world database using ACE.Adapter"
     }

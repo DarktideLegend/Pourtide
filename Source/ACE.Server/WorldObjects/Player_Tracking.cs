@@ -222,6 +222,9 @@ namespace ACE.Server.WorldObjects
 
         public void HandleRiftPlayer()
         {
+            if (Cloaked == true)
+                return;
+
             var actionChain = new ActionChain();
 
             actionChain.AddAction(this, () =>
@@ -244,6 +247,9 @@ namespace ACE.Server.WorldObjects
 
         public void HandleDeRiftPlayer()
         {
+            if (Cloaked == true)
+                return;
+
             var actionChain = new ActionChain();
 
             actionChain.AddAction(this, () =>

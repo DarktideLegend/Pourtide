@@ -19,23 +19,22 @@ using ACE.Server.Managers;
 using ACE.Server.WorldObjects;
 
 using WeenieClassName = ACE.Server.Factories.Enum.WeenieClassName;
+using System.Collections.Immutable;
+using ACE.Server.Realms;
+using ACE.Entity.Models;
+using ACE.Server.Features.Spells.Managers;
 
 namespace ACE.Server.Factories
 {
-    public static partial class LootGenerationFactory
+    public partial class LootGenerationFactory(AppliedRuleset Ruleset)
     {
         private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         // Used for cumulative ServerPerformanceMonitor event recording
-        private static readonly ThreadLocal<Stopwatch> stopwatch = new ThreadLocal<Stopwatch>(() => new Stopwatch());
+        private readonly ThreadLocal<Stopwatch> stopwatch = new ThreadLocal<Stopwatch>(() => new Stopwatch());
 
-        static LootGenerationFactory()
-        {
-            InitRares();
-            InitClothingColors();
-        }
 
-        public static List<WorldObject> CreateRandomLootObjects(TreasureDeath profile)
+        public List<WorldObject> CreateRandomLootObjects(TreasureDeath profile)
         {
             if (!PropertyManager.GetBool("legacy_loot_system").Item)
                 return CreateRandomLootObjects_New(profile);
@@ -161,7 +160,7 @@ namespace ACE.Server.Factories
             }
         }
 
-        public static List<WorldObject> CreateRandomLootObjects_New(TreasureDeath profile)
+        public List<WorldObject> CreateRandomLootObjects_New(TreasureDeath profile)
         {
             stopwatch.Value.Restart();
 
@@ -230,7 +229,7 @@ namespace ACE.Server.Factories
             }
         }
 
-        private static WorldObject TryRollMundaneAddon(TreasureDeath profile)
+        private WorldObject TryRollMundaneAddon(TreasureDeath profile)
         {
             // coalesced mana only dropped in tiers 1-4
             if (profile.Tier <= 4)
@@ -241,7 +240,7 @@ namespace ACE.Server.Factories
                 return TryRollAetheria(profile);
         }
 
-        private static WorldObject TryRollCoalescedMana(TreasureDeath profile)
+        private WorldObject TryRollCoalescedMana(TreasureDeath profile)
         {
             // 2% chance in here, which turns out to be less per corpse w/ MundaneItemChance > 0,
             // when the outer MundaneItemChance roll is factored in
@@ -255,7 +254,7 @@ namespace ACE.Server.Factories
                 return null;
         }
 
-        private static WorldObject TryRollAetheria(TreasureDeath profile)
+        private WorldObject TryRollAetheria(TreasureDeath profile)
         {
             var aetheria_drop_rate = (float)PropertyManager.GetDouble("aetheria_drop_rate").Item;
 
@@ -276,7 +275,7 @@ namespace ACE.Server.Factories
                 return null;
         }
 
-        public static WorldObject CreateRandomLootObjects(TreasureDeath profile, bool isMagical, LootBias lootBias = LootBias.UnBiased)
+        public WorldObject CreateRandomLootObjects(TreasureDeath profile, bool isMagical, LootBias lootBias = LootBias.UnBiased)
         {
             WorldObject wo = null;
 
@@ -339,7 +338,7 @@ namespace ACE.Server.Factories
         }
 
 
-        public static bool MutateItem(WorldObject item, TreasureDeath profile, bool isMagical)
+        public bool MutateItem(WorldObject item, TreasureDeath profile, bool isMagical)
         {
             // should ideally be split up between getting the item type,
             // and getting the specific mutate function parameters
@@ -458,7 +457,7 @@ namespace ACE.Server.Factories
             return true;
         }
 
-        public static List<WorldObject> CreateRandomObjectsOfType(WeenieType type, int count)
+        public List<WorldObject> CreateRandomObjectsOfType(WeenieType type, int count)
         {
             var weenies = DatabaseManager.World.GetRandomWeeniesOfType((int)type, count);
 
@@ -476,7 +475,7 @@ namespace ACE.Server.Factories
         /// <summary>
         /// Returns an appropriate material type for the World Object based on its loot tier.
         /// </summary>
-        private static MaterialType GetMaterialType(WorldObject wo, int tier)
+        private MaterialType GetMaterialType(WorldObject wo, int tier)
         {
             if (wo.TsysMutationData == null)
             {
@@ -528,7 +527,7 @@ namespace ACE.Server.Factories
         /// <summary>
         /// Gets a randomized default material type for when a weenie does not have TsysMutationData 
         /// </summary>
-        private static MaterialType GetDefaultMaterialType(WorldObject wo)
+        private MaterialType GetDefaultMaterialType(WorldObject wo)
         {
             if (wo == null)
                 return MaterialType.Unknown;
@@ -574,7 +573,7 @@ namespace ACE.Server.Factories
         ///
         /// This was a temporary function to give some color to loot until further work was put in for "proper" color handling. Leave it here as an option for future potential use (perhaps config option?)
         /// </summary>
-        private static WorldObject RandomizeColorTotallyRandom(WorldObject wo)
+        private WorldObject RandomizeColorTotallyRandom(WorldObject wo)
         {
             // Make sure the item has a ClothingBase...otherwise we can't properly randomize the colors.
             if (wo.ClothingBase != null)
@@ -602,11 +601,9 @@ namespace ACE.Server.Factories
             }
             return wo;
         }
-
-        public static readonly List<TreasureMaterialColor> clothingColors = new List<TreasureMaterialColor>();
-
-        public static void InitClothingColors()
-        {
+        
+        public ImmutableList<TreasureMaterialColor> clothingColors { get; } = new Func<List<TreasureMaterialColor>>(() => {
+            var list = new List<TreasureMaterialColor>();
             for (uint i = 1; i < 19; i++)
             {
                 TreasureMaterialColor tmc = new TreasureMaterialColor
@@ -614,15 +611,17 @@ namespace ACE.Server.Factories
                     PaletteTemplate = i,
                     Probability = 1
                 };
-                clothingColors.Add(tmc);
+                list.Add(tmc);
             }
-        }
+            return list;
+        })().ToImmutableList();
+
 
         /// <summary>
         /// Assign a random color (Int.PaletteTemplate and Float.Shade) to a World Object based on the material assigned to it.
         /// </summary>
         /// <returns>WorldObject with a random applicable PaletteTemplate and Shade applied, if available</returns>
-        private static void MutateColor(WorldObject wo)
+        private void MutateColor(WorldObject wo)
         {
             if (wo.MaterialType > 0 && wo.TsysMutationData != null && wo.ClothingBase != null)
             {
@@ -645,7 +644,7 @@ namespace ACE.Server.Factories
                         // (gems have ColorCode of 0, but also no MaterialCode as they are defined by the weenie)
 
                         // this can be removed after all servers have upgraded to latest db
-                        colors = clothingColors;
+                        colors = clothingColors.ToList();
                     }
                     else
                         return;
@@ -708,22 +707,22 @@ namespace ACE.Server.Factories
         /// <summary>
         /// Some helper functions to get Probablity from different list types
         /// </summary>
-        private static float GetTotalProbability(List<TreasureMaterialColor> colors)
+        private float GetTotalProbability(List<TreasureMaterialColor> colors)
         {
             return colors != null ? colors.Sum(i => i.Probability) : 0.0f;
         }
 
-        private static float GetTotalProbability(List<TreasureMaterialBase> list)
+        private float GetTotalProbability(List<TreasureMaterialBase> list)
         {
             return list != null ? list.Sum(i => i.Probability) : 0.0f;
         }
 
-        private static float GetTotalProbability(List<TreasureMaterialGroups> list)
+        private float GetTotalProbability(List<TreasureMaterialGroups> list)
         {
             return list != null ? list.Sum(i => i.Probability) : 0.0f;
         }
 
-        public static MaterialType RollGemType(int tier)
+        public MaterialType RollGemType(int tier)
         {
             // previous formula
             //return (MaterialType)ThreadSafeRandom.Next(10, 50);
@@ -739,7 +738,7 @@ namespace ACE.Server.Factories
         public static readonly float WeaponBulk = 0.50f;
         public static readonly float ArmorBulk = 0.25f;
 
-        private static bool MutateBurden(WorldObject wo, TreasureDeath treasureDeath, bool isWeapon)
+        private bool MutateBurden(WorldObject wo, TreasureDeath treasureDeath, bool isWeapon)
         {
             // ensure item has burden
             if (wo.EncumbranceVal == null)
@@ -771,7 +770,7 @@ namespace ACE.Server.Factories
             return true;
         }
 
-        private static List<(int min, int max)> itemValue_RandomRange = new List<(int min, int max)>()
+        private static readonly ImmutableList<(int min, int max)> itemValue_RandomRange = new List<(int min, int max)>
         {
             ( 50, 1000),    // T1
             (200, 1500),    // T2
@@ -781,9 +780,9 @@ namespace ACE.Server.Factories
             (400, 3500),    // T6
             (600, 4000),    // T7
             (600, 4500),    // T8
-        };
+        }.ToImmutableList();
 
-        private static int Roll_ItemValue(WorldObject wo, int tier)
+        private int Roll_ItemValue(WorldObject wo, int tier)
         {
             // This is just a placeholder. This doesnt return a final value used retail, just a quick value for now.
             // Will use, tier, material type, amount of gems set into item, type of gems, spells on item
@@ -798,7 +797,7 @@ namespace ACE.Server.Factories
             return (int)(rng * gemMod * materialMod * Math.Ceiling(tier / 2.0f));
         }
 
-        private static void MutateValue(WorldObject wo, int tier, TreasureRoll roll)
+        private void MutateValue(WorldObject wo, int tier, TreasureRoll roll)
         {
             if (roll == null)
             {
@@ -843,7 +842,7 @@ namespace ACE.Server.Factories
 
         private static readonly float valueNonFactor = 1.0f - valueFactor;
 
-        private static void MutateValue_Generic(WorldObject wo, int tier)
+        private void MutateValue_Generic(WorldObject wo, int tier)
         {
             // confirmed from retail magloot logs, matches up relatively closely
 
@@ -869,7 +868,7 @@ namespace ACE.Server.Factories
                 wo.Value = iValue;
         }
 
-        private static void MutateValue_Spells(WorldObject wo)
+        private void MutateValue_Spells(WorldObject wo)
         {
             if (wo.ItemMaxMana != null)
                 wo.Value += wo.ItemMaxMana * 2;
@@ -893,7 +892,7 @@ namespace ACE.Server.Factories
             wo.Value += spellLevelSum * 10;
         }
 
-        private static readonly List<int> ItemValue_TierMod = new List<int>()
+        private static readonly ImmutableList<int> ItemValue_TierMod = new List<int>()
         {
             25,     // T1
             50,     // T2
@@ -903,12 +902,12 @@ namespace ACE.Server.Factories
             1000,   // T6
             2000,   // T7
             3000,   // T8
-        };
+        }.ToImmutableList();
 
         /// <summary>
         /// Set the AppraisalLongDescDecoration of the item, which controls the full descriptive text shown in the client on appraisal
         /// </summary>
-        private static WorldObject SetAppraisalLongDescDecoration(WorldObject wo)
+        private WorldObject SetAppraisalLongDescDecoration(WorldObject wo)
         {
             var appraisalLongDescDecoration = AppraisalLongDescDecorations.None;
 
@@ -929,7 +928,7 @@ namespace ACE.Server.Factories
 
         // new methods
 
-        public static TreasureRoll RollWcid(TreasureDeath treasureDeath, TreasureItemCategory category, TreasureItemType_Orig treasureItemType = TreasureItemType_Orig.Undef)
+        public TreasureRoll RollWcid(TreasureDeath treasureDeath, TreasureItemCategory category, TreasureItemType_Orig treasureItemType = TreasureItemType_Orig.Undef)
         {
             if (treasureItemType == TreasureItemType_Orig.Undef)
                 treasureItemType = RollItemType(treasureDeath, category);
@@ -1060,7 +1059,7 @@ namespace ACE.Server.Factories
         /// <summary>
         /// Rolls for an overall item type, based on the *_Chances columns in the treasure_death profile
         /// </summary>
-        public static TreasureItemType_Orig RollItemType(TreasureDeath treasureDeath, TreasureItemCategory category)
+        public TreasureItemType_Orig RollItemType(TreasureDeath treasureDeath, TreasureItemCategory category)
         {
             switch (category)
             {
@@ -1076,7 +1075,7 @@ namespace ACE.Server.Factories
             return TreasureItemType_Orig.Undef;
         }
 
-        public static WorldObject CreateRandomLootObjects_New(TreasureDeath treasureDeath, TreasureItemCategory category, TreasureItemType_Orig treasureItemType = TreasureItemType_Orig.Undef)
+        public WorldObject CreateRandomLootObjects_New(TreasureDeath treasureDeath, TreasureItemCategory category, TreasureItemType_Orig treasureItemType = TreasureItemType_Orig.Undef)
         {
             var treasureRoll = RollWcid(treasureDeath, category, treasureItemType);
 
@@ -1087,7 +1086,7 @@ namespace ACE.Server.Factories
             return wo;
         }
 
-        public static WorldObject CreateAndMutateWcid(TreasureDeath treasureDeath, TreasureRoll treasureRoll, bool isMagical)
+        public WorldObject CreateAndMutateWcid(TreasureDeath treasureDeath, TreasureRoll treasureRoll, bool isMagical)
         {
             WorldObject wo = null;
 
@@ -1204,7 +1203,7 @@ namespace ACE.Server.Factories
         /// <summary>
         /// The min/max amount of pyreals that can be rolled per tier, from magloot corpse logs
         /// </summary>
-        private static readonly List<(int min, int max)> coinRanges = new List<(int, int)>()
+        private static readonly ImmutableList<(int min, int max)> coinRanges = new List<(int, int)>()
         {
             (5,   50),   // T1
             (10,  200),  // T2
@@ -1214,9 +1213,9 @@ namespace ACE.Server.Factories
             (250, 5000), // T6
             (250, 5000), // T7
             (250, 5000), // T8
-        };
+        }.ToImmutableList();
 
-        private static void MutateCoins(WorldObject wo, TreasureDeath profile)
+        private void MutateCoins(WorldObject wo, TreasureDeath profile)
         {
             var tierRange = coinRanges[profile.Tier - 1];
 
@@ -1226,7 +1225,7 @@ namespace ACE.Server.Factories
             wo.SetStackSize(rng);
         }
 
-        public static string GetLongDesc(WorldObject wo)
+        public string GetLongDesc(WorldObject wo)
         {
             if (wo.SpellDID != null)
             {
@@ -1249,7 +1248,7 @@ namespace ACE.Server.Factories
             return wo.Name;
         }
 
-        private static string TryGetLongDesc(WorldObject wo, SpellId spellId)
+        private string TryGetLongDesc(WorldObject wo, SpellId spellId)
         {
             var spellLevels = SpellLevelProgression.GetSpellLevels(spellId);
 
@@ -1259,7 +1258,7 @@ namespace ACE.Server.Factories
                 return null;
         }
 
-        private static void RollWieldLevelReq_T7_T8(WorldObject wo, TreasureDeath profile)
+        private void RollWieldLevelReq_T7_T8(WorldObject wo, TreasureDeath profile)
         {
             if (profile.Tier < 7)
                 return;
@@ -1281,6 +1280,112 @@ namespace ACE.Server.Factories
 
             // as per retail pcaps, must be set to appear in client
             wo.WieldSkillType = 1;  
+        }
+
+        public Gem CreateSlayerMorphGem()
+        {
+            var creatureType = SlayerChance.GetCreatureType();
+            var slayer = WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.SlayerMorphGem);
+            var damage = ThreadSafeRandom.Next((float)1.5, (float)3.0);
+
+            if (creatureType == ACE.Entity.Enum.CreatureType.Human)
+                damage = ThreadSafeRandom.Next((float)1.1, (float)1.5);
+
+            slayer.Name = $"{creatureType} Slayer Morph Gem";
+            slayer.LongDesc = $"Use this gem on any loot-generated weapon or caster to give it a {creatureType} Slayer effect. The damage for this slayer morph gem is {damage.ToString("0.00")}";
+            slayer.SlayerCreatureType = creatureType;
+            slayer.SlayerDamageBonus = damage;
+            return (Gem)slayer;
+        }
+
+        private Gem CreateSlayerExtractor()
+        {
+            return (Gem)WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.SlayerExtractorGem);
+        }
+
+        private Gem CreateCantripExtractorGem()
+        {
+            return (Gem)WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.CantripExtractorGem);
+        }
+
+        private Gem CreateCantripUpgradeGem()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Gem CreateRootMorphGem()
+        {
+            var spellRoot = WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.RootWeaponMorphGem);
+            spellRoot.ProcRootRate = 0.10f;
+            spellRoot.Name = $"Root Weapon Gem";
+            spellRoot.UpdateLongDescription();
+            return (Gem)spellRoot;
+        }
+
+        public Gem CreateSpellChainMorphGem()
+        {
+            var spellChain = WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.SpellChainMorphGem);
+            spellChain.ProcSpellChainRate = ThreadSafeRandom.Next(0.7f, 1.0f);
+            spellChain.ProcSpellRate = 0.25f;
+            spellChain.Name = $"Spell Chain Gem";
+            spellChain.UpdateLongDescription();
+            return (Gem)spellChain;
+        }
+
+        public Gem CreateSlowWeaponMorphGem()
+        {
+            var spellSlow = WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.SlowWeaponMorphGem);
+            spellSlow.ProcSlowRate = 0.10f;
+            spellSlow.Name = $"Slow Weapon Gem";
+            spellSlow.UpdateLongDescription();
+            return (Gem)spellSlow;
+        }
+
+        public Gem CreateThornArmorMorphGem()
+        {
+            var thornGem = (Gem)WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.ThornArmorMorphGem);
+            thornGem.ReflectiveDamageMod = ThreadSafeRandom.Next(0.10f, 0.50f);
+            thornGem.LongDesc = $"Reflective Damage Mod: {thornGem.ReflectiveDamageMod.ToString("0.00")}";
+            return thornGem;
+        }
+
+        public static SpellId GetCustomWeaponSpellByDamageType(DamageType damageType)
+        {
+            switch (damageType)
+            {
+                case DamageType.Acid:
+                    if (SpellsManager.GetSpellIdFromReadableName("Acid Stream I", out var acidId))
+                        return (SpellId)acidId;
+                    break;
+                case DamageType.Cold:
+                    if (SpellsManager.GetSpellIdFromReadableName("Frost Bolt I", out var frostId))
+                        return (SpellId)frostId;
+                    break;
+                case DamageType.Fire:
+                    if (SpellsManager.GetSpellIdFromReadableName("Flame Bolt I", out var fireId))
+                        return (SpellId)fireId;
+                    break;
+                case DamageType.Electric:
+                    if (SpellsManager.GetSpellIdFromReadableName("Lightning Bolt I", out var electricId))
+                        return (SpellId)electricId;
+                    break;
+                case DamageType.Slash:
+                    if (SpellsManager.GetSpellIdFromReadableName("Whirling Blade I", out var slashId))
+                        return (SpellId)slashId;
+                    break;
+                case DamageType.Pierce:
+                    if (SpellsManager.GetSpellIdFromReadableName("Force Bolt I", out var pierceId))
+                        return (SpellId)pierceId;
+                    break;
+                case DamageType.Bludgeon:
+                    if (SpellsManager.GetSpellIdFromReadableName("Shock Wave I", out var bludgeId))
+                        return (SpellId)bludgeId;
+                    break;
+                default:
+                    throw new ArgumentException("Invalid DamageType");
+            }
+
+            throw new InvalidOperationException("Unable to find a matching spell ID.");
         }
     }         
 }

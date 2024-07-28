@@ -451,10 +451,6 @@ VALUES (0x7A9B46B0, 37518, 0xA9B4003D, 176.73, 106.375, 65.2775, 0.643583, 0, 0,
 /* @teleloc 0xA9B4003D [176.729996 106.375000 65.277496] 0.643583 0.000000 0.000000 -0.765377 */
 
 INSERT INTO `landblock_instance` (`guid`, `weenie_Class_Id`, `obj_Cell_Id`, `origin_X`, `origin_Y`, `origin_Z`, `angles_W`, `angles_X`, `angles_Y`, `angles_Z`, `is_Link_Child`, `last_Modified`)
-VALUES (0x7A9B46B2,  1595, 0xA9B40003, 2.65437, 68.8178, 77.937, 0.380684, 0, 0, -0.924705, False, '2024-04-26 17:30:16'); /* Abandoned Mine */
-/* @teleloc 0xA9B40003 [2.654370 68.817802 77.936996] 0.380684 0.000000 0.000000 -0.924705 */
-
-INSERT INTO `landblock_instance` (`guid`, `weenie_Class_Id`, `obj_Cell_Id`, `origin_X`, `origin_Y`, `origin_Z`, `angles_W`, `angles_X`, `angles_Y`, `angles_Z`, `is_Link_Child`, `last_Modified`)
 VALUES (0x7A9B46B3, 3000381, 0xA9B40029, 123.179, 5.98177, 94.005, -0.471258, 0, 0, -0.881995, False, '2024-05-07 23:54:57'); /* Pour Collector */
 /* @teleloc 0xA9B40029 [123.179001 5.981770 94.004997] -0.471258 0.000000 0.000000 -0.881995 */
 

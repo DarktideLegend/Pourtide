@@ -26,10 +26,13 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ACE.Server.Features.HotDungeons.Managers;
-using ACE.Server.Features.Xp;
 using ACE.Server.Features.Discord;
 using System.Runtime;
 using ACE.Common.ACRealms;
+using ACE.Server.Managers.ACRealms;
+using ACE.Server.Features.Spells.Managers;
+using ACE.Database.Models.Pourtide;
+using ACE.Server.Features.DailyXp;
 
 namespace ACE.Server
 {
@@ -219,6 +222,16 @@ namespace ACE.Server
                         builder.EnableRetryOnFailure(10);
                     });
                 });
+                services.AddDbContextFactory<PourtideDbContext>(options =>
+                {
+                    options.UseLoggerFactory(dbLogger);
+                    var config = ConfigManager.Config.MySql.Pourtide;
+                    var connectionString = $"server={config.Host};port={config.Port};user={config.Username};password={config.Password};database={config.Database};{config.ConnectionOptions}";
+                    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString), builder =>
+                    {
+                        builder.EnableRetryOnFailure(10);
+                    });
+                });
             });
             var host = builder.Build();
             var services = host.Services;
@@ -265,7 +278,7 @@ namespace ACE.Server
 
             if (ConfigManager.Config.Offline.AutoUpdateWorldDatabase)
             {
-                CheckForWorldDatabaseUpdate();
+                CheckForWorldDatabaseUpdate(services);
 
                 if (ConfigManager.Config.Offline.AutoApplyWorldCustomizations)
                     AutoApplyWorldCustomizations();
@@ -364,11 +377,23 @@ namespace ACE.Server
             else
                 log.Info("Precaching World Database Disabled...");
 
+            if (ConfigManager.Config.Server.DeleteNonMajorCantripsFromShardBiotas)
+                DatabaseManager.Shard.BaseDatabase.DeleteAllNonMajorCantrips();
+
+            if (ConfigManager.Config.Server.DeleteArmorSets)
+                DatabaseManager.Shard.BaseDatabase.DeleteArmorSets();
+
+
+            if (ConfigManager.Config.Server.DeleteArmorRatings)
+                DatabaseManager.Shard.BaseDatabase.DeleteArmorRatings();
+
             log.Info("Initializing RealmManager...");
             RealmManager.Initialize();
 
             log.Info("Initializing PlayerManager...");
             PlayerManager.Initialize();
+
+            RealmsFromACESetup.QueryStage1();
 
             log.Info("Initializing HouseManager...");
             HouseManager.Initialize();
@@ -383,15 +408,20 @@ namespace ACE.Server
             log.Info("Initializing WorldManager...");
             WorldManager.Initialize();
 
+            if (!RealmsFromACESetup.DoMigrationsIfRequired())
+                return;
+
             log.Info("Initializing EventManager...");
             EventManager.Initialize();
 
             log.Info("Initializing XpManager...");
-            XpManager.Initialize();
+            DailyXpManager.Initialize();
 
             log.Info("Initializing DungeonManager...");
             DungeonManager.Initialize();
 
+            log.Info("Initializing SpellsManager...");
+            SpellsManager.Initialize();
 
             // Free up memory before the server goes online. This can free up 6 GB+ on larger servers.
             log.Info("Forcing .net garbage collection...");

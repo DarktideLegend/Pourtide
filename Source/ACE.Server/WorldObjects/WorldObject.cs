@@ -69,7 +69,7 @@ namespace ACE.Server.WorldObjects
         /// Should only be adjusted by Landblock -- default is null
         /// </summary>
         public Landblock CurrentLandblock { get; internal set; }
-        public AppliedRuleset RealmRuleset => CurrentLandblock?.RealmRuleset;
+        public AppliedRuleset RealmRuleset => CurrentLandblock?.RealmRuleset ?? RealmManager.ServerDefaultRuleset;
 
         public bool IsBusy { get; set; }
         public bool IsShield { get => CombatUse != null && CombatUse == ACE.Entity.Enum.CombatUse.Shield; }
@@ -131,7 +131,8 @@ namespace ACE.Server.WorldObjects
             SetEphemeralValues();
             InitializeGenerator();
             InitializeHeartbeats();
-            UpdateDurability(this);
+            UpdateLongDescription();
+            //UpdateDurability(this);
         }
 
 
@@ -417,22 +418,26 @@ namespace ACE.Server.WorldObjects
             return isVisible;
         }
 
-        public bool IsProjectileVisible(WorldObject proj)
+        public bool IsProjectileVisible(WorldObject proj, WorldObject spellOrigin = null)
         {
+
+            if (spellOrigin == null)
+                spellOrigin = this;
+
             if (!(this is Creature) || (Ethereal ?? false))
                 return true;
 
-            if (PhysicsObj == null || proj.PhysicsObj == null)
+            if (spellOrigin.PhysicsObj == null || proj.PhysicsObj == null)
                 return false;
 
             var startPos = new Physics.Common.PhysicsPosition(proj.PhysicsObj.Position);
-            var targetPos = new Physics.Common.PhysicsPosition(PhysicsObj.Position);
+            var targetPos = new Physics.Common.PhysicsPosition(spellOrigin.PhysicsObj.Position);
 
             // set to eye level
-            targetPos.Frame.Origin.Z += PhysicsObj.GetHeight() - proj.PhysicsObj.GetHeight();
+            targetPos.Frame.Origin.Z += spellOrigin.PhysicsObj.GetHeight() - proj.PhysicsObj.GetHeight();
 
             var prevTarget = proj.PhysicsObj.ProjectileTarget;
-            proj.PhysicsObj.ProjectileTarget = PhysicsObj;
+            proj.PhysicsObj.ProjectileTarget = spellOrigin.PhysicsObj;
 
             // perform line of sight test
             var transition = proj.PhysicsObj.transition(startPos, targetPos, false);
@@ -442,7 +447,7 @@ namespace ACE.Server.WorldObjects
             if (transition == null) return false;
 
             // check if target object was reached
-            var isVisible = transition.CollisionInfo.CollideObject.FirstOrDefault(c => c.ID == PhysicsObj.ID) != null;
+            var isVisible = transition.CollisionInfo.CollideObject.FirstOrDefault(c => c.ID == spellOrigin.PhysicsObj.ID) != null;
             return isVisible;
         }
 
@@ -741,7 +746,7 @@ namespace ACE.Server.WorldObjects
             if (Generator != null)
                 Location = new InstancedPosition(Location, Generator.Location.Instance);
 
-            UpdateDurability(this);
+            //UpdateDurability(this);
 
             if (!LandblockManager.AddObject(this))
                 return false;
@@ -1117,6 +1122,33 @@ namespace ACE.Server.WorldObjects
 
                 return Math.Max(0, structureUnitValue);
             }
+        }
+
+        public void UpdateLongDescription()
+        {
+            var sb = new StringBuilder();
+
+            if (ProcSpellChainRate > 0)
+            {
+                if ((ItemType & ItemType.Weapon) != 0)
+                    sb.Append($"Spell Proc Rate: {ProcSpellRate?.ToString("0.00")}\n");
+
+                sb.Append($"Spell Chain Proc Rate: {ProcSpellChainRate.ToString("0.00")}\n");
+            }
+
+            if (SlayerCreatureType != null)
+                sb.Append($"Slayer Damage Bonus: {SlayerDamageBonus?.ToString("0.00")}\n");
+
+            if (ReflectiveDamageMod > 0)
+                sb.Append($"Reflective Damage Mod: {ReflectiveDamageMod.ToString("0.00")}\n");
+
+            if (ProcSlowRate > 0)
+                sb.Append($"Slow Proc Rate: {ProcSlowRate.ToString("0.00")}\n");
+
+            if (ProcRootRate > 0)
+                sb.Append($"Root Proc Rate: {ProcRootRate.ToString("0.00")}\n");
+
+            LongDesc = sb.ToString();
         }
     }
 }

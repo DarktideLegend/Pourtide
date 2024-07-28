@@ -3228,16 +3228,6 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (target.WeenieClassId == 3000381 && item.WeenieClassId == 2626)
-            {
-                /*if (DateTime.UtcNow - PlayerBountySearchTimestamp < TimeSpan.FromSeconds(5))
-                {
-                    Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, $"Bounty information is only available once every minute, try again in {Formatting.FormatTimeRemaining(PlayerBountySearchTimestamp.AddMinutes(1) - DateTime.UtcNow)}!"));
-                    Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, itemGuid));
-                    return;
-                }*/
-            }
-
             CreateMoveToChain(target, (success) =>
             {
                 if (CurrentLandblock == null) // Maybe we were teleported as we were motioning to pick up the item
@@ -3392,113 +3382,142 @@ namespace ACE.Server.WorldObjects
             actionChain.EnqueueChain();
         }
 
-        public DateTime PlayerBountySearchTimestamp;
+        public void RefundBounty()
+        {
+            BountyGuid = null;
+            var tradeNote = WorldObjectFactory.CreateNewWorldObject(2626);
+            TryCreateInInventoryWithNetworking(tradeNote);
+            Session.Network.EnqueueSend(new GameMessageSystemChat($"\"Your bounty purchase has been refunded.\"", ChatMessageType.Tell));
+        }
 
-        public static bool GetBounty(Creature collector, Player currentPlayer, bool getCached = false)
+        public bool IsBountyExpired
+        {
+            get
+            {
+                if (!BountyCreationTimeStamp.HasValue)
+                    return true;
+
+                var bountyExpirationDuration = PropertyManager.GetLong("bounty_expiration_time").Item;
+                return DateTime.UtcNow - Time.GetDateTimeFromTimestamp((double)BountyCreationTimeStamp) > TimeSpan.FromMinutes(bountyExpirationDuration);
+            }
+
+        }
+
+        public void TrackBounty()
         {
             try
             {
-                /*if (DateTime.UtcNow - currentPlayer.PlayerBountySearchTimestamp <= TimeSpan.FromSeconds(5))
+
+                Session.Network.EnqueueSend(new GameMessageSystemChat($"\"-------------\"", ChatMessageType.Tell));
+
+                if (BountyGuid == null)
                 {
-                    currentPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{collector.Name} tells you, \"I only give bounty information once every minute, try again in {Formatting.FormatTimeRemaining(currentPlayer.PlayerBountySearchTimestamp.AddMinutes(1) - DateTime.UtcNow)}!.\"", ChatMessageType.Tell));
-                    return false;
-                }*/
-
-                currentPlayer.PlayerBountySearchTimestamp = DateTime.UtcNow;
-
-                var bountyGuid = currentPlayer.BountyGuid;
-
-                Player bountyPlayer = null;
-
-                if (getCached)
-                {
-                    if (bountyGuid == null)
-                    {
-                        currentPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{collector.Name} tells you, \"I have not given you a bounty, please bring me a D note if you'd like one!\"", ChatMessageType.Tell));
-                        return false;
-                    }
-
-                    bountyPlayer = PlayerManager.GetOnlinePlayer((uint)bountyGuid);
-
-                    if (bountyPlayer == null)
-                    {
-                        currentPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{collector.Name} tells you, \"I cannot find your bounty, they may be in an invalid location or not logged on.\"", ChatMessageType.Tell));
-                        return false;
-                    }
+                    Session.Network.EnqueueSend(new GameMessageSystemChat($"\"You are currently not tracking a player bounty at this time! Talk to Pour Collector in Holtburg to purchase a bounty.\"", ChatMessageType.Tell));
+                    return;
                 }
-                else 
+
+                var playerInfo = PlayerManager.FindByGuid((ulong)BountyGuid);
+
+                if (playerInfo == null)
                 {
-                    var players = PlayerManager.GetEnemyOnlinePlayers(currentPlayer).Where(p =>
-                                 p.Guid.Full != currentPlayer.Guid.Full &&
-                                 (PropertyManager.GetBool("test_server").Item || !(p is Admin)) &&
-                                 !p.IsLoggingOut &&
-                                 p.IsPK).ToList();
-
-                    if (players.Count <= 0)
-                    {
-                        currentPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{collector.Name} tells you, \"There are currently no bounty players available at this time.\"", ChatMessageType.Tell));
-                        return false;
-                    };
-
-                    var roll = ThreadSafeRandom.Next(0, players.Count - 1);
-
-                    bountyPlayer = players[roll];
+                    Session.Network.EnqueueSend(new GameMessageSystemChat($"\"Your bounty's character no longer exists.\"", ChatMessageType.Tell));
+                    RefundBounty();
+                    return;
                 }
+
+                var bountyExpirationDuration = PropertyManager.GetLong("bounty_expiration_time").Item;
+
+                if (IsBountyExpired)
+                {
+                    Session.Network.EnqueueSend(new GameMessageSystemChat($"\"Your bounty has expired.\"", ChatMessageType.Tell));
+                    RefundBounty();
+                    return;
+                }
+
+                Session.Network.EnqueueSend(new GameMessageSystemChat($"\"You are currently tracking the player {playerInfo.Name}.\"", ChatMessageType.Tell));
+                Session.Network.EnqueueSend(new GameMessageSystemChat($"\"Your bounty currently has {Formatting.FormatTimeRemaining(Time.GetDateTimeFromTimestamp((double)BountyCreationTimeStamp).AddMinutes(bountyExpirationDuration) - DateTime.UtcNow)} remaining.\"", ChatMessageType.Tell));
+
+                if (PlayerBountyTrackingCount <= 0)
+                {
+                    Session.Network.EnqueueSend(new GameMessageSystemChat($"\"You currently have no more tracking uses left.\"", ChatMessageType.Tell));
+                    return;
+                }
+
+                var bountyPlayer = PlayerManager.GetOnlinePlayer((uint)BountyGuid);
 
                 if (bountyPlayer == null)
                 {
-                    currentPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{collector.Name} tells you, \"There are currently no bounty players available at this time.\"", ChatMessageType.Tell));
-                    return false;
+                    Session.Network.EnqueueSend(new GameMessageSystemChat($"\"There are currently no bounty players online at this time. You may repeat this command until a player is found.\"", ChatMessageType.Tell));
+                    return;
                 }
 
                 if (bountyPlayer.PhysicsObj == null)
                 {
-                    currentPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{collector.Name} tells you, \"A bounty for {bountyPlayer.Name} was found but may be stuck in game.\"", ChatMessageType.Tell));
-                    return false;
+                    Session.Network.EnqueueSend(new GameMessageSystemChat($"\"A bounty for {bountyPlayer.Name} was found but may be stuck in game. You may repeat this command until a player is found.\"", ChatMessageType.Tell));
+                    return;
                 }
 
                 var coords = bountyPlayer.Location.GetMapCoordStr();
 
-
                 if (RiftManager.TryGetActiveRift(bountyPlayer.Location.Instance, out Rift activeRift))
                 {
-                    currentPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{collector.Name} tells you, \"Player {bountyPlayer.Name} was last seen at rift {activeRift.Name} - {activeRift.Coords}.\"", ChatMessageType.Tell));
-                    currentPlayer.BountyGuid = (int?)bountyPlayer.Guid.Full;
+                    Session.Network.EnqueueSend(new GameMessageSystemChat($"\"Player {bountyPlayer.Name} was last seen at rift {activeRift.Name} - {activeRift.Coords}.\"", ChatMessageType.Tell));
                 }
                 else if (DungeonManager.TryGetDungeonLandblock(bountyPlayer.Location.LandblockHex, out DungeonLandblock landblock))
                 {
-                    currentPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{collector.Name} tells you, \"Player {bountyPlayer.Name} was last seen at dungeon {landblock.Name} - {landblock.Coords}.\"", ChatMessageType.Tell));
-                    currentPlayer.BountyGuid = (int?)bountyPlayer.Guid.Full;
+                    Session.Network.EnqueueSend(new GameMessageSystemChat($"\"Player {bountyPlayer.Name} was last seen at dungeon {landblock.Name} - {landblock.Coords}.\"", ChatMessageType.Tell));
                 }
                 else if (coords != null && coords.Length > 0)
                 {
-                    currentPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{collector.Name} tells you, \"Player {bountyPlayer.Name} was last seen at {bountyPlayer.Location.GetMapCoordStr()}.\"", ChatMessageType.Tell));
-                    currentPlayer.BountyGuid = (int?)bountyPlayer.Guid.Full;
+                    Session.Network.EnqueueSend(new GameMessageSystemChat($"\"Player {bountyPlayer.Name} was last seen at {bountyPlayer.Location.GetMapCoordStr()}.\"", ChatMessageType.Tell));
                 }
                 else if (bountyPlayer.LastOutdoorPosition != null)
                 {
-                    currentPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{collector.Name} tells you, \"Player {bountyPlayer.Name} is in an unknown dungeon landblock ({bountyPlayer.Location.LandblockHex}) and was last seen outdoors near {bountyPlayer.LastOutdoorPosition.GetMapCoordStr()}.\"", ChatMessageType.Tell));
-                    currentPlayer.BountyGuid = (int?)bountyPlayer.Guid.Full;
+                    Session.Network.EnqueueSend(new GameMessageSystemChat($"\"Player {bountyPlayer.Name} is in an unknown dungeon landblock ({bountyPlayer.Location.LandblockHex}) and was last seen outdoors near {bountyPlayer.LastOutdoorPosition.GetMapCoordStr()}.\"", ChatMessageType.Tell));
                 }
                 else
                 {
-                    if (getCached)
-                        currentPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{collector.Name} tells you, \"Sorry, I could not find your bounty {bountyPlayer?.Name} at this time ... Try again later.\"", ChatMessageType.Tell));
-                    else 
-                        currentPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{collector.Name} tells you, \"Sorry, a bounty was found for {bountyPlayer?.Name} but they are in an unknown location  ... Try again later.\"", ChatMessageType.Tell));
-
-                    return false;
+                    Session.Network.EnqueueSend(new GameMessageSystemChat($"\"Sorry, a bounty was found for {bountyPlayer?.Name} but they are in an unknown location. You may repeat this command until a player is found.\"", ChatMessageType.Tell));
+                    return;
                 }
+
+                Session.Network.EnqueueSend(new GameMessageSystemChat($"\"You currently have {--PlayerBountyTrackingCount} tracking uses remaining.\"", ChatMessageType.Tell));
+            } catch (Exception ex)
+            {
+                log.Error($"Error: tracking bounty: {ex}");
+            }
+        }
+
+        public static bool PurchaseBounty(Creature collector, Player currentPlayer, bool getCached = false)
+        {
+            try
+            {
+                var players = PlayerManager.GetEnemyOnlinePlayers(currentPlayer).Where(p =>
+                             p.Guid.Full != currentPlayer.Guid.Full &&
+                             (PropertyManager.GetBool("test_server").Item || !(p is Admin)) &&
+                             !p.IsLoggingOut &&
+                             p.IsPK).ToList();
+
+                if (players.Count <= 0)
+                {
+                    currentPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{collector.Name} tells you, \"There are currently no bounty players available at this time.\"", ChatMessageType.Tell));
+                    currentPlayer.RefundBounty();
+                    return false;
+                };
+
+                var roll = ThreadSafeRandom.Next(0, players.Count - 1);
+
+                currentPlayer.BountyGuid = (int?)players[roll].Guid.Full;
+                currentPlayer.BountyCreationTimeStamp = (int)Time.GetUnixTime();
+                currentPlayer.PlayerBountyTrackingCount = 6;
+                currentPlayer.TrackBounty();
 
                 return true;
             } catch (Exception ex)
             {
-                log.Error($"Error: an error occurred while trying to get a bounty for {currentPlayer.Name}");
-                log.Error(ex.Message);
-                log.Error(ex.StackTrace);
+                log.Error($"Error: purchasing bounty for {currentPlayer.Name}: {ex}");
                 return false;
             }
-
         }
 
         private void GiveObjectToNPC(WorldObject target, WorldObject item, Container itemFoundInContainer, Container itemRootOwner, bool itemWasEquipped, int amount)
@@ -3557,10 +3576,9 @@ namespace ACE.Server.WorldObjects
                             if (victim == null)
                                 return;
 
-                            var mod = (double)victim.Level / (double)Level;
-                            var playerXp = (victim.GetProperty(PropertyInt64.TotalExperience) ?? 0) * 0.05;
-                            var earnedPvpXp = playerXp * mod;
-                            EarnXP((long)Math.Round((double)earnedPvpXp), XpType.Quest, ShareType.None);
+                            var xp = DailyXp * 0.02;
+
+                            EarnXP((long)Math.Round((double)xp), XpType.Quest, ShareType.None);
                         }
 
                         if (target.WeenieClassId == 3000383 && item.WeenieClassId == 60000212)
@@ -3572,10 +3590,9 @@ namespace ACE.Server.WorldObjects
                             if (victim == null)
                                 return;
 
-                            var mod = (double)victim.Level / (double)Level;
-                            var playerXp = (victim.GetProperty(PropertyInt64.TotalExperience) ?? 0) * 0.05;
-                            var earnedPvpXp = playerXp * mod;
-                            EarnXP((long)Math.Round((double)earnedPvpXp), XpType.Kill, ShareType.None);
+                            var xp = DailyXp * 0.02;
+
+                            EarnXP((long)Math.Round((double)xp), XpType.Kill, ShareType.None);
                         }
 
                         if (target.WeenieClassId == 3000381 && item.WeenieClassId == 60000212)
@@ -3587,11 +3604,10 @@ namespace ACE.Server.WorldObjects
                             if (victim == null)
                                 return;
 
-                            var xp = DailyXp * 0.05;
+                            var xp = DailyXp * 0.02;
 
-                            if (BountyGuid != null && item.BountyTrophyGuid != null)
+                            if (BountyGuid != null && item.BountyTrophyGuid != null && !IsBountyExpired)
                             {
-
                                 if (BountyGuid.Value == item.BountyTrophyGuid.Value)
                                 {
                                     xp = DailyXp * 0.25;
@@ -3603,17 +3619,16 @@ namespace ACE.Server.WorldObjects
                                     }
 
                                     // add slayer
-                                    var creatureType = SlayerChance.GetCreatureType();
+                                    var humanSlayerRoll = ThreadSafeRandom.Next(1, 3000);
+                                    var creatureType = humanSlayerRoll == 1 ? ACE.Entity.Enum.CreatureType.Human : SlayerChance.GetCreatureType();
                                     var slayer = WorldObjectFactory.CreateNewWorldObject(604001);
-                                    var damage = ThreadSafeRandom.Next((float)1.5, (float)3.0);
+                                    var damage = creatureType == ACE.Entity.Enum.CreatureType.Human ? ThreadSafeRandom.Next((float)1.1, (float)1.5) : ThreadSafeRandom.Next((float)1.5, (float)3.0);
                                     slayer.Name = $"{creatureType} Slayer Skull";
 
-                                    if (creatureType == ACE.Entity.Enum.CreatureType.Human)
-                                        damage = ThreadSafeRandom.Next((float)1.1, (float)1.5);
-
-                                    slayer.LongDesc = $"Use this skull on any loot-generated weapon or caster to give it a {creatureType} Slayer effect. The damage for this slayer skull is {damage.ToString("0.00")}";
                                     slayer.SlayerCreatureType = creatureType;
                                     slayer.SlayerDamageBonus = damage;
+
+                                    slayer.UpdateLongDescription();
 
                                     TryCreateInInventoryWithNetworking(slayer);
 
@@ -3625,15 +3640,7 @@ namespace ACE.Server.WorldObjects
                         }
 
                         if (target.WeenieClassId == 3000381 && item.WeenieClassId == 2626)
-                        {
-                            if (!GetBounty((Creature)target, this))
-                            {
-                                var tradeNote = WorldObjectFactory.CreateNewWorldObject(2626);
-                                TryCreateInInventoryWithNetworking(tradeNote);
-                                PlayerBountySearchTimestamp = DateTime.MinValue;
-                                return;
-                            }
-                        }
+                            PurchaseBounty((Creature)target, this);
 
                         if (target.WeenieClassId == 3000381 && item.WeenieClassId == 7377)
                         {

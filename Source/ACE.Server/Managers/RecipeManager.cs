@@ -26,6 +26,12 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System.Text;
 using Discord;
 using Mono.Cecil;
+using ACE.Server.Factories.Tables;
+using ACE.Database.Models.Shard;
+using ACE.Server.Features.Spells.Managers;
+using System.Xml.Linq;
+using log4net.Core;
+using Newtonsoft.Json.Linq;
 
 namespace ACE.Server.Managers
 {
@@ -166,7 +172,361 @@ namespace ACE.Server.Managers
             player.NextUseTime = DateTime.UtcNow.AddSeconds(nextUseTime);
         }
 
-        private static bool ApplySlayerSkull(Player player, WorldObject source, WorldObject target)
+
+
+        private static bool TryHandleHardcodedRecipe(Player player, WorldObject source, WorldObject target)
+        {
+            var isLeather = source.ItemType == ItemType.TinkeringMaterial && source.Structure == 100 && source.MaterialType == MaterialType.Leather;
+            var isArmorOrShield = target.ValidLocations != null && (target.ValidLocations & (EquipMask.Extremity | EquipMask.Armor | EquipMask.Shield)) != 0 && target.ArmorLevel < target.OriginalArmorLevel;
+
+            if (source.IsMorphGem)
+                return ApplyMorphGem(player, source, target);
+            if (isLeather && isArmorOrShield && target.ItemWorkmanship.HasValue && target.ItemWorkmanship.Value > 0)
+                return ApplyDurability(player, source, target);
+            if (source.WeenieClassId == 604001)
+                return ApplySlayerMorphGem(player, source, target);
+            if (target.GetProperty(PropertyBool.AllowRulesetStamp) == true && source.WeenieClassName == "realm-ruleset-stamp")
+                return ApplyRulesetStamp(player, source, target);
+            return false;
+        }
+
+        private static bool ApplyMorphGem(Player player, WorldObject source, WorldObject target)
+        {
+            if (!Enum.IsDefined(typeof(MorphGem), source.WeenieClassId))
+            {
+                player.Session.Network.EnqueueSend(new GameMessageSystemChat("This morph gem does not exist in the morph gems table, please notify a server admin.", ChatMessageType.Craft));
+                return false;
+            }
+
+            switch ((MorphGem)source.WeenieClassId)
+            {
+                case MorphGem.SlayerExtractorGem:
+                    return ApplySlayerExtractor(player, source, target);
+                case MorphGem.SlayerMorphGem:
+                    return ApplySlayerMorphGem(player, source, target);
+                case MorphGem.CantripExtractorGem:
+                    return ApplyCantripExtractorGem(player, source, target);
+                case MorphGem.CantripMorphGem:
+                    return ApplyCantripMorphGem(player, source, target);
+                case MorphGem.MajorUpgradeGem:
+                case MorphGem.EpicUpgradeGem:
+                case MorphGem.LegendaryUpgradeGem:
+                    return ApplyCantripUpgradeGem(player, source, target);
+                case MorphGem.SpellChainMorphGem:
+                    return ApplySpellChainMorphGem(player, source, target);
+                case MorphGem.ThornArmorMorphGem:
+                    return ApplyThornArmorMorphGem(player, source, target);
+                case MorphGem.SlowWeaponMorphGem:
+                    return ApplySlowWeaponMorphGem(player, source, target);
+                case MorphGem.RootWeaponMorphGem:
+                    return ApplyRootWeaponMorphGem(player, source, target);
+                default:
+                    player.Session.Network.EnqueueSend(new GameMessageSystemChat("This morph gem has not been implemented yet.", ChatMessageType.Craft));
+                    return false;
+            }
+        }
+
+        private static bool ApplyRootWeaponMorphGem(Player player, WorldObject source, WorldObject target)
+        {
+            if (target.ItemWorkmanship == null)
+                return false;
+
+            if (target.ProcRootRate > 0)
+                return false;
+
+            if ((target.ItemType & ItemType.WeaponOrCaster) != 0)
+            {
+                target.ProcRootRate = source.ProcRootRate;
+
+                target.UpdateLongDescription();
+                target.SaveBiotaToDatabase();
+                player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have applied the {source.Name} to {target.Name}.", ChatMessageType.Craft));
+                player.TryConsumeFromInventoryWithNetworking(source);
+
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool ApplySlowWeaponMorphGem(Player player, WorldObject source, WorldObject target)
+        {
+            if (target.ItemWorkmanship == null)
+                return false;
+
+            if (target.ProcSlowRate > 0)
+                return false;
+
+            if ((target.ItemType & ItemType.WeaponOrCaster) != 0)
+            {
+                target.ProcSlowRate = source.ProcSlowRate;
+
+                target.UpdateLongDescription();
+                target.SaveBiotaToDatabase();
+                player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have applied the {source.Name} to {target.Name}.", ChatMessageType.Craft));
+                player.TryConsumeFromInventoryWithNetworking(source);
+
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool ApplyThornArmorMorphGem(Player player, WorldObject source, WorldObject target)
+        {
+            if (target.ItemWorkmanship == null)
+                return false;
+
+            if ((target.ItemType & ItemType.Armor) == 0)
+                return false;
+
+            var message = $"Would you like to apply Thorn Armor on {target.Name}?.";
+
+            if (!player.ConfirmationManager.EnqueueSend(new Confirmation_ApplyThornArmor(player.Guid, source.Guid, target.Guid, (float)source.ReflectiveDamageMod), message))
+                return false;
+
+            return true;
+        }
+
+        public static void HandleApplyThornArmorMorphGemConfirmed(Player player, WorldObject source, WorldObject target, float reflectiveDamageModifier)
+        {
+            target.ReflectiveDamageMod = reflectiveDamageModifier;
+            target.UpdateLongDescription();
+            target.SaveBiotaToDatabase();
+            player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have applied the {source.Name} to {target.Name}.", ChatMessageType.Craft));
+            player.TryConsumeFromInventoryWithNetworking(source);
+        }
+
+        private static bool ApplySpellChainMorphGem(Player player, WorldObject source, WorldObject target)
+        {
+            if (target.ItemWorkmanship == null)
+                return false;
+
+            if (target.ProcSpellChainRate > 0)
+                return false;
+
+            if ((target.ItemType & ItemType.WeaponOrCaster) != 0)
+            {
+                if (target.W_DamageType == DamageType.Undef)
+                    return false;
+
+                if ((target.ItemType & ItemType.Caster) != 0)
+                {
+                    target.ProcSpellChainRate = source.ProcSpellChainRate;
+                } else
+                {
+                    target.ProcSpellChainRate = source.ProcSpellChainRate;
+                    var ids = target.Biota.GetKnownSpellsIds(target.BiotaDatabaseLock);
+                    var highestLevelSpell = ids.Select(id => new ACE.Server.Entity.Spell(id)).OrderByDescending(spell => spell.Level).Select(spell => spell.Level).FirstOrDefault(); 
+                    var baseSpell = LootGenerationFactory.GetCustomWeaponSpellByDamageType(target.W_DamageType);
+                    var tier = highestLevelSpell > 0 ? (int)highestLevelSpell : 1;
+                    var spell = SpellLevelProgression.GetSpellAtLevel(baseSpell, SpellLevelChance.Roll(tier));
+                    target.Biota.GetOrAddKnownSpell((int)spell, target.BiotaDatabaseLock, out var _);
+                    target.ProcSpellRate = source.ProcSpellRate;
+                    target.ProcSpell = (uint?)spell;
+                }
+
+                target.UpdateLongDescription();
+                target.SaveBiotaToDatabase();
+                player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have applied the {source.Name} to {target.Name}.", ChatMessageType.Craft));
+                player.TryConsumeFromInventoryWithNetworking(source);
+
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool ApplyCantripUpgradeGem(Player player, WorldObject source, WorldObject target)
+        {
+            if (target.ItemWorkmanship == null)
+                return false;
+
+
+            var ids = target.Biota.GetKnownSpellsIds(target.BiotaDatabaseLock);
+
+            if (ids.Count <= 0)
+                return false;
+
+            var cantrips = ids
+                .Where(id =>
+                {
+                    var spell = Enum.GetName(typeof(SpellId), id);
+
+                    if (!spell.ToLower().Contains("cantrip"))
+                        return false;
+
+                    char level = spell[spell.Length - 1];
+
+                    int value = level - '0';
+
+                    if (!char.IsDigit(level))
+                        return false;
+
+                    var cantripLevel = source.GetProperty(PropertyInt.CantripLevel);
+
+                    return value == cantripLevel;
+                })
+                .ToList();
+
+
+            if (cantrips.Count <= 0)
+                return false;
+
+            var id = cantrips[ThreadSafeRandom.Next(0, cantrips.Count - 1)];
+
+            var spell = Enum.GetName(typeof(SpellId), id);
+
+            char level = spell[spell.Length - 1];
+
+            int value = level - '0';
+
+            var name = SpellsManager.GetSpellName((uint)id);
+
+            var message = $"Would you like to upgrade the cantrip {name} on {target.Name}? press no and try again if you'd like to select a different random cantrip.";
+
+            if (!player.ConfirmationManager.EnqueueSend(new Confirmation_ApplyCantripUpgrade(player.Guid, source.Guid, target.Guid, spell, level, value, id), message))
+                return false;
+
+            return true;
+        }
+
+        public static void HandleApplyCantripUpgradeGemConfirmed(Player player, WorldObject source, WorldObject target, string spell, char level, int value, int id)
+        {
+            int upgrade = value + 1;
+
+            var upgradedSpell = spell.Replace(level, (char)(upgrade + '0'));
+
+            if(SpellsManager.TryGetEnumValue(upgradedSpell, out SpellId spellId))
+            {
+                target.Biota.TryRemoveKnownSpell(id, target.BiotaDatabaseLock);
+                target.Biota.GetOrAddKnownSpell((int)spellId, target.BiotaDatabaseLock, out bool added);
+
+                if (!added)
+                    return;
+
+                target.SaveBiotaToDatabase();
+                player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have applied the {source.Name} to {target.Name}.", ChatMessageType.Craft));
+                player.TryConsumeFromInventoryWithNetworking(source);
+                return;
+            }
+        }
+
+        private static bool ApplyCantripMorphGem(Player player, WorldObject source, WorldObject target)
+        {
+            if (target.ItemWorkmanship == null)
+                return false;
+
+            var targetIds = target.Biota.GetKnownSpellsIds(target.BiotaDatabaseLock);
+
+            if (targetIds.Count <= 0)
+                return false;
+
+            var cantrips = targetIds.Where(id => Enum.GetName(typeof(SpellId), id).ToLower().Contains("cantrip")).ToList();
+
+            if (cantrips.Count >= 4)
+                return false;
+
+            int id = source.Biota.GetKnownSpellsIds(target.BiotaDatabaseLock).FirstOrDefault();
+
+            if (id == 0)
+                return false;
+
+            var spell = Enum.GetName(typeof(SpellId), id);
+
+            char lastChar = spell[spell.Length - 1];
+
+            var spellKey = spell.Replace(lastChar, '1');
+
+            if (SpellsManager.TryGetEnumValue(spellKey, out SpellId spellId))
+            {
+                if ((target.ItemType & ItemType.Caster) != 0 && !WandCantrips.spells.Contains(spellId))
+                    return false;
+
+                if ((target.ItemType & ItemType.MeleeWeapon) != 0 && !MeleeCantrips.spells.Contains(spellId))
+                    return false;
+
+                if ((target.ItemType & ItemType.MissileWeapon) != 0 && !MissileCantrips.spells.Contains(spellId))
+                    return false;
+
+                if ((target.ItemType & ItemType.Vestements) != 0 && !ArmorCantrips.spells.Contains(spellId))
+                    return false;
+
+                if ((target.ItemType & ItemType.Jewelry) != 0 && !JewelryCantrips.spells.Contains(spellId))
+                    return false;
+            }
+
+            var message = $"Would you like to add the cantrip {SpellsManager.GetSpellName((uint)id)} on {target.Name}? you have a 33% chance of success, the morph gem will be destroyed if you fail.";
+
+            if (!player.ConfirmationManager.EnqueueSend(new Confirmation_ApplyCantripMorphGem(player.Guid, source.Guid, target.Guid, id), message))
+                return false;
+
+            return true;
+
+        }
+
+        public static void HandleApplyCantripMorphGemConfirmed(Player player, WorldObject source, WorldObject target, int id)
+        {
+            var roll = ThreadSafeRandom.Next(1, 3);
+
+            if (roll != 1)
+            {
+                player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You failed to apply {source.Name} to {target.Name} the cantrip morph gem has been destroyed.", ChatMessageType.Craft));
+                player.TryConsumeFromInventoryWithNetworking(source);
+                return;
+            }
+
+            target.Biota.GetOrAddKnownSpell(id, target.BiotaDatabaseLock, out var added);
+
+            if (!added)
+                return;
+
+            target.SaveBiotaToDatabase();
+            player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have applied the {source.Name} to {target.Name}.", ChatMessageType.Craft));
+            player.TryConsumeFromInventoryWithNetworking(source);
+        }
+
+        private static bool ApplyCantripExtractorGem(Player player, WorldObject source, WorldObject target)
+        {
+            if (target.ItemWorkmanship == null)
+                return false;
+
+            var ids = target.Biota.GetKnownSpellsIds(target.BiotaDatabaseLock);
+
+            if (ids.Count <= 0)
+                return false;
+
+            var cantrips = ids.Where(id => Enum.GetName(typeof(SpellId), id).ToLower().Contains("cantrip")).ToList();
+
+            if (cantrips.Count <= 0)
+                return false;
+
+            var id = cantrips[ThreadSafeRandom.Next(0, cantrips.Count - 1)];
+
+            var name = SpellsManager.GetSpellName((uint)id);
+
+            var message = $"Would you like to extract the cantrip {name} from {target.Name}? press no and try again if you'd like to select a different random cantrip.";
+
+            if (!player.ConfirmationManager.EnqueueSend(new Confirmation_ApplyCantripExtractor(player.Guid, source.Guid, target.Guid, id), message))
+                return false;
+
+            return true;
+        }
+
+        public static void HandleApplyCantripExtractorGemConfirmed(Player player, WorldObject source, WorldObject target, int id)
+        {
+            target.Biota.TryRemoveKnownSpell(id, target.BiotaDatabaseLock);
+
+            var cantripMorphGem = WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.CantripMorphGem, RealmManager.GetRealm(player.HomeRealm, includeRulesets: false).StandardRules);
+            cantripMorphGem.Name = $"{SpellsManager.GetSpellName((uint)id)} Gem";
+            cantripMorphGem.Biota.GetOrAddKnownSpell(id, cantripMorphGem.BiotaDatabaseLock, out var _);
+            player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have applied the {source.Name} to {cantripMorphGem.Name}.", ChatMessageType.Craft));
+            player.TryConsumeFromInventoryWithNetworking(source);
+            player.TryCreateInInventoryWithNetworking(cantripMorphGem);
+            target.SaveBiotaToDatabase();
+        }
+
+        private static bool ApplySlayerMorphGem(Player player, WorldObject source, WorldObject target)
         {
             if (target.ItemWorkmanship == null)
                 return false;
@@ -175,35 +535,58 @@ namespace ACE.Server.Managers
             if (isWeaponOrCaster && target.SlayerCreatureType == null && source.SlayerCreatureType != null)
             {
                 target.SlayerCreatureType = source.SlayerCreatureType;
-
                 target.SlayerDamageBonus = source.SlayerDamageBonus;
-                target.LongDesc = $"Slayer Damage Bonux: {target.SlayerDamageBonus?.ToString("0.00")}";
+                target.UpdateLongDescription();
+                target.SaveBiotaToDatabase();
+                player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have applied the {source.Name} to {target.Name}.", ChatMessageType.Craft));
                 player.TryConsumeFromInventoryWithNetworking(source);
                 return true;
             }
 
             return false;
-
         }
 
-        private static bool TryHandleHardcodedRecipe(Player player, WorldObject source, WorldObject target)
+        private static bool ApplySlayerExtractor(Player player, WorldObject source, WorldObject target)
         {
-            var isLeather = source.ItemType == ItemType.TinkeringMaterial && source.Structure == 100 && source.MaterialType == MaterialType.Leather;
-            var isArmorOrShield = target.ValidLocations != null && (target.ValidLocations & (EquipMask.Extremity | EquipMask.Armor | EquipMask.Shield)) != 0 && target.ArmorLevel < target.OriginalArmorLevel;
+            if (target.CreatureType == null)
+                return false;
 
-            if (isLeather && isArmorOrShield && target.ItemWorkmanship.HasValue && target.ItemWorkmanship.Value > 0)
-                return ApplyDurability(player, source, target);
-            if (source.WeenieClassId == 604001)
-                return ApplySlayerSkull(player, source, target);
-            if (target.GetProperty(PropertyBool.AllowRulesetStamp) == true && source.WeenieClassName == "realm-ruleset-stamp")
-                return ApplyRulesetStamp(player, source, target);
-            return false;
+            if (target.CreatureType == CreatureType.Human)
+                return false;
+
+            var slayerMorphGem = WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.SlayerMorphGem, RealmManager.GetRealm(player.HomeRealm, includeRulesets: false).StandardRules);
+
+            var message = $"Would you like to create a slayer gem for creature type {target.CreatureType}?";
+
+            if (!player.ConfirmationManager.EnqueueSend(new Confirmation_ApplySlayerExtractor(player.Guid, source.Guid, target.Guid, slayerMorphGem), message))
+                return false;
+
+            return true;
+        }
+
+        public static void HandleApplySlayerExtractorConfirmed(Player player, WorldObject source, WorldObject target, WorldObject slayerMorphGem)
+        {
+            var creatureType = target.CreatureType;
+            var damage = ThreadSafeRandom.Next((float)1.5, (float)3.0);
+
+            slayerMorphGem.Name = $"{creatureType} Slayer Gem";
+
+            if (creatureType == ACE.Entity.Enum.CreatureType.Human)
+                damage = ThreadSafeRandom.Next((float)1.1, (float)1.5);
+
+            slayerMorphGem.LongDesc = $"Use this gem on any loot-generated weapon or caster to give it a {creatureType} Slayer effect. The damage for this slayer morph gem is {damage.ToString("0.00")}";
+            slayerMorphGem.SlayerCreatureType = creatureType;
+            slayerMorphGem.SlayerDamageBonus = damage;
+            slayerMorphGem.SaveBiotaToDatabase();
+            player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have applied the {source.Name} to {slayerMorphGem.Name}.", ChatMessageType.Craft));
+            player.TryCreateInInventoryWithNetworking(slayerMorphGem);
+            player.TryConsumeFromInventoryWithNetworking(source);
         }
 
         public static void ApplyDurability(WorldObject target)
         {
             target.ArmorLevel = target.OriginalArmorLevel;
-            WorldObject.UpdateDurability(target);
+            //WorldObject.UpdateDurability(target);
         }
 
         private static bool ApplyDurability(Player player, WorldObject source, WorldObject target)
@@ -1653,7 +2036,7 @@ namespace ACE.Server.Managers
             if (source.MaterialType == MaterialType.Steel)
                 target.OriginalArmorLevel = target.ArmorLevel;
 
-            WorldObject.UpdateDurability(target);
+            //WorldObject.UpdateDurability(target);
 
             target.TinkerLog += (uint?)source.MaterialType ?? source.WeenieClassId;
         }

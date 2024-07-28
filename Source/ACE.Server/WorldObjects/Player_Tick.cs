@@ -11,7 +11,9 @@ using ACE.Entity.Models;
 using ACE.Server.Entity;
 using ACE.Server.Entity.Actions;
 using ACE.Server.Factories;
+using ACE.Server.Features.DailyXp;
 using ACE.Server.Managers;
+using ACE.Server.Network;
 using ACE.Server.Network.Enum;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.Network.Sequence;
@@ -32,7 +34,7 @@ namespace ACE.Server.WorldObjects
         private const double ageUpdateInterval = 7;
         private double nextAgeUpdateTime;
 
-        private double houseRentWarnTimestamp;
+        internal double houseRentWarnTimestamp;
         private const double houseRentWarnInterval = 3600;
 
         public void Player_Tick(double currentUnixTime)
@@ -127,6 +129,10 @@ namespace ACE.Server.WorldObjects
 
             GagsTick();
 
+            PlayerDailyXpTick();
+
+            PlayerBountyTick();
+
             PhysicsObj.ObjMaint.DestroyObjects();
 
             if (!Location.IsEphemeralRealm && Ethereal.HasValue && Ethereal.Value == true)
@@ -148,6 +154,18 @@ namespace ACE.Server.WorldObjects
             }
 
             base.Heartbeat(currentUnixTime);
+        }
+
+        private void PlayerBountyTick()
+        {
+            if (BountyGuid != null && IsBountyExpired)
+                RefundBounty();
+        }
+
+        private void PlayerDailyXpTick()
+        {
+            if (DailyXpTimestamp != (int)Time.GetUnixTime(DailyXpManager.DailyTimestamp))
+                DailyXpManager.SetPlayerXpCap(this);
         }
 
         public static float MaxSpeed = 50;

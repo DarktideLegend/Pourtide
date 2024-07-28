@@ -30,8 +30,11 @@ namespace ACE.Server.Factories.Tables
             ( 3, 0.05f ),
         };
 
-        public static int Roll(WorldObject wo, TreasureDeath profile, TreasureRoll roll)
+        public static int Roll(WorldObject wo, TreasureDeath profile, TreasureRoll roll, Realms.AppliedRuleset ruleset)
         {
+            if (!ruleset.GetProperty(ACE.Entity.Enum.Properties.RealmPropertyBool.HasGearRatingDrops))
+                return 0;
+
             // initial roll for rating chance
             if (!RatingChance.Roll(profile.LootQualityMod))
                 return 0;

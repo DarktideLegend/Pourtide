@@ -650,11 +650,7 @@ namespace ACE.Entity.Enum.Properties
         ItemGeneratedAtRealmID                  = 42007,
         ItemLootedHomeRealmID                   = 42008,
 
-
-
-
         // Pourtide property IDs are reserved start with 60000-69999
-
         [ServerOnly]
         OriginalArmorLevel                      = 60000,
 
@@ -668,8 +664,19 @@ namespace ACE.Entity.Enum.Properties
         CorpsePermitOpenTimestamp               = 60003,
 
         [ServerOnly]
-        ForgottenOreTier                        = 60004
+        ForgottenOreTier                        = 60004,
 
+        [ServerOnly]
+        DailyXpTimestamp                        = 60005,
+
+        [ServerOnly]
+        CantripLevel                            = 60006,
+
+        [ServerOnly]
+        BountyCreationTimestamp                 = 60007,
+
+        [ServerOnly]
+        PlayerBountyTrackingCount             = 60009,
     }
 
     public static class PropertyIntExtensions

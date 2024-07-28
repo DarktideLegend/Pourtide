@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Numerics;
 
 using ACE.Common;
@@ -377,6 +378,40 @@ namespace ACE.Server.WorldObjects
                 if (sourceCreature != null && creatureTarget != null && (sourceCreature.AllowFactionCombat(creatureTarget) || sourceCreature.PotentialFoe(creatureTarget)))
                     sourceCreature.MonsterOnAttackMonster(creatureTarget);
             }
+
+            if (player != null && creatureTarget != null)
+            {
+                var spellChainChance = Spell.SpellChainChance;
+
+                var equipped = player.GetEquippedMainHand();
+
+                var itemCaster = equipped != null && !equipped.IsCaster ? equipped : creatureTarget;
+
+                if (equipped.ProcSlowRate > 0)
+                    equipped.HandleProcSlow(player, creatureTarget);
+
+                if (equipped.ProcRootRate > 0)
+                    equipped.HandleProcRoot(player, creatureTarget);
+
+                if (spellChainChance > 0 && ThreadSafeRandom.Next(0f, 1.0f) < spellChainChance)
+                {
+                    var maxSpellChainRange = creatureTarget.CurrentLandblock.RealmRuleset.GetProperty(ACE.Entity.Enum.Properties.RealmPropertyFloat.MaxSpellChainRange);
+                    var splashTargets = player.GetSplashTargets(creatureTarget, 2, (float)maxSpellChainRange).ToList();
+
+                    if (splashTargets.Count > 0)
+                    {
+                        var splashTarget = splashTargets[ThreadSafeRandom.Next(0, splashTargets.Count - 1)];
+                        var spell = new Spell(Spell.Id);
+                        var decreaseMod = PropertyManager.GetDouble("spell_chain_decrease_mod").Item;
+                        spell.SpellChainChance = spellChainChance - (spellChainChance * decreaseMod);
+
+                        var actionChain = new ActionChain();
+                        actionChain.AddDelaySeconds(0.3);
+                        actionChain.AddAction(player, () => player.TryCastSpell_WithRedirects(spell, splashTarget, itemCaster, itemCaster, itemCaster != creatureTarget, false, true, creatureTarget));
+                        actionChain.EnqueueChain();
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -563,6 +598,9 @@ namespace ACE.Server.WorldObjects
                 finalDamage = baseDamage + critDamageBonus + skillBonus;
 
                 finalDamage *= elementalDamageMod * slayerMod * resistanceMod * absorbMod;
+
+                if (Spell.SpellChainChance > 0)
+                    finalDamage *= 0.5f;
             }
 
             // show debug info
@@ -788,7 +826,7 @@ namespace ACE.Server.WorldObjects
                 target.DamageHistory.Add(ProjectileSource, Spell.DamageType, amount);
 
                 if (sourcePlayer != null && targetPlayer != null)
-                    DatabaseManager.Shard.BaseDatabase.TrackPkStatsDamage(targetPlayer.HomeRealm, Location.RealmID, (uint)sourcePlayer.Guid.Full, (uint)targetPlayer.Guid.Full, (int)amount, critical && !critDefended, (uint)CombatType.Magic);
+                    DatabaseManager.Pourtide.TrackPkStatsDamage(targetPlayer.HomeRealm, Location.RealmID, (uint)sourcePlayer.Guid.Full, (uint)targetPlayer.Guid.Full, (int)amount, critical && !critDefended, (uint)CombatType.Magic);
 
                 //if (targetPlayer != null && targetPlayer.Fellowship != null)
                     //targetPlayer.Fellowship.OnVitalUpdate(targetPlayer);

@@ -3,6 +3,7 @@
   "type": "Realm",
   "properties": {
     "Description": "The Dueling Realm - All characters boosted to max",
+    "Alias": "Duel",
     "IsDuelingRealm": true,
     "CanBeHomeworld": true,
     "IsNeutralZone": false,

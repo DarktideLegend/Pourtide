@@ -101,6 +101,7 @@ namespace ACE.Server.Entity
         public float PkDamageResistanceMod;
 
         public float DamageMitigated;
+        public float ReflectiveDamage { get; internal set; } = 0f;
 
         // creature attacker
         public MotionCommand? AttackMotion;
@@ -365,6 +366,12 @@ namespace ACE.Server.Entity
             Damage = DamageBeforeMitigation * ArmorMod * ShieldMod * ResistanceMod * DamageResistanceRatingMod;
 
             DamageMitigated = DamageBeforeMitigation - Damage;
+
+            foreach (var armor in Armor)
+            {
+                if (armor.ReflectiveDamageMod > 0)
+                    ReflectiveDamage += (float)Math.Ceiling(Damage * (float)armor.ReflectiveDamageMod);
+            }
 
             return Damage;
         }
@@ -692,5 +699,6 @@ namespace ACE.Server.Entity
                 return attackConditions;
             }
         }
+
     }
 }

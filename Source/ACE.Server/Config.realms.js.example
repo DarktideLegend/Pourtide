@@ -1,7 +1,7 @@
 /* Copy this file and rename it to Config.realms.js
    The defaults from this file will automatically be used instead when not located in acrealms.config
    More configuration options may be added in the future
-   Config file provided with server version: 2.1.0 */
+   Config file provided with server version: 2.1.1 */
 
 {
   /* This is the default realm that new characters will be assigned to, if UseRealmSelector is false.
@@ -18,7 +18,9 @@
     "CharacterCreationOptions": {
       /* If true, players will start in a room with an npc offering the choice of starting realm
          Realms with "CanBeHomeworld": true will be offered in this list
-         This room will use a separate instance ID per player account. */
+         This room will use a separate instance ID per player account.
+
+         *important*: You must copy the contents of "Content/extensions/Realm Selector" to your root content folder for this to work */
         "UseRealmSelector": false
     },
 

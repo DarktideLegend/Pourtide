@@ -1123,7 +1123,7 @@ namespace ACE.Server.WorldObjects
 
                     HandleCastSpell(spell, target, itemCaster, caster, isWeaponSpell);
 
-                    if (!spell.IsProjectile)
+                    if (spell.IsProjectile)
                     {
                         if (spell.IsHarmful)
                         {

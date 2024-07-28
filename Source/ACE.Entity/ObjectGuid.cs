@@ -1,3 +1,6 @@
+using ACE.Common.ACRealms;
+using ACE.Entity.ACRealms;
+
 namespace ACE.Entity
 {
     public enum GuidType
@@ -48,12 +51,52 @@ namespace ACE.Entity
                 if (Type != GuidType.Static)
                     return null;
                 var instance = (uint)(Full >> 32);
-                if (instance == 0)
+                if (instance == 0 && !RealmsFromACESetupHelper.UnsafeInstanceIDTemporarilyAllowed)
                     return null;
                 return instance;
             }
         }
-        
+
+        public ushort? StaticRealmID
+        {
+            get
+            {
+                if (Type != GuidType.Static)
+                    return null;
+                var iid = Instance ?? 0;
+                Position.ParseInstanceID(iid, out bool ephemeral, out ushort realmId, out _);
+                if (ephemeral)
+                    return null;
+                return realmId;
+            }
+        }
+
+        public ushort? StaticShortInstanceId
+        {
+            get
+            {
+                if (Type != GuidType.Static)
+                    return null;
+                var iid = Instance ?? 0;
+                Position.ParseInstanceID(iid, out bool ephemeral, out ushort realmId, out ushort shortInstanceId);
+                if (ephemeral)
+                    return null;
+                return shortInstanceId;
+            }
+        }
+
+        public bool IsStaticEphemeralInstanceGuid
+        {
+            get
+            {
+                if (Type != GuidType.Static)
+                    return false;
+                var iid = Instance ?? 0;
+                Position.ParseInstanceID(iid, out bool ephemeral, out _, out _);
+                return ephemeral;
+            }
+        }
+
         public GuidType Type { get; }
 
         public static uint TranslateToClientGuid(ulong fullGuid) => (uint)(fullGuid & 0xFFFFFFFF);
@@ -142,10 +185,11 @@ namespace ACE.Entity
 
         public override string ToString()
         {
-            if (Instance == 0 || Instance == null)
+            if (!Instance.HasValue)
                 return Full.ToString("X8");
             else
                 return Full.ToString("X16");
         }
     }
 }
+

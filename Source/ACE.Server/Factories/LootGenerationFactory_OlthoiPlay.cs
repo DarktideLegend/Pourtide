@@ -9,7 +9,7 @@ using ACE.Server.WorldObjects;
 
 namespace ACE.Server.Factories
 {
-    public static partial class LootGenerationFactory
+    public partial class LootGenerationFactory
     {
         public static readonly WeenieClassName slagWcid = WeenieClassName.coinolthoi;
 
@@ -31,7 +31,7 @@ namespace ACE.Server.Factories
         /// <summary>
         /// Rolls to generate slag for a monster killed by an OlthoiPlayer
         /// </summary>
-        public static WorldObject RollSlag(TreasureDeath profile)
+        public WorldObject RollSlag(TreasureDeath profile)
         {
             var tier = profile.Tier;
 
@@ -89,12 +89,12 @@ namespace ACE.Server.Factories
         /// The amount of time that must elapse since player was last killed by an OlthoiPlayer
         /// before they are dropping full amounts of slag again
         /// </summary>
-        private static readonly TimeSpan pvpSlagTimer = TimeSpan.FromHours(1);
+        private readonly TimeSpan pvpSlagTimer = TimeSpan.FromHours(1);
 
         /// <summary>
         /// Rolls to generate slag for a player killed by an OlthoiPlayer
         /// </summary>
-        public static WorldObject RollSlag(Player player, bool hadVitae)
+        public WorldObject RollSlag(Player player, bool hadVitae)
         {
             // https://asheron.fandom.com/wiki/Pitted_Slag
 
@@ -157,7 +157,7 @@ namespace ACE.Server.Factories
         /// <summary>
         /// Returns an approximate tier for level
         /// </summary>
-        public static int GetTierHeuristic(int level)
+        public int GetTierHeuristic(int level)
         {
             // based on http://acpedia.org/wiki/Loot
 
@@ -179,7 +179,7 @@ namespace ACE.Server.Factories
         /// <summary>
         /// Rolls to generate a gland for a player that killed an OlthoiPlayer
         /// </summary>
-        public static WorldObject RollGland(Player player, bool hadVitae)
+        public WorldObject RollGland(Player player, bool hadVitae)
         {
             // http://acpedia.org/wiki/Mutated_Olthoi_Gland
 
@@ -196,7 +196,7 @@ namespace ACE.Server.Factories
             if (rng <= 50)
                 return null;
 
-            var gland = WorldObjectFactory.CreateNewWorldObject((uint)glandWcid);
+            var gland = WorldObjectFactory.CreateNewWorldObject((uint)glandWcid, Ruleset);
 
             return gland;
         }

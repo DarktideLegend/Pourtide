@@ -24,6 +24,8 @@ namespace ACE.Server.Managers
 
         private static Timer _workerThread;
 
+        public static bool Initialized { get; private set; }
+
         /// <summary>
         /// Initializes the PropertyManager.
         /// Run this only once per server instance.
@@ -45,6 +47,8 @@ namespace ACE.Server.Managers
             _workerThread.Elapsed += DoWork;
             _workerThread.AutoReset = true;
             _workerThread.Start();
+
+            Initialized = true;
         }
 
 
@@ -236,13 +240,13 @@ namespace ACE.Server.Managers
                 switch (key)
                 {
                     case "cantrip_drop_rate":
-                        Factories.Tables.CantripChance.ApplyNumCantripsMod();
+                        Factories.Tables.CantripChance.UpdateGlobalNumCantripsMod();
                         break;
                     case "minor_cantrip_drop_rate":
                     case "major_cantrip_drop_rate":
                     case "epic_cantrip_drop_rate":
                     case "legendary_cantrip_drop_rate":
-                        Factories.Tables.CantripChance.ApplyCantripLevelsMod();
+                        Factories.Tables.CantripChance.UpdateGlobalNumCantripsMod();
                         break;
                 }
             }
@@ -504,6 +508,10 @@ namespace ACE.Server.Managers
                 ("acr_enable_ruleset_seeds", new Property<bool>(false, "If enabled, ruleset randomization seeds will be visible to sessions with the role envoy or higher. This does carry some slight side effects with the ruleset randomization engine, and is fine to disable if you don't need it. It will be necessary to have this enabled to troubleshoot some complex ruleset compilation issues.")),
                 ("acr_validate_realm_position_for_admins", new Property<bool>(false, "If enabled, admins will be booted out of realms where they are not permitted to travel to.")),
 
+                // Leave acrsystem settings alone unless asked to change it by the AC Realms developer
+                ("acrsystem_enable_ace_migration_mode_at_next_startup", new Property<bool>(true, "If enabled, ACE Migration mode will be enabled at next startup. Do not change this setting unless asked to by the developer. It will disable itself after the next successful check.")),
+
+                // ACE settings
                 ("account_login_boots_in_use", new Property<bool>(true, "if FALSE, oldest connection to account is not booted when new connection occurs")),
                 ("advanced_combat_pets", new Property<bool>(true, "(non-retail function) If enabled, Combat Pets can cast spells")),
                 ("advocate_fane_auto_bestow", new Property<bool>(false, "If enabled, Advocate Fane will automatically bestow new advocates to advocate_fane_auto_bestow_level")),
@@ -599,6 +607,7 @@ namespace ACE.Server.Managers
                 ("player_trace_lum", new Property<bool>(true, "If player_trace is enabled, toggles logging of luminance rewards.")),
                 ("player_trace_item_reward", new Property<bool>(true, "If player_trace is enabled, toggles logging of item rewards.")),
                 ("player_trace_item_give", new Property<bool>(true, "If player_trace is enabled, toggles logging of giving of items.")),
+                ("player_trace_check_ally", new Property<bool>(true, "If player_trace is enabled, toggles logging of elapsed execution time for checking ally method.")),
 
 
                 ("player_config_command", new Property<bool>(false, "If enabled, players can use /config to change their settings via text commands")),
@@ -642,6 +651,7 @@ namespace ACE.Server.Managers
 
         public static readonly ReadOnlyDictionary<string, Property<long>> DefaultLongProperties =
             DictOf(
+                ("bounty_expiration_time", new Property<long>(60, "the amount of time in minutes a bounty expires")),
                 ("current_season", new Property<long>(6, "Sets the current season realm id for the server. Defaults to id 6 <Season One>")),
                 ("char_delete_time", new Property<long>(3600, "the amount of time in seconds a deleted character can be restored")),
                 ("chat_requires_account_time_seconds", new Property<long>(0, "the amount of time in seconds an account is required to have existed for for global chat privileges")),
@@ -665,7 +675,7 @@ namespace ACE.Server.Managers
                 ("rift_ore_chance", new Property<long>(100, "the chance an ore node spawns instead of a normal mob. Default is 100 or 1/100 chance")),
                 ("teleport_visibility_fix", new Property<long>(0, "Fixes some possible issues with invisible players and mobs. 0 = default / disabled, 1 = players only, 2 = creatures, 3 = all world objects")),
                 ("minimum_portalspace_seconds", new Property<long>(3, "the minimum number of seconds a player must be in portal space before exiting")),
-                ("xp_average_check_duration", new Property<long>(30, "The duration in minutes the GetPlayerLevelXpModifier should be cached for"))
+                ("xp_average_check_duration", new Property<long>(5, "The duration in seconds the GetPlayerLevelXpModifier should be cached for"))
                 );
 
         public static readonly ReadOnlyDictionary<string, Property<double>> DefaultDoubleProperties =
@@ -700,6 +710,7 @@ namespace ACE.Server.Managers
                 ("quest_xp_modifier", new Property<double>(1.0, "Scale multiplier for amount of quest XP received by players.  Quest XP is also modified by 'xp_modifier'.")),
                 ("rare_drop_rate_percent", new Property<double>(0.0, "Adjust the chance of a rare to spawn as a percentage. Default is 0.04, or 1 in 2,500. Max is 100, or every eligible drop.")),
                 ("spellcast_max_angle", new Property<double>(30.0, "for advanced player spell casting, the maximum angle to target release a spell projectile. retail seemed to default to value of around 20, although some players seem to prefer a higher 45 degree angle")),
+                ("spell_chain_decrease_mod", new Property<double>(0.01, "The modifier that reduces the chance % of a concsecutive projectile in a spell chain. Defaults to 0.01")),
                 ("trophy_drop_rate", new Property<double>(1.0, "Modifier for trophies dropped on creature death")),
                 ("unlocker_window", new Property<double>(10.0, "The number of seconds a player unlocking a chest has exclusive access to first opening the chest.")),
                 ("vendor_unique_rot_time", new Property<double>(300, "the number of seconds before unique items sold to vendors disappear")),

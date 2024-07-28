@@ -472,13 +472,13 @@ namespace ACE.Server.WorldObjects
 
         public int TakeDamage(WorldObject source, DamageEvent damageEvent)
         {
-            return TakeDamage(source, damageEvent.DamageType, damageEvent.Damage, damageEvent.BodyPart, damageEvent.IsCritical, damageEvent.CombatType, damageEvent.AttackConditions);
+            return TakeDamage(source, damageEvent.DamageType, damageEvent.Damage, damageEvent.BodyPart, damageEvent.IsCritical, damageEvent.CombatType, damageEvent.AttackConditions, damageEvent.ReflectiveDamage);
         }
 
         /// <summary>
         /// Applies damages to a player from a physical damage source
         /// </summary>
-        public int TakeDamage(WorldObject source, DamageType damageType, float _amount, BodyPart bodyPart, bool crit = false, CombatType combatType = default, AttackConditions attackConditions = AttackConditions.None)
+        public int TakeDamage(WorldObject source, DamageType damageType, float _amount, BodyPart bodyPart, bool crit = false, CombatType combatType = default, AttackConditions attackConditions = AttackConditions.None, float reflectiveDamage = 0)
         {
             if (Invincible || IsDead) return 0;
 
@@ -518,7 +518,7 @@ namespace ACE.Server.WorldObjects
             DamageHistory.Add(source, damageType, damageTaken);
 
             if (source is Player)
-                DatabaseManager.Shard.BaseDatabase.TrackPkStatsDamage(HomeRealm, Location.RealmID, (uint)source.Guid.Full, (uint)Guid.Full, (int)damageTaken, crit, (uint)combatType);
+                DatabaseManager.Pourtide.TrackPkStatsDamage(HomeRealm, Location.RealmID, (uint)source.Guid.Full, (uint)Guid.Full, (int)damageTaken, crit, (uint)combatType);
 
             // update stamina
             if (CombatMode != CombatMode.NonCombat)
@@ -581,6 +581,14 @@ namespace ACE.Server.WorldObjects
             // if player attacker, update PK timer
             if (source is Player attacker)
                 UpdatePKTimers(attacker, this);
+
+            if (source is Creature reflectTarget && reflectiveDamage > 0)
+            {
+                reflectTarget.TakeDamage(this, DamageType.Health, reflectiveDamage);
+
+                if (reflectTarget is Player reflectPlayerTarget)
+                    reflectPlayerTarget.Session.Network.EnqueueSend(new GameMessageSystemChat($"{Name} has reflected {reflectiveDamage.ToString("0")} damage back to you!", ChatMessageType.Combat));
+            }
 
             return (int)damageTaken;
         }

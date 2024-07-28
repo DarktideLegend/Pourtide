@@ -8,6 +8,13 @@ using ACE.Server.Entity;
 using ACE.Server.Physics.Animation;
 using ACE.Server.Physics.Collision;
 using ACE.Server.WorldObjects;
+using ACE.Common;
+using System.Linq;
+using ACE.Server.Network.GameMessages.Messages;
+using Microsoft.EntityFrameworkCore.ValueGeneration;
+using ACE.Server.Managers;
+using System.CommandLine.Parsing;
+using ACE.Server.Entity.Actions;
 
 namespace ACE.Server.Physics.Common
 {

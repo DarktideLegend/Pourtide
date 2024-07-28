@@ -1,11 +1,17 @@
 using System.ComponentModel;
 
+using RealmPropertyBoolAttribute = ACE.Entity.Enum.Properties.RealmPropertyPrimaryAttribute<bool>;
+
 namespace ACE.Entity.Enum.Properties
 {
+
+#pragma warning disable IDE0001
+    [RequiresPrimaryAttribute<RealmPropertyPrimaryAttribute<bool>, bool>]
+#pragma warning restore IDE0001
     public enum RealmPropertyBool : ushort
     {
         [RealmPropertyBool(defaultValue: false)]
-        Undef                            = 0,
+        Undef = 0,
 
         /// <summary>
         /// If true, any player with a home realm with the property \"CanInteractWithNeutralZone\" may travel to this realm
@@ -59,10 +65,37 @@ will be moved to the parent realm.")]
         [RealmPropertyBool(true)]
         HasRecalls = 9,
 
+        [Description("Enables classical instances for the realm. Use the dungeon-sets peripheral configuration file to define landblocks for which players will be given private instances")]
         [RealmPropertyBool(false)]
-        ReplaceMobs = 10,
+        UseClassicalInstances = 10,
 
+        [Description("If enabled, classical instances will be assigned per account instead of per character. If a player owns a house in a classical instance, they will lose access to it if this is toggled.")]
+        [RealmPropertyBool(false)]
+        ClassicalInstances_ShareWithPlayerAccount = 11,
 
+        [Description("If enabled, classical instances will be active regardless of the character's PropertyBool.ClassicalInstancesActive")]
+        [RealmPropertyBool(false)]
+        ClassicalInstances_IgnoreCharacterProp = 12,
+
+        [Description("If enabled, classical instances will be active regardless of the character's location. This is not recommended for realms other than true solo-self-found realms, and is considered an advanced feature.")]
+        [RealmPropertyBool(false)]
+        ClassicalInstances_EnableForAllLandblocks_Dangerous = 13,
+
+        // Pourtide props
+        [RealmPropertyBool(false)]
+        ReplaceMobs = 1001,
+
+        [Description("If enabled, gear ratings chance table may be applied to gear in this realm")]
+        [RealmPropertyBool(true)]
+        HasGearRatingDrops = 1002,
+
+        [Description("If enabled, equipment set pieces may be applied to gear in this realm")]
+        [RealmPropertyBool(true)]
+        HasEquipmentSetDrops = 1003,
+
+        [Description("If enabled, housing is enabled in this realm")]
+        [RealmPropertyBool(true)]
+        HasHousing = 1004,
     }
 
     public static class RealmPropertyBoolExtensions

@@ -38,8 +38,11 @@ namespace ACE.Server.Factories.Tables
             EquipmentSet.Lightningproof,
         };
 
-        public static EquipmentSet? Roll(WorldObject wo, TreasureDeath profile, TreasureRoll roll)
+        public static EquipmentSet? Roll(WorldObject wo, TreasureDeath profile, TreasureRoll roll, Realms.AppliedRuleset ruleset)
         {
+            if (!ruleset.GetProperty(ACE.Entity.Enum.Properties.RealmPropertyBool.HasEquipmentSetDrops))
+                return null;
+
             if (profile.Tier < 6 || !roll.HasArmorLevel(wo))
                 return null;
 

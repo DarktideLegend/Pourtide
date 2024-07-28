@@ -32,6 +32,7 @@ using ACE.Server.Mods;
 using ACE.Server.Features.HotDungeons.Managers;
 using ACE.Server.Features.Rifts;
 using ACE.Server.Network.GameMessages.Messages;
+using ACE.Entity.ACRealms;
 
 namespace ACE.Server.Entity
 {
@@ -201,7 +202,7 @@ namespace ACE.Server.Entity
 
         public void Init(EphemeralRealm ephemeralRealm, bool reload = false, bool wait = false)
         {
-            if (Instance == 0)
+            if (Instance == 0 && !ACE.Entity.ACRealms.RealmsFromACESetupHelper.UnsafeInstanceIDTemporarilyAllowed)
                 log.Error("Error: Loading Landblock with Instance ID = 0");
 
             RealmRuleset = GetOrApplyRuleset(ephemeralRealm);
@@ -256,8 +257,10 @@ namespace ACE.Server.Entity
             var realm = RealmManager.GetRealm(realmid, includeRulesets: true);
             if (realm == null)
             {
-                //Shouldn't happen
-                throw new Exception($"Error: Realm {realmid} is null when creating landblock.");
+                if (RealmsFromACESetupHelper.UnsafeInstanceIDTemporarilyAllowed)
+                    return RealmManager.DefaultRealmFallback.StandardRules;
+                else
+                    throw new Exception($"Error: Realm {realmid} is null when creating landblock.");
             }
             return AppliedRuleset.MakeRerolledRuleset(realm.RulesetTemplate);
         }
@@ -1517,6 +1520,13 @@ Please report this to the ACRealms developer.");
         public WorldRealm WorldRealm => WorldRealmID.HasValue ? RealmManager.GetRealm(WorldRealmID, includeRulesets: true) : null;
         public bool IsPrimaryForWorldRealm => ShortInstanceID == 0;
         public bool IsHomeInstanceForPlayer(Player player) => IsPrimaryForWorldRealm && player.HomeRealm == WorldRealmID;
+        public bool IsCurrentSeasonRealm
+        {
+            get
+            {
+                return WorldRealmID == RealmManager.CurrentSeason.Realm.Id;
+            }
+        }
 
         public class RealmShortcuts
         {

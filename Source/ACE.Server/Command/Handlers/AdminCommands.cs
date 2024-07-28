@@ -34,6 +34,7 @@ using ACE.Entity;
 using ACE.Entity.Enum.RealmProperties;
 using ACE.Common;
 using ACE.Database.Models.Auth;
+using ACE.Server.Features.DailyXp;
 
 namespace ACE.Server.Command.Handlers
 {
@@ -3427,28 +3428,6 @@ namespace ACE.Server.Command.Handlers
             }
         }
 
-        [CommandHandler("forcepk", AccessLevel.Envoy, CommandHandlerFlag.RequiresWorld, 0, "force an npk player to be pk")]
-        public static void HandleForcePk(ISession session, params string[] parameters)
-        {
-            var objectId = ObjectGuid.Invalid;
-
-            var target = session.Player.CurrentAppraisalTarget;
-
-            if (target.HasValue)
-                objectId = new ObjectGuid((uint)session.Player.CurrentAppraisalTarget);
-
-            var wo = session.Player.CurrentLandblock?.GetObject(objectId);
-
-            if (wo is null)
-            {
-                session.Network.EnqueueSend(new GameMessageSystemChat($"Unable to locate what you have selected.", ChatMessageType.Broadcast));
-            }
-            else if (wo is Player player && player.IsNPK)
-            {
-                player.MinimumTimeSincePk = PropertyManager.GetDouble("pk_respite_timer").Item;
-            }
-        }
-
         // housekeep
         [CommandHandler("housekeep", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0)]
         public static void HandleHousekeep(ISession session, params string[] parameters)
@@ -4440,6 +4419,14 @@ namespace ACE.Server.Command.Handlers
                 {
                     CommandHandlerHelper.WriteOutputInfo(session, "Long property successfully updated!");
                     PlayerManager.BroadcastToAuditChannel(session?.Player, $"Successfully changed server long property {paramters[0]} to {longVal}");
+
+                    if (paramters[0] == "current_season")
+                    {
+                        HouseManager.HandleSeasonalRealmChange();
+                        PlayerManager.HandleSeasonalRealmChange();
+                        DailyXpManager.ResetDailyXpCap();
+                        AdminShardCommands.ShutdownServerNow(session);
+                    }
                 }
                 else
                     CommandHandlerHelper.WriteOutputInfo(session, "Unknown long property was not updated. Type showprops for a list of properties.");

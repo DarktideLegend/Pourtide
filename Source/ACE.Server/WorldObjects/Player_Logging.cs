@@ -41,6 +41,9 @@ namespace ACE.Server.WorldObjects
                     case "PlayerItemRewardEntry":
                         configname = "player_trace_item_reward";
                         break;
+                    case "PlayerCheckAllyEntry":
+                        configname = "player_trace_check_ally";
+                        break;
                     case "PlayerItemGiveEntry":
                         configname = "player_trace_item_give";
                         break;
@@ -98,7 +101,14 @@ namespace ACE.Server.WorldObjects
             $"{W("CHAR", PlayerName)}  {W("LBPORTFROM", LandblockFrom)} {W("INST", Instance)}";
     }
 
+    public class PlayerCheckAllyEntry : TracedEntry
+    {
+        public string PlayerName { get; set; }
+        public long Elapsed { get; set; }
 
+        public override string ToString() =>
+            $"{W("CHAR", PlayerName)}  {W("ElapsedMilliseconds", Elapsed)}";
+    }
 
     public enum TeleportType
     {

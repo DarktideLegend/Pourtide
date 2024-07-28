@@ -11,7 +11,6 @@ using ACE.Server.Entity.Actions;
 using ACE.Server.Features.Discord;
 using ACE.Server.Features.HotDungeons.Managers;
 using ACE.Server.Features.Rifts;
-using ACE.Server.Features.Xp;
 using ACE.Server.Managers;
 using ACE.Server.Network;
 using ACE.Server.Network.GameEvent.Events;

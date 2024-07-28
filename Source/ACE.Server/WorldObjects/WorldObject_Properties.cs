@@ -2856,23 +2856,6 @@ Report this to the AC Realms developer.");
             set { if (value == 0) RemoveProperty(PropertyDataId.UseUserAnimation); else SetProperty(PropertyDataId.UseUserAnimation, (uint)value); }
         }
 
-        public int? BountyGuid
-        {
-            get => GetProperty(PropertyInt.BountyGuid);
-            set { if (value == null) RemoveProperty(PropertyInt.BountyGuid); else SetProperty(PropertyInt.BountyGuid, value.Value); }
-        }
-
-        public int? BountyTrophyGuid
-        {
-            get => GetProperty(PropertyInt.BountyTrophyGuid);
-            set { if (value == null) RemoveProperty(PropertyInt.BountyTrophyGuid); else SetProperty(PropertyInt.BountyTrophyGuid, value.Value); }
-        }
-        public int ForgottenOreTier
-        {
-            get => GetProperty(PropertyInt.ForgottenOreTier) ?? 4;
-            set { if (value == 0) RemoveProperty(PropertyInt.ForgottenOreTier); else SetProperty(PropertyInt.ForgottenOreTier, value); }
-
-        }
 
         public uint? UseCreateItem
         {

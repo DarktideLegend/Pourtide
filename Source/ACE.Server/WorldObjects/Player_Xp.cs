@@ -6,7 +6,7 @@ using ACE.DatLoader;
 using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
 using ACE.Server.Entity.Actions;
-using ACE.Server.Features.Xp;
+using ACE.Server.Features.DailyXp;
 using ACE.Server.Managers;
 using ACE.Server.Network.GameMessages.Messages;
 
@@ -30,7 +30,7 @@ namespace ACE.Server.WorldObjects
             if (xpType == XpType.Quest)
                 modifier *= questModifier;
 
-            var playerLevelModifier = XpManager.GetPlayerLevelXpModifier((int)Level);
+            var playerLevelModifier = DailyXpManager.GetPlayerLevelXpModifier((int)Level);
 
             var realmMultiplierAll = RealmRuleset?.GetProperty(RealmPropertyFloat.ExperienceMultiplierAll) ?? 1;
 
@@ -97,7 +97,7 @@ namespace ACE.Server.WorldObjects
             if (HasVitae && xpType != XpType.Allegiance)
                 UpdateXpVitae(amount);
 
-            if (DailyXpRemaining <= 0 || amount <= 0)
+            if (xpType != XpType.Admin && DailyXpRemaining <= 0 || amount <= 0)
                 return;
 
             var currentQuestXp = QuestXp;
@@ -139,6 +139,10 @@ namespace ACE.Server.WorldObjects
                         PvpXp += actualXpToAdd;
                         LifetimePvpXp += actualXpToAdd;
                     }
+                    break;
+
+                case XpType.Admin:
+                    actualXpToAdd = amount;
                     break;
             }
 
