@@ -3576,10 +3576,9 @@ namespace ACE.Server.WorldObjects
                             if (victim == null)
                                 return;
 
-                            var mod = (double)victim.Level / (double)Level;
-                            var playerXp = (victim.GetProperty(PropertyInt64.TotalExperience) ?? 0) * 0.05;
-                            var earnedPvpXp = playerXp * mod;
-                            EarnXP((long)Math.Round((double)earnedPvpXp), XpType.Quest, ShareType.None);
+                            var xp = DailyXp * 0.02;
+
+                            EarnXP((long)Math.Round((double)xp), XpType.Quest, ShareType.None);
                         }
 
                         if (target.WeenieClassId == 3000383 && item.WeenieClassId == 60000212)
@@ -3591,10 +3590,9 @@ namespace ACE.Server.WorldObjects
                             if (victim == null)
                                 return;
 
-                            var mod = (double)victim.Level / (double)Level;
-                            var playerXp = (victim.GetProperty(PropertyInt64.TotalExperience) ?? 0) * 0.05;
-                            var earnedPvpXp = playerXp * mod;
-                            EarnXP((long)Math.Round((double)earnedPvpXp), XpType.Kill, ShareType.None);
+                            var xp = DailyXp * 0.02;
+
+                            EarnXP((long)Math.Round((double)xp), XpType.Kill, ShareType.None);
                         }
 
                         if (target.WeenieClassId == 3000381 && item.WeenieClassId == 60000212)
@@ -3606,7 +3604,7 @@ namespace ACE.Server.WorldObjects
                             if (victim == null)
                                 return;
 
-                            var xp = DailyXp * 0.05;
+                            var xp = DailyXp * 0.02;
 
                             if (BountyGuid != null && item.BountyTrophyGuid != null && !IsBountyExpired)
                             {
