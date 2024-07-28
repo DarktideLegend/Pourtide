@@ -248,6 +248,8 @@ namespace ACE.Server.Features.HotDungeons.Managers
         {
             returnValue = 1; // Default value
 
+            return;
+
             var realmId = damager.HomeRealm;
 
             if (DungeonsTimeRemaining.TotalMilliseconds <= 0)

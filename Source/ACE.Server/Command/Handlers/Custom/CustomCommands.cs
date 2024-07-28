@@ -38,7 +38,7 @@ namespace ACE.Server.Command.Handlers
             message.Append("<Active Rift List>\n");
             message.Append("-----------------------\n");
 
-            foreach (var rift in RiftManager.GetRifts())
+            /*foreach (var rift in RiftManager.GetRifts())
             {
                 var oreDropChance = rift.LandblockInstance.RealmRuleset.GetProperty(RealmPropertyInt.OreDropChance);
                 var oreSlayerDropChance = rift.LandblockInstance.RealmRuleset.GetProperty(RealmPropertyInt.OreSlayerDropChance);
@@ -51,32 +51,32 @@ namespace ACE.Server.Command.Handlers
                 message.Append($"With an ore slayer drop chance of 1/{oreSlayerDropChance}.\n");
                 message.Append($"With an ore salvage drop amount of {oreSalvageDropAmount * 2}.\n");
                 message.Append("-----------------------\n");
-            }
+            }*/
 
             message.Append("-----------------------\n");
-            message.Append($"The Rift Entrance Portal in Subway (main hall, first room on the right) will bring you to a random Rift\n");
-            message.Append($"<Time Remaining before reset: {DungeonManager.FormatTimeRemaining(DungeonManager.DungeonsTimeRemaining)}>\n");
+            /*message.Append($"The Rift Entrance Portal in Subway (main hall, first room on the right) will bring you to a random Rift\n");
+            message.Append($"<Time Remaining before reset: {DungeonManager.FormatTimeRemaining(DungeonManager.DungeonsTimeRemaining)}>\n");*/
 
             if (discordChannel == 0)
                 CommandHandlerHelper.WriteOutputInfo(session, message.ToString(), ChatMessageType.Broadcast);
             else
                 DiscordChatBridge.SendMessage(discordChannel, $"`{message.ToString()}`");
 
-            if (DungeonManager.DungeonsTimeRemaining.TotalMilliseconds <= 0)
-                DungeonManager.Reset();
+            /*if (DungeonManager.DungeonsTimeRemaining.TotalMilliseconds <= 0)
+                DungeonManager.Reset();*/
         }
 
         [CommandHandler("reset-dungeons", AccessLevel.Admin, CommandHandlerFlag.None, 0, "Get a list of available dungeons.")]
         public static void HandleResetDungeons(ISession session, params string[] paramters)
         {
-            session.Network.EnqueueSend(new GameMessageSystemChat($"\n<Resettinga Hot Dungeons>", ChatMessageType.System));
-            DungeonManager.Reset(true);
+            /*session.Network.EnqueueSend(new GameMessageSystemChat($"\n<Resettinga Hot Dungeons>", ChatMessageType.System));
+            DungeonManager.Reset(true);*/
         }
 
         [CommandHandler("dungeons-potential", AccessLevel.Developer, CommandHandlerFlag.None, 0, "Get a list of available potential dungeons.")]
         public static void HandleCheckDungeonsPotential(ISession session, params string[] paramters)
         {
-            session.Network.EnqueueSend(new GameMessageSystemChat($"\n<Active Potential Dungeon List>", ChatMessageType.System));
+            /*session.Network.EnqueueSend(new GameMessageSystemChat($"\n<Active Potential Dungeon List>", ChatMessageType.System));
             foreach (var (realmId, dungeon) in DungeonManager.GetPotentialDungeons())
             {
                 var realm = RealmManager.GetRealm(realmId, includeRulesets: true).Realm.Name;
@@ -98,6 +98,7 @@ namespace ACE.Server.Command.Handlers
             }
 
             session.Network.EnqueueSend(new GameMessageSystemChat($"\nTime Remaining before reset: {DungeonManager.FormatTimeRemaining(DungeonManager.DungeonsTimeRemaining)}", ChatMessageType.System));
+            */
         }
 
         /** Hot Dungeons End **/
