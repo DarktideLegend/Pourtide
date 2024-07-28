@@ -146,6 +146,7 @@ namespace ACE.Server.Command.Handlers
             var globalAverageModifier = DailyXpManager.GetPlayerLevelXpModifier((int)player.Level).ToString("0.00");
 
             session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> The current week is {DailyXpManager.Week}.", ChatMessageType.System));
+            session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> The current day is {DailyXpManager.Day}.", ChatMessageType.System));
             session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> The daily xp cap today for all players is {Formatting.FormatIntWithCommas(DailyXpManager.CurrentDailyXp.XpCap)}.", ChatMessageType.System));
             session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> The current highest level player for the server is {(uint)DailyXpManager.MaxLevel}.", ChatMessageType.System));
             session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> The most xp you can earn for a single category today is {Formatting.FormatIntWithCommas((ulong)player.DailyXpMaxPerCategory)}.", ChatMessageType.System));

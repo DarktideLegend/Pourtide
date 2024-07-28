@@ -34,6 +34,7 @@ namespace ACE.Server.Features.DailyXp
         public static DailyXp CurrentDailyXp { get; private set; }
 
         public static uint Week => CurrentDailyXp.Week;
+        public static uint Day => CurrentDailyXp.Day;
 
         private static bool IsDailyTimestampExpired => DailyTimestamp < DateTime.UtcNow;
 
