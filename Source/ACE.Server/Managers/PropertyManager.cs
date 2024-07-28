@@ -675,7 +675,7 @@ namespace ACE.Server.Managers
                 ("rift_ore_chance", new Property<long>(100, "the chance an ore node spawns instead of a normal mob. Default is 100 or 1/100 chance")),
                 ("teleport_visibility_fix", new Property<long>(0, "Fixes some possible issues with invisible players and mobs. 0 = default / disabled, 1 = players only, 2 = creatures, 3 = all world objects")),
                 ("minimum_portalspace_seconds", new Property<long>(3, "the minimum number of seconds a player must be in portal space before exiting")),
-                ("xp_average_check_duration", new Property<long>(30, "The duration in minutes the GetPlayerLevelXpModifier should be cached for"))
+                ("xp_average_check_duration", new Property<long>(5, "The duration in seconds the GetPlayerLevelXpModifier should be cached for"))
                 );
 
         public static readonly ReadOnlyDictionary<string, Property<double>> DefaultDoubleProperties =

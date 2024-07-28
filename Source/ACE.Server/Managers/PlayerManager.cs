@@ -23,6 +23,8 @@ using ACE.Server.WorldObjects;
 using Biota = ACE.Entity.Models.Biota;
 using ACE.Server.Realms;
 using ACE.Server.Features.Discord;
+using ACE.Server.Command.Handlers;
+using ACE.Server.Network;
 
 namespace ACE.Server.Managers
 {
@@ -1038,6 +1040,87 @@ namespace ACE.Server.Managers
             }
 
             return (onlinePlayersTotal + offlinePlayersTotal) >= slotsAvailable;
+        }
+
+        internal static void HandleSeasonalRealmChange()
+        {
+            var currentSeasonRealmId = (ushort)PropertyManager.GetLong("current_season").Item;
+
+            foreach(var offline in GetAllOffline())
+            {
+                var pos = offline.GetPositionUnsafe(PositionType.Sanctuary);
+                if (pos != null && pos.RealmID != currentSeasonRealmId)
+                {
+                    var realm = RealmManager.GetRealm(pos.RealmID, includeRulesets: true);
+                    if (!realm.StandardRules.GetProperty(RealmPropertyBool.IsDuelingRealm))
+                        if (!offline.Name.Contains('['))
+                        {
+                            var oldName = offline.Name;
+                            var newName = $"{offline.Name} [{realm.StandardRules.GetProperty(RealmPropertyString.Alias)}]";
+
+                            DatabaseManager.Shard.IsCharacterNameAvailable(newName, isAvailable =>
+                            {
+                                if (!isAvailable)
+                                {
+                                    log.Info($"Error, a player named \"{newName}\" already exists.");
+                                    return;
+                                }
+
+                                var character = DatabaseManager.Shard.BaseDatabase.GetCharacterStubByName(oldName);
+
+                                DatabaseManager.Shard.GetCharacters(character.AccountId, false, result =>
+                                {
+                                    var foundCharacterMatch = result.Where(c => c.Id == character.Id).FirstOrDefault();
+
+                                    if (foundCharacterMatch == null)
+                                    {
+                                        log.Info($"Error, a player named \"{oldName}\" cannot be found.");
+                                    }
+
+                                    DatabaseManager.Shard.RenameCharacter(foundCharacterMatch, newName, new ReaderWriterLockSlim(), null);
+                                });
+
+                                offline.SetProperty(PropertyString.Name, newName);
+                                offline.SaveBiotaToDatabase();
+
+                                log.Info($"Player named \"{oldName}\" renamed to \"{newName}\" successfully!");
+                            });
+                        }
+                }
+            }
+
+            foreach(var online in GetAllOnline())
+            {
+                var homeRealm = online.HomeRealm; 
+                if (homeRealm != currentSeasonRealmId)
+                {
+                    var realm = RealmManager.GetRealm(pos.RealmID, includeRulesets: true);
+                    if (!realm.StandardRules.GetProperty(RealmPropertyBool.IsDuelingRealm))
+                        if (!online.Name.Contains('['))
+                        {
+                            var oldName = online.Name;
+                            var newName = $"{online.Name} [{realm.StandardRules.GetProperty(RealmPropertyString.Alias)}]";
+                            DatabaseManager.Shard.IsCharacterNameAvailable(newName, isAvailable =>
+                            {
+                                if (!isAvailable)
+                                {
+                                    log.Error($"Error, a player named \"{newName}\" already exists.");
+                                    return;
+                                }
+
+                                online.Character.Name = newName;
+                                online.CharacterChangesDetected = true;
+                                online.Name = newName;
+                                online.SavePlayerToDatabase();
+
+                                log.Info($"Player named \"{oldName}\" renamed to \"{newName}\" successfully!");
+
+                                online.Session.LogOffPlayer();
+                            });
+                        }
+                }
+            }
+                
         }
     }
 }

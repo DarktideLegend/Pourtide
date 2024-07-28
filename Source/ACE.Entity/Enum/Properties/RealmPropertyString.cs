@@ -20,7 +20,11 @@ namespace ACE.Entity.Enum.Properties
 classical instances will be enabled for players with the ClassicalInstancesActive boolean property,
 if the ruleset also has UseClassicalInstances set to true")]
         [RealmPropertyString("default")]
-        ClassicalInstanceDungeonSet     = 2
+        ClassicalInstanceDungeonSet     = 2,
+
+        [Description("An alias for a realm or ruleset.")]
+        [RealmPropertyString("CPVE")]
+        Alias = 10001
     }
 
     public static class RealmPropertyStringExtensions

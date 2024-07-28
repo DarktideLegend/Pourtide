@@ -1185,6 +1185,36 @@ namespace ACE.Server.Managers
             var whitelisted = PourHousing.Select(r => new LandblockId(r).Landblock); // Winthur Gate, Random Villas
             return whitelisted.Contains(landblock);
         }
+
+        public static void HandleSeasonalRealmChange()
+        {
+            var players = PlayerManager.GetAllPlayers();
+            var instance = RealmManager.CurrentSeasonInstance;
+
+            foreach (var player in players)
+            {
+                var playerGuid = player.Guid.Full;
+
+                if (player.HouseInstance == null)
+                    continue;
+
+                var playerHouse = FindPlayerHouse(playerGuid);
+                if (playerHouse == null)
+                    continue;
+
+                // load the most up-to-date copy of house data
+                GetHouse(playerHouse.House.Guid, (house) =>
+                {
+                    playerHouse.House = house;
+
+                    HandleEviction(playerHouse, true);
+
+                    RemoveRentQueue(house.Guid.Full);
+
+                });
+            }
+        }
+
     }
 }
 

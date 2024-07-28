@@ -179,20 +179,22 @@ namespace ACE.Server.Features.DailyXp
 
         public static double? MaxLevel = null;
 
-        private static DateTime GetAverageModifierTimestamp;
+        private static DateTime GetAverageModifierTimestamp = DateTime.MinValue;
 
         public static double GetPlayerLevelXpModifier(int level)
         {
             var duration = PropertyManager.GetLong("xp_average_check_duration").Item;
-            if (MaxLevel == null || DateTime.UtcNow - GetAverageModifierTimestamp > TimeSpan.FromMinutes(duration))
+            if (MaxLevel == null || DateTime.UtcNow - GetAverageModifierTimestamp > TimeSpan.FromSeconds(duration))
             {
                 GetAverageModifierTimestamp = DateTime.UtcNow;
                 var maxLevel = PlayerManager.GetAllPlayers()
                     .Where(player => {
                         var homeRealm = player.GetProperty(ACE.Entity.Enum.Properties.PropertyInt.HomeRealm);
+                        var isPlayer = player.Account.AccessLevel == (uint)AccessLevel.Player;
+                        var isCurrentSeason = (ushort)homeRealm == RealmManager.CurrentSeason.Realm.Id;
                         return homeRealm != null &&
-                            player.Account.AccessLevel == (uint)AccessLevel.Player &&
-                            (ushort)homeRealm == RealmManager.CurrentSeason.Realm.Id;
+                            isPlayer &&
+                            isCurrentSeason;
                     })
                     .OrderByDescending(player => player.Level)
                     .Select(player => player.Level)

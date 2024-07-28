@@ -32,10 +32,24 @@ namespace ACE.Server.WorldObjects
             //Console.WriteLine($"\n{Name}.HandleActionBuyHouse()");
             log.Info($"[HOUSE] {Name}.HandleActionBuyHouse()");
 
+            if (!CurrentLandblock.RealmRuleset.GetProperty(RealmPropertyBool.HasHousing))
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("You may only purchase a house if housing is enabled in this realm.", ChatMessageType.Broadcast));
+                log.Info($"[HOUSE] {Name}.HandleActionBuyHouse(): Failed pre-purchase requirement - Not housing enabled in realm");
+                return;
+            }
+
             if (!CurrentLandblock.IsHomeInstanceForPlayer(this))
             {
                 Session.Network.EnqueueSend(new GameMessageSystemChat("You may only purchase a house in your home realm.", ChatMessageType.Broadcast));
                 log.Info($"[HOUSE] {Name}.HandleActionBuyHouse(): Failed pre-purchase requirement - Not in home realm instance");
+                return;
+            }
+
+            if (!CurrentLandblock.IsCurrentSeasonRealm)
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("You may only purchase a house in the current season realm.", ChatMessageType.Broadcast));
+                log.Info($"[HOUSE] {Name}.HandleActionBuyHouse(): Failed pre-purchase requirement - Not in current season realm instance");
                 return;
             }
 

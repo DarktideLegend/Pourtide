@@ -34,6 +34,7 @@ using ACE.Entity;
 using ACE.Entity.Enum.RealmProperties;
 using ACE.Common;
 using ACE.Database.Models.Auth;
+using ACE.Server.Features.DailyXp;
 
 namespace ACE.Server.Command.Handlers
 {
@@ -4418,6 +4419,14 @@ namespace ACE.Server.Command.Handlers
                 {
                     CommandHandlerHelper.WriteOutputInfo(session, "Long property successfully updated!");
                     PlayerManager.BroadcastToAuditChannel(session?.Player, $"Successfully changed server long property {paramters[0]} to {longVal}");
+
+                    if (paramters[0] == "current_season")
+                    {
+                        HouseManager.HandleSeasonalRealmChange();
+                        PlayerManager.HandleSeasonalRealmChange();
+                        DailyXpManager.ResetDailyXpCap();
+                        AdminShardCommands.ShutdownServerNow(session);
+                    }
                 }
                 else
                     CommandHandlerHelper.WriteOutputInfo(session, "Unknown long property was not updated. Type showprops for a list of properties.");
