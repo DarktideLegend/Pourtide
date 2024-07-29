@@ -99,6 +99,10 @@ namespace ACE.Server.WorldObjects
             if (HasVitae && xpType != XpType.Allegiance)
                 UpdateXpVitae(amount);
 
+            // disable earning xp for realms that aren't the current season
+            if (HomeRealm != RealmManager.CurrentSeason.Realm.Id)
+                return;
+
             if (xpType != XpType.Admin && DailyXpRemaining <= 0 || amount <= 0)
                 return;
 
