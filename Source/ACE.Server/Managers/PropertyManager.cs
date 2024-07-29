@@ -611,6 +611,7 @@ namespace ACE.Server.Managers
 
 
                 ("player_config_command", new Property<bool>(false, "If enabled, players can use /config to change their settings via text commands")),
+                ("player_level_xp_modifier", new Property<bool>(false, "If enabled, players recieve a catchup xp modifier based on max level relative to player level")),
                 ("player_receive_immediate_save", new Property<bool>(false, "if enabled, when the player receives items from an NPC, they will be saved immediately")),
                 ("pk_server", new Property<bool>(false, "set this to TRUE for darktide servers")),
                 ("pk_server_safe_training_academy", new Property<bool>(false, "set this to TRUE to disable pk fighting in training academy and time to exit starter town safely")),

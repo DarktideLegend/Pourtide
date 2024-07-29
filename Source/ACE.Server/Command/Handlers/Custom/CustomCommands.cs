@@ -144,14 +144,17 @@ namespace ACE.Server.Command.Handlers
             var pvpXp = player.PvpXp;
             var monsterXp = player.MonsterXp;
 
-            //var globalAverageModifier = DailyXpManager.GetPlayerLevelXpModifier((int)player.Level).ToString("0.00");
+            var hasPlayerLevelModifier = PropertyManager.GetBool("player_level_xp_modifier").Item;
+
+            var globalAverageModifier = DailyXpManager.GetPlayerLevelXpModifier((int)player.Level).ToString("0.00");
 
             session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> The current week is {DailyXpManager.Week}.", ChatMessageType.System));
             session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> The current day is {DailyXpManager.Day}.", ChatMessageType.System));
             session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> The daily xp cap today for all players is {Formatting.FormatIntWithCommas(DailyXpManager.CurrentDailyXp.XpCap)}.", ChatMessageType.System));
-            //session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> The current highest level player for the server is {(uint)DailyXpManager.MaxLevel}.", ChatMessageType.System));
+            session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> The current highest level player for the server is {(uint)DailyXpManager.MaxLevel}.", ChatMessageType.System));
             session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> The most xp you can earn for a single category today is {Formatting.FormatIntWithCommas((ulong)player.DailyXpMaxPerCategory)}.", ChatMessageType.System));
-            //session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> Your current global xp modifier is {globalAverageModifier}x.", ChatMessageType.System));
+            if (hasPlayerLevelModifier)
+                session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> Your current global xp modifier is {globalAverageModifier}x.", ChatMessageType.System));
             session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> You have {Formatting.FormatIntWithCommas((ulong)player.DailyXpRemaining)} daily xp remaining.", ChatMessageType.System));
             session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> You have currently earned {Formatting.FormatIntWithCommas((ulong)queryXp)} quest xp for the day.", ChatMessageType.System));
             session.Network.EnqueueSend(new GameMessageSystemChat($"\n--> You have currently earned {Formatting.FormatIntWithCommas((ulong)pvpXp)} pvp xp for the day.", ChatMessageType.System));

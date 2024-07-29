@@ -30,15 +30,16 @@ namespace ACE.Server.WorldObjects
             if (xpType == XpType.Quest)
                 modifier *= questModifier;
 
-            //var playerLevelModifier = DailyXpManager.GetPlayerLevelXpModifier((int)Level);
+            var hasPlayerLevelModifier = PropertyManager.GetBool("player_level_xp_modifier").Item;
+            
+            var playerLevelModifier = hasPlayerLevelModifier ? DailyXpManager.GetPlayerLevelXpModifier((int)Level) : 1;
 
             var realmMultiplierAll = RealmRuleset?.GetProperty(RealmPropertyFloat.ExperienceMultiplierAll) ?? 1;
 
             // should this be passed upstream to fellowship / allegiance?
             var enchantment = GetXPAndLuminanceModifier(xpType);
 
-            //var capped = amount * enchantment * modifier * playerLevelModifier * realmMultiplierAll;
-            var capped = amount * enchantment * modifier * realmMultiplierAll;
+            var capped = amount * enchantment * modifier * playerLevelModifier * realmMultiplierAll;
 
             var m_amount = (long)Math.Round(capped);
 
@@ -410,6 +411,9 @@ namespace ACE.Server.WorldObjects
 
                 // play level up effect
                 PlayParticleEffect(PlayScript.LevelUp, Guid);
+
+                if (Level > DailyXpManager.MaxLevel)
+                    DailyXpManager.UpdateMaxLevel((double)Level);
 
                 Session.Network.EnqueueSend(new GameMessageSystemChat(message, ChatMessageType.Advancement), currentCredits);
             }

@@ -114,6 +114,7 @@ namespace ACE.Server.Features.DailyXp
 
         public static void Initialize()
         {
+            GetMaxLevelPlayer();
             FetchDailyXp();
             Initialized = true;
         }
@@ -178,38 +179,39 @@ namespace ACE.Server.Features.DailyXp
             player.SaveBiotaToDatabase();
         }
 
-        public static double? MaxLevel = null;
+        public static double MaxLevel { get; private set; }
 
-        private static DateTime GetAverageModifierTimestamp = DateTime.MinValue;
+        public static void GetMaxLevelPlayer()
+        {
+            var maxLevel = PlayerManager.GetAllPlayers()
+                .Where(player => {
+                    var homeRealm = player.GetProperty(ACE.Entity.Enum.Properties.PropertyInt.HomeRealm);
+                    var isPlayer = player.Account.AccessLevel == (uint)AccessLevel.Player;
+                    var isCurrentSeason = (ushort)homeRealm == RealmManager.CurrentSeason.Realm.Id;
+                    var isDeleted = player.IsPendingDeletion || player.IsDeleted;
+                    return homeRealm != null &&
+                        isPlayer &&
+                        !isDeleted &&
+                        isCurrentSeason;
+                })
+                .OrderByDescending(player => player.Level)
+                .Select(player => player.Level)
+                .Take(1)
+                .FirstOrDefault();
+
+            if (maxLevel == null)
+                return;
+
+           MaxLevel = (double)maxLevel;
+        }
+
+        public static void UpdateMaxLevel(double level)
+        {
+            MaxLevel = level;
+        }
 
         public static double GetPlayerLevelXpModifier(int level)
         {
-            var duration = PropertyManager.GetLong("xp_average_check_duration").Item;
-            if (MaxLevel == null || DateTime.UtcNow - GetAverageModifierTimestamp > TimeSpan.FromSeconds(duration))
-            {
-                GetAverageModifierTimestamp = DateTime.UtcNow;
-                var maxLevel = PlayerManager.GetAllPlayers()
-                    .Where(player => {
-                        var homeRealm = player.GetProperty(ACE.Entity.Enum.Properties.PropertyInt.HomeRealm);
-                        var isPlayer = player.Account.AccessLevel == (uint)AccessLevel.Player;
-                        var isCurrentSeason = (ushort)homeRealm == RealmManager.CurrentSeason.Realm.Id;
-                        var isDeleted = player.IsPendingDeletion || player.IsDeleted;
-                        return homeRealm != null &&
-                            isPlayer &&
-                            !isDeleted &&
-                            isCurrentSeason;
-                    })
-                    .OrderByDescending(player => player.Level)
-                    .Select(player => player.Level)
-                    .Take(1)
-                    .FirstOrDefault();
-
-                if (maxLevel == null)
-                    return 1;
-
-               MaxLevel = maxLevel;
-            }
-
            return (double)MaxLevel / (double)level;
         }
     }
