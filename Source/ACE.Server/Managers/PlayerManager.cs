@@ -144,6 +144,38 @@ namespace ACE.Server.Managers
                     };
                 }
             }
+
+            PrintIptoPlayerGuidMap();
+        }
+
+        private static void PrintIptoPlayerGuidMap()
+        {
+            log.Info("=========== Printing IpToPlayerGuidMap for Current Season ===========");
+            foreach (var realm in IptoPlayerGuidMap)
+            {
+                ushort realmId = realm.Key;
+                if (realmId != RealmManager.CurrentSeason.Realm.Id)
+                    continue;
+
+                log.Info($"Realm ID: {realmId}");
+                log.Info("----------------------------------------------------");
+
+                foreach (var ipEntry in realm.Value)
+                {
+                    string ipAddress = ipEntry.Key;
+                    log.Info($"  IP Address: {ipAddress}");
+                    log.Info("  ----------------------------------");
+
+                    IpCharacterInfo ipCharacterInfo = ipEntry.Value;
+                    foreach (ulong characterGuid in ipCharacterInfo.Characters)
+                    {
+                        log.Info($"    Character GUID: {characterGuid}, Name: {FindByGuid(characterGuid)?.Name ?? "unknown"}");
+                    }
+                    log.Info("  ----------------------------------");
+                }
+                log.Info("----------------------------------------------------");
+            }
+            log.Info("====================================================");
         }
 
         public static void UpdatePlayerToIpMap(ushort homeRealmId, string ip, ulong guid)
@@ -190,6 +222,8 @@ namespace ACE.Server.Managers
 
                     IptoPlayerGuidMap[homeRealmId] = newRealmMap;
                 }
+
+                PrintIptoPlayerGuidMap();
             }
             catch (Exception ex)
             {
