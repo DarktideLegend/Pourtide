@@ -13,6 +13,12 @@ using System.Threading.Tasks;
 
 namespace ACE.Server.Realms
 {
+    public class NullRealmException : Exception
+    {
+        public NullRealmException()
+            : base("Instance ID may not be 0") { }
+    }
+
     public sealed class InstancedPosition : UsablePosition
     {
         public readonly uint Instance;
@@ -21,7 +27,7 @@ namespace ACE.Server.Realms
             : base(pos, instance)
         {
             if (instance == 0 && !ACE.Entity.ACRealms.RealmsFromACESetupHelper.UnsafeInstanceIDTemporarilyAllowed)
-                throw new ArgumentException("Instance ID may not be 0");
+                throw new NullRealmException();
             Instance = instance;
         }
 
