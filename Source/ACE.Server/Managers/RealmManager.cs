@@ -755,6 +755,8 @@ namespace ACE.Server.Managers
             log.Info($"Setting HomeRealm for character '{player.Name}' to '{realm.Realm.Name}' (ID {realm.Realm.Id}).");
             player.HomeRealm = realm.Realm.Id;
 
+            PlayerManager.UpdatePlayerToIpMap(realm.Realm.Id, player.Session.EndPointC2S.Address.ToString(), player.Guid.Full);
+
             if (settingFromRealmSelector)
             {
                 player.SetProperty(PropertyBool.RecallsDisabled, false);

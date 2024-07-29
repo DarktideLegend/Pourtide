@@ -245,7 +245,6 @@ namespace ACE.Server.Managers
                 var currentRealmId = playerLocation?.RealmID ?? 0;
 
                 DatabaseManager.Pourtide.LogCharacterLogin((ushort)homeRealmId, currentRealmId, session.AccountId, session.Account, session.EndPointC2S.Address.ToString(), character.Id, character.Name);
-                PlayerManager.UpdatePlayerToIpMap((ushort)homeRealmId, session.EndPointC2S.Address.ToString(), character.Id);
 
             }
             catch (Exception ex)
