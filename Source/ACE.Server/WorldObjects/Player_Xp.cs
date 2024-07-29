@@ -30,14 +30,15 @@ namespace ACE.Server.WorldObjects
             if (xpType == XpType.Quest)
                 modifier *= questModifier;
 
-            var playerLevelModifier = DailyXpManager.GetPlayerLevelXpModifier((int)Level);
+            //var playerLevelModifier = DailyXpManager.GetPlayerLevelXpModifier((int)Level);
 
             var realmMultiplierAll = RealmRuleset?.GetProperty(RealmPropertyFloat.ExperienceMultiplierAll) ?? 1;
 
             // should this be passed upstream to fellowship / allegiance?
             var enchantment = GetXPAndLuminanceModifier(xpType);
 
-            var capped = amount * enchantment * modifier * playerLevelModifier * realmMultiplierAll;
+            //var capped = amount * enchantment * modifier * playerLevelModifier * realmMultiplierAll;
+            var capped = amount * enchantment * modifier * realmMultiplierAll;
 
             var m_amount = (long)Math.Round(capped);
 

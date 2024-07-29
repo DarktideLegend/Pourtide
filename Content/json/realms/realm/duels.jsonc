@@ -5,7 +5,7 @@
     "Description": "The Dueling Realm - All characters boosted to max",
     "Alias": "Duel",
     "IsDuelingRealm": true,
-    "CanBeHomeworld": true,
+    "CanBeHomeworld": false,
     "IsNeutralZone": false,
     "CanInteractWithNeutralZone": true,
     "HideoutEnabled": false

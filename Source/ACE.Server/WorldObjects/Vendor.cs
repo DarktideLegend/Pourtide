@@ -156,7 +156,7 @@ namespace ACE.Server.WorldObjects
                 {
                     var validHomeRealms = RealmManager.Realms
                         .Where(x => x.StandardRules.GetProperty(RealmPropertyBool.CanBeHomeworld) &&
-                        (x.Realm.Id == RealmManager.CurrentSeason.Realm.Id) || x.StandardRules.GetProperty(RealmPropertyBool.IsDuelingRealm));
+                        (x.Realm.Id == RealmManager.CurrentSeason.Realm.Id));
 
                     foreach (var realm in validHomeRealms)
                     {

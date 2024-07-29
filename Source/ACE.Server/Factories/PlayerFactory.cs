@@ -460,10 +460,10 @@ namespace ACE.Server.Factories
                 player.Sanctuary = player.Location.AsLocalPosition();
                 player.SetProperty(PropertyBool.RecallsDisabled, true);
 
-                var token = WorldObjectFactory.CreateNewWorldObject((uint)WeenieClassName.W_TOKENTRAININGEXIT_CLASS, realmSelector.StandardRules);
-                if (token == null)
-                    throw new InvalidOperationException("Academy Exit Token Weenie not found.");
-                player.TryAddToInventory(token);
+                //var token = WorldObjectFactory.CreateNewWorldObject((uint)WeenieClassName.W_TOKENTRAININGEXIT_CLASS, realmSelector.StandardRules);
+                //if (token == null)
+                    //throw new InvalidOperationException("Academy Exit Token Weenie not found.");
+                //player.TryAddToInventory(token);
             }
 
                 /*
