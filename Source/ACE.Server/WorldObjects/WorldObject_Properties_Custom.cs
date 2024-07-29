@@ -15,6 +15,11 @@ namespace ACE.Server.WorldObjects
             get => GetProperty(PropertyBool.IsMorphGem) ?? false;
             set { if (!value) RemoveProperty(PropertyBool.IsMorphGem); else SetProperty(PropertyBool.IsMorphGem, value); }
         }
+        public bool HasPurchasedStarterRealmToken
+        {
+            get => GetProperty(PropertyBool.HasPurchasedStarterRealmToken) ?? false;
+            set { if (!value) RemoveProperty(PropertyBool.HasPurchasedStarterRealmToken); else SetProperty(PropertyBool.HasPurchasedStarterRealmToken, value); }
+        }
 
         public double ProcSpellChainRate
         {

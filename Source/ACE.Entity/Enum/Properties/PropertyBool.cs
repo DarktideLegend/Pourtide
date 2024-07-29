@@ -230,6 +230,8 @@ namespace ACE.Entity.Enum.Properties
         IsRiftMonster                    = 60000,
 
         IsMorphGem                       = 60001,
+
+        HasPurchasedStarterRealmToken = 60002,
     }
 
     public static class PropertyBoolExtensions

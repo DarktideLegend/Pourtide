@@ -746,12 +746,13 @@ namespace ACE.Server.WorldObjects
             // verify -- players purchasing multiple services in 1 transaction, and IsBusy state?
             var spell = new Spell(item.SpellDID ?? 0);
 
-            if (item.GetProperty(PropertyInt.HomeRealm).HasValue)
+            if (item.GetProperty(PropertyInt.HomeRealm).HasValue && !target.HasPurchasedStarterRealmToken)
             {
                 var realmId = item.GetProperty(PropertyInt.HomeRealm).Value;
                 RealmManager.SetHomeRealm(target, (ushort)realmId, true);
 
                 NumServicesSold++;
+                target.HasPurchasedStarterRealmToken = true;
                 return;
             }
             if (spell.NotFound)
