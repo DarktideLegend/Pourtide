@@ -581,5 +581,11 @@ namespace ACE.Server.Command.Handlers
                 player.MinimumTimeSincePk = PropertyManager.GetDouble("pk_respite_timer").Item;
             }
         }
+
+        [CommandHandler("player-to-ip-map", AccessLevel.Admin, CommandHandlerFlag.RequiresWorld, 0, "ip print the player to ip guid map")]
+        public static void HandlePlayerToIpMap(ISession session, params string[] parameters)
+        {
+            PlayerManager.PrintIptoPlayerGuidMap();
+        }
     }
 }

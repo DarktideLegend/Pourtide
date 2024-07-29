@@ -148,7 +148,7 @@ namespace ACE.Server.Managers
             PrintIptoPlayerGuidMap();
         }
 
-        private static void PrintIptoPlayerGuidMap()
+        public static void PrintIptoPlayerGuidMap()
         {
             log.Info("=========== Printing IpToPlayerGuidMap for Current Season ===========");
             foreach (var realm in IptoPlayerGuidMap)
@@ -222,8 +222,6 @@ namespace ACE.Server.Managers
 
                     IptoPlayerGuidMap[homeRealmId] = newRealmMap;
                 }
-
-                PrintIptoPlayerGuidMap();
             }
             catch (Exception ex)
             {
