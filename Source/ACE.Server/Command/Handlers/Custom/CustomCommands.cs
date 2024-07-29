@@ -193,6 +193,8 @@ namespace ACE.Server.Command.Handlers
                 var player = PlayerManager.FindByGuid(stats.PlayerId);
                 if (player == null)
                     continue;
+                if (player.IsPendingDeletion || player.IsDeleted)
+                    continue;
                 message.Append($"{i + 1}. Name = {player.Name}, Kills = {stats.KillCount}\n");
             }
 
@@ -287,6 +289,8 @@ namespace ACE.Server.Command.Handlers
                 var player = PlayerManager.FindByGuid(stats.PlayerId);
                 if (player == null)
                     continue;
+                if (player.IsPendingDeletion || player.IsDeleted)
+                    continue;
                 message.Append($"{i + 1}. Name = {player.Name}, Deaths = {stats.DeathCount}\n");
             }
 
@@ -325,7 +329,9 @@ namespace ACE.Server.Command.Handlers
             var players = PlayerManager.GetAllPlayers()
                 .Where(player => {
                     var homeRealm = player.GetProperty(PropertyInt.HomeRealm);
-                    return player.Account.AccessLevel == (uint)AccessLevel.Player && homeRealm != null && (ushort)homeRealm == RealmManager.CurrentSeason.Realm.Id;
+                    return player.Account.AccessLevel == (uint)AccessLevel.Player &&
+                    homeRealm != null &&
+                    (ushort)homeRealm == RealmManager.CurrentSeason.Realm.Id;
                 })
                 .OrderByDescending(player => player.Level)
                 .Take(10)
@@ -337,6 +343,9 @@ namespace ACE.Server.Command.Handlers
                 var player = PlayerManager.FindByGuid(info.Guid);
                 if (player == null)
                     continue;
+                if (player.IsPendingDeletion || player.IsDeleted)
+                    continue;
+
                 message.Append($"{i + 1}. Name = {player.Name}, Level = {player.Level}\n");
             }
 

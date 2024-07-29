@@ -193,8 +193,10 @@ namespace ACE.Server.Features.DailyXp
                         var homeRealm = player.GetProperty(ACE.Entity.Enum.Properties.PropertyInt.HomeRealm);
                         var isPlayer = player.Account.AccessLevel == (uint)AccessLevel.Player;
                         var isCurrentSeason = (ushort)homeRealm == RealmManager.CurrentSeason.Realm.Id;
+                        var isDeleted = player.IsPendingDeletion || player.IsDeleted;
                         return homeRealm != null &&
                             isPlayer &&
+                            !isDeleted &&
                             isCurrentSeason;
                     })
                     .OrderByDescending(player => player.Level)
