@@ -835,6 +835,25 @@ namespace ACE.Server.WorldObjects
 
                     DoCantripLogging(killer, wo);
                 }
+
+                var amount = dt.Tier > 0 ? dt.Tier * 10 : 10;
+                var salvage = SalvageChance.Roll();
+                var roll = ThreadSafeRandom.Next(0, salvage.Count - 1);
+                var wcid = salvage[roll];
+                var bag = WorldObjectFactory.CreateNewWorldObject((uint)wcid);
+                if (bag != null)
+                {
+                    bag.Name = $"Salvage ({amount})";
+                    bag.Structure = (ushort?)amount;
+                    bag.ItemWorkmanship = ThreadSafeRandom.Next(40, 100);
+                    bag.NumItemsInMaterial = 10;
+                    bag.Value = 0;
+                    if (corpse != null)
+                        corpse.TryAddToInventory(bag);
+                    else
+                        droppedItems.Add(bag);
+                }
+
             }
 
             // move wielded treasure over, which also should include Wielded objects not marked for destroy on death.
