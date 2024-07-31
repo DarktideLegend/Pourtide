@@ -384,6 +384,22 @@ namespace ACE.Database
             return startTimestamp.AddDays(1).AddTicks(-1);
         }
 
+        public void AdjustDailyXpCapsTimestamps(int hours)
+        {
+            using (var context = new PourtideDbContext())
+            {
+                var dailyXpCaps = context.DailyXpCaps.ToList();
+
+                foreach (var cap in dailyXpCaps)
+                {
+                    cap.StartTimestamp = cap.StartTimestamp.AddHours(hours);
+                    cap.EndTimestamp = cap.EndTimestamp.AddHours(hours);
+                }
+
+                context.SaveChanges();
+            }
+        }
+
         public DailyXpCap GetCurrentDailyXpCap()
         {
             using (var context = new PourtideDbContext())

@@ -587,5 +587,32 @@ namespace ACE.Server.Command.Handlers
         {
             PlayerManager.PrintIptoPlayerGuidMap();
         }
+
+        [CommandHandler("adjust-daily-xp", AccessLevel.Admin, CommandHandlerFlag.RequiresWorld, 1, "adjusts the daily xp by hours, ex: -1 would reduce the end timestamp by 1 hour, 1 would increase the end timestamp by 1 hour")]
+        public static void HandleAdjustDailyXp(ISession session, params string[] parameters)
+        {
+            if (parameters.Length != 1)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat("Invalid number of parameters. Usage: adjust-daily-xp <hours>", ChatMessageType.Broadcast));
+                return;
+            }
+
+            if (!int.TryParse(parameters[0], out int hours))
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat("Invalid parameter. Please provide a valid number of hours.", ChatMessageType.Broadcast));
+                return;
+            }
+
+            try
+            {
+                DailyXpManager.AdjustDailyXpCapsTimestamps(hours);
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Daily XP caps timestamps adjusted by {hours} hours", ChatMessageType.Broadcast));
+            }
+            catch (Exception ex)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"An error occurred while adjusting timestamps: {ex.Message}", ChatMessageType.Broadcast));
+            }
+
+        }
     }
 }

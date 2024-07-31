@@ -96,6 +96,12 @@ namespace ACE.Server.Features.DailyXp
             DatabaseManager.Pourtide.ResetDailyXpCaps(dailyXpData);
         }
 
+        public static void AdjustDailyXpCapsTimestamps(int hours)
+        {
+            DatabaseManager.Pourtide.AdjustDailyXpCapsTimestamps(hours);
+            FetchDailyXp();
+        }
+
         private static DailyXp FetchDailyXpCap()
         {
             var currentDailyXpCap = DatabaseManager.Pourtide.GetCurrentDailyXpCap();
