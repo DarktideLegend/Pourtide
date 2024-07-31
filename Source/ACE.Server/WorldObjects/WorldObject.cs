@@ -1148,7 +1148,8 @@ namespace ACE.Server.WorldObjects
             if (ProcRootRate > 0)
                 sb.Append($"Root Proc Rate: {ProcRootRate.ToString("0.00")}\n");
 
-            LongDesc = sb.ToString();
+            if (sb.Length > 0)
+                LongDesc = sb.ToString();
         }
     }
 }
