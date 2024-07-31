@@ -3488,6 +3488,11 @@ namespace ACE.Server.WorldObjects
             }
         }
 
+        public static bool HasPkTrophyCooldownExpired(Player killer, Player victim)
+        {
+            return DatabaseManager.Pourtide.HasPkTophyCooldownExpired(killer.Guid.Full, victim.Guid.Full);
+        }
+
         public static bool PurchaseBounty(Creature collector, Player currentPlayer, bool getCached = false)
         {
             try
@@ -3496,6 +3501,7 @@ namespace ACE.Server.WorldObjects
                              p.Guid.Full != currentPlayer.Guid.Full &&
                              (PropertyManager.GetBool("test_server").Item || !(p is Admin)) &&
                              !p.IsLoggingOut &&
+                             HasPkTrophyCooldownExpired(currentPlayer, p) &&
                              p.IsPK).ToList();
 
                 if (players.Count <= 0)

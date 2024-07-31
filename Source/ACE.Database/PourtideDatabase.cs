@@ -294,6 +294,22 @@ namespace ACE.Database
 
         }
 
+        public bool HasPkTophyCooldownExpired(ulong killerId, ulong victimId)
+        {
+            using (var context = new PourtideDbContext())
+            {
+                var trophyCooldown = context.PkTrophyCooldowns
+                    .FirstOrDefault(tc => tc.KillerId == killerId && tc.VictimId == victimId);
+
+                if (trophyCooldown != null)
+                {
+                    return trophyCooldown.CooldownEndTime < DateTime.Now;
+                }
+
+                return true;
+            }
+        }
+
         public bool UpdatePkTrophyCooldown(ulong killerId, ulong victimId)
         {
             using (var context = new PourtideDbContext())

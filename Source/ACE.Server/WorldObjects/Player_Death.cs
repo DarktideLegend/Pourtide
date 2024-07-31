@@ -715,7 +715,7 @@ namespace ACE.Server.WorldObjects
                         activeRift.AddPlayerTimeout(victim.Guid.Full);
                 }
 
-                if (!isAlly && UpdatePkTrophies(corpse.KillerId.Value, corpse.VictimId.Value))
+                if (!isAlly && (UpdatePkTrophies(corpse.KillerId.Value, corpse.VictimId.Value) || IsBountyKill(killer, victim)))
                 {
                     // add player head
                     var playerHead = WorldObjectFactory.CreateNewWorldObject(60000212);
@@ -730,6 +730,12 @@ namespace ACE.Server.WorldObjects
                 log.Error(ex.Message);
                 log.Error(ex.StackTrace);
             }
+        }
+
+        private bool IsBountyKill(IPlayer killer, IPlayer victim)
+        {
+            var bountyGuid = killer.GetProperty(PropertyInt.BountyGuid);
+            return bountyGuid != null && bountyGuid == (int)victim.Guid.Full;
         }
 
         public void DeathItemLog(List<WorldObject> dropItems, Corpse corpse)
