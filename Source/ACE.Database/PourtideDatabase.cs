@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using ACE.Database.Models.Pourtide;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using System.ComponentModel.DataAnnotations;
 
 namespace ACE.Database
 {
@@ -239,6 +240,31 @@ namespace ACE.Database
                     .ToList();
 
                 return topTenPlayers.Select(player => ((uint)player.PlayerId, player.DeathCount)).ToList();
+            }
+        }
+        public class TopDamagePlayer
+        {
+            public uint PlayerId { get; set; }
+            public int TotalDamage { get; set; }
+        }
+
+        public List<TopDamagePlayer> GetPlayersWithMostDamage(ushort realmId, uint combatType, int max = 5)
+        {
+            using (var context = new PourtideDbContext())
+            {
+                var topPlayers = context.PKStatsDamages
+                    .Where(stats => stats.HomeRealmId == realmId && stats.CombatMode == combatType)
+                    .GroupBy(stats => stats.AttackerId)
+                    .Select(group => new TopDamagePlayer
+                    {
+                        PlayerId = group.Key,
+                        TotalDamage = group.Sum(d => d.DamageAmount)
+                    })
+                    .OrderByDescending(damager => damager.TotalDamage)
+                    .Take(max)
+                    .ToList();
+
+                return topPlayers;
             }
         }
 

@@ -68,6 +68,7 @@ namespace ACE.Server.WorldObjects
         public DateTime PrevLeaderboardPvPKillsCommandRequestTimestamp;
         public DateTime PrevPersonalPvPKillsCommandRequestTimestamp;
         public DateTime PrevLeaderboardPvPDeathsCommandRequestTimestamp;
+        public DateTime PrevLeaderboardPvPDamageCommandRequestTimestamp;
 
         public DateTime LastJumpTime;
 

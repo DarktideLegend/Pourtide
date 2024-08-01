@@ -306,6 +306,81 @@ namespace ACE.Server.Command.Handlers
 
         }
 
+        [CommandHandler("topdamage", AccessLevel.Player, CommandHandlerFlag.None, 0, "Show top 5 damage dealers for all three combat modes.")]
+        [CommandHandler("leaderboards-damage", AccessLevel.Player, CommandHandlerFlag.None, 0, "Show top 5 damage dealers for all three combat modes.")]
+        public static void HandleLeaderboardsDamage(ISession session, params string[] parameters)
+        {
+            if (session != null)
+            {
+                if (session.AccessLevel == AccessLevel.Player && DateTime.UtcNow - session.Player.PrevLeaderboardPvPDamageCommandRequestTimestamp < TimeSpan.FromMinutes(1))
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat("You have used this command too recently!", ChatMessageType.Broadcast));
+                    return;
+                }
+                session.Player.PrevLeaderboardPvPDamageCommandRequestTimestamp = DateTime.UtcNow;
+            }
+
+            ulong discordChannel = 0;
+            if (parameters.Length > 1 && parameters[0] == "discord")
+                ulong.TryParse(parameters[1], out discordChannel);
+
+            StringBuilder message = new StringBuilder();
+
+
+            var homeRealm = session?.Player?.HomeRealm != null ? (ushort)session.Player.HomeRealm : RealmManager.CurrentSeason.Realm.Id;
+            var meleePlayers = DatabaseManager.Pourtide.GetPlayersWithMostDamage(homeRealm, (uint)WorldObjects.CombatType.Melee);
+            var missilePlayers = DatabaseManager.Pourtide.GetPlayersWithMostDamage(homeRealm, (uint)WorldObjects.CombatType.Missile);
+            var magicPlayers = DatabaseManager.Pourtide.GetPlayersWithMostDamage(homeRealm, (uint)WorldObjects.CombatType.Magic);
+
+            message.Append("<Showing Top Magic Damage Leaderboard>\n");
+            message.Append("-----------------------\n");
+
+            for (var i = 0; i < magicPlayers.Count; i++)
+            {
+                var stats = magicPlayers[i];
+                var player = PlayerManager.FindByGuid(stats.PlayerId);
+                if (player == null)
+                    continue;
+                message.Append($"{i + 1}. Name = {player.Name}, TotalDamage = {stats.TotalDamage}\n");
+            }
+
+            message.Append("-----------------------\n");
+
+            message.Append("<Showing Top Melee Damage Leaderboard>\n");
+            message.Append("-----------------------\n");
+
+            for (var i = 0; i < meleePlayers.Count; i++)
+            {
+                var stats = meleePlayers[i];
+                var player = PlayerManager.FindByGuid(stats.PlayerId);
+                if (player == null)
+                    continue;
+                message.Append($"{i + 1}. Name = {player.Name}, TotalDamage = {stats.TotalDamage}\n");
+            }
+
+            message.Append("-----------------------\n");
+
+            message.Append("<Showing Top Missile Damage Leaderboard>\n");
+            message.Append("-----------------------\n");
+
+            for (var i = 0; i < missilePlayers.Count; i++)
+            {
+                var stats = missilePlayers[i];
+                var player = PlayerManager.FindByGuid(stats.PlayerId);
+                if (player == null)
+                    continue;
+                message.Append($"{i + 1}. Name = {player.Name}, TotalDamage = {stats.TotalDamage}\n");
+            }
+
+            message.Append("-----------------------\n");
+            if (discordChannel == 0)
+                CommandHandlerHelper.WriteOutputInfo(session, message.ToString(), ChatMessageType.Broadcast);
+            else
+                DiscordChatBridge.SendMessage(discordChannel, $"`{message.ToString()}`");
+
+        }
+
+
         [CommandHandler("topxp", AccessLevel.Player, CommandHandlerFlag.None, 0, "Show top 10 Levels leaderboard.")]
         [CommandHandler("leaderboards-Xp", AccessLevel.Player, CommandHandlerFlag.None, 0, "Show top 10 Levels leaderboard.")]
         public static void HandleLeaderboardsXp(ISession session, params string[] parameters)
