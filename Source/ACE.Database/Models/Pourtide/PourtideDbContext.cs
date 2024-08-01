@@ -114,7 +114,8 @@ namespace ACE.Database.Models.Pourtide
                 entity.Property(e => e.CurrentRealmId).HasColumnName("current_realm_id"); 
                 entity.Property(e => e.EventTime).HasColumnName("event_time"); 
                 entity.Property(e => e.IsCrit).HasColumnName("is_crit"); 
-                entity.Property(e => e.CombatMode).HasColumnName("combat_mode"); 
+                entity.Property(e => e.CombatMode).HasColumnName("combat_mode");
+                entity.HasIndex(e => e.AttackerId).HasDatabaseName("IX_AttackerId");
             });
 
             modelBuilder.Entity<PKStatsKill>(entity =>

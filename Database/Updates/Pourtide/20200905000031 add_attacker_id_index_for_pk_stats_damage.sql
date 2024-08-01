@@ -1,0 +1,1 @@
+CREATE INDEX IX_AttackerId ON pk_stats_damage (attacker_id);
