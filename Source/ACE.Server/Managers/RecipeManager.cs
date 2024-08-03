@@ -234,11 +234,15 @@ namespace ACE.Server.Managers
             if (target.ProcRootRate > 0)
                 return false;
 
+            if (target.MovementImpairmentAbilityCount > 0)
+                return false;
+
             if ((target.ItemType & ItemType.WeaponOrCaster) != 0)
             {
                 target.ProcRootRate = source.ProcRootRate;
 
                 target.UpdateLongDescription();
+                target.MovementImpairmentAbilityCount = 1;
                 target.SaveBiotaToDatabase();
                 player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have applied the {source.Name} to {target.Name}.", ChatMessageType.Craft));
                 player.TryConsumeFromInventoryWithNetworking(source);
@@ -257,11 +261,15 @@ namespace ACE.Server.Managers
             if (target.ProcSlowRate > 0)
                 return false;
 
+            if (target.MovementImpairmentAbilityCount > 0)
+                return false;
+
             if ((target.ItemType & ItemType.WeaponOrCaster) != 0)
             {
                 target.ProcSlowRate = source.ProcSlowRate;
 
                 target.UpdateLongDescription();
+                target.MovementImpairmentAbilityCount = 1;
                 target.SaveBiotaToDatabase();
                 player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have applied the {source.Name} to {target.Name}.", ChatMessageType.Craft));
                 player.TryConsumeFromInventoryWithNetworking(source);
@@ -307,9 +315,6 @@ namespace ACE.Server.Managers
 
             if ((target.ItemType & ItemType.WeaponOrCaster) != 0)
             {
-                if (target.W_DamageType == DamageType.Undef)
-                    return false;
-
                 if ((target.ItemType & ItemType.Caster) != 0)
                 {
                     target.ProcSpellChainRate = source.ProcSpellChainRate;
@@ -317,8 +322,9 @@ namespace ACE.Server.Managers
                 {
                     target.ProcSpellChainRate = source.ProcSpellChainRate;
                     var ids = target.Biota.GetKnownSpellsIds(target.BiotaDatabaseLock);
-                    var highestLevelSpell = ids.Select(id => new ACE.Server.Entity.Spell(id)).OrderByDescending(spell => spell.Level).Select(spell => spell.Level).FirstOrDefault(); 
-                    var baseSpell = LootGenerationFactory.GetCustomWeaponSpellByDamageType(target.W_DamageType);
+                    var highestLevelSpell = ids.Select(id => new ACE.Server.Entity.Spell(id)).OrderByDescending(spell => spell.Level).Select(spell => spell.Level).FirstOrDefault();
+                    var damageType = target.W_DamageType == DamageType.Undef ? DamageType.Bludgeon : target.W_DamageType;
+                    var baseSpell = LootGenerationFactory.GetCustomWeaponSpellByDamageType(damageType);
                     var tier = highestLevelSpell > 0 ? (int)highestLevelSpell : 1;
                     var spell = SpellLevelProgression.GetSpellAtLevel(baseSpell, SpellLevelChance.Roll(tier));
                     target.Biota.GetOrAddKnownSpell((int)spell, target.BiotaDatabaseLock, out var _);
@@ -424,7 +430,7 @@ namespace ACE.Server.Managers
 
             var cantrips = targetIds.Where(id => Enum.GetName(typeof(SpellId), id).ToLower().Contains("cantrip")).ToList();
 
-            if (cantrips.Count >= 4)
+            if (cantrips.Count >= 2)
                 return false;
 
             int id = source.Biota.GetKnownSpellsIds(target.BiotaDatabaseLock).FirstOrDefault();

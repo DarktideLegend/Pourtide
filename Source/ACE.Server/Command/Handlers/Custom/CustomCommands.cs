@@ -1,5 +1,6 @@
 using ACE.Common;
 using ACE.Database;
+using ACE.Database.Models.World;
 using ACE.Entity;
 using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
@@ -135,8 +136,7 @@ namespace ACE.Server.Command.Handlers
         public static void HandleShowXp(ISession session, params string[] paramters)
         {
             var player = session.Player;
-            var realm = RealmManager.GetRealm(player.Location.RealmID, includeRulesets: true);
-            if (realm.Realm.Id != RealmManager.CurrentSeason.Realm.Id)
+            if (!player.CurrentLandblock.RealmRuleset.GetProperty(RealmPropertyBool.CanEarnXp))
                 return;
 
             session.Network.EnqueueSend(new GameMessageSystemChat($"\n<Showing Xp Cap Information>", ChatMessageType.System));
@@ -614,19 +614,28 @@ namespace ACE.Server.Command.Handlers
             if (string.IsNullOrEmpty(gemName))
                 return;
 
+            // Create a dummy treasure profile for passing in tier value
+            TreasureDeath dt = new TreasureDeath
+            {
+                Tier = 5,
+                LootQualityMod = 0,
+                CantripAmount = MutationsManager.CantripRoll(),
+                MagicItemTreasureTypeSelectionChances = 9,  // 8 or 9?
+            };
+
             if (MorphGems.Contains(gemName))
             {
                 Gem gem = null;
                 switch (gemName)
                 {
                     case "slow":
-                        gem = session.Player.CurrentLandblock.RealmRuleset.LootGenerationFactory.CreateSlowWeaponMorphGem();
+                        gem = session.Player.CurrentLandblock.RealmRuleset.LootGenerationFactory.CreateSlowMorphGem(dt, true);
                         break;
                     case "spell-chain":
-                        gem = session.Player.CurrentLandblock.RealmRuleset.LootGenerationFactory.CreateSpellChainMorphGem();
+                        gem = session.Player.CurrentLandblock.RealmRuleset.LootGenerationFactory.CreateSpellChainMorphGem(dt, true);
                         break;
                     case "root":
-                        gem = session.Player.CurrentLandblock.RealmRuleset.LootGenerationFactory.CreateRootMorphGem();
+                        gem = session.Player.CurrentLandblock.RealmRuleset.LootGenerationFactory.CreateRootMorphGem(dt, true);
                         break;
                 }
 

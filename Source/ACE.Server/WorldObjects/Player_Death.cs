@@ -129,12 +129,13 @@ namespace ACE.Server.WorldObjects
                     else
                     {
                         globalPKDe = $"{lastDamager.Name} has defeated {Name}!";
+                        var realm = RealmManager.GetRealm(Location.RealmID, includeRulesets: true).Realm.Name;
                         if (RiftManager.TryGetActiveRift(HomeRealm, Location.LandblockHex, out Rift ActiveRift) && Location.Instance == ActiveRift.Instance)
-                            globalPKDe += $" The kill occured at Rift {ActiveRift.Name} in realm {RealmManager.GetRealm((ushort)HomeRealm, includeRulesets: true).Realm.Name}";
+                            globalPKDe += $" The kill occured at Rift {ActiveRift.Name} in realm {realm}";
                         else if (DungeonManager.TryGetDungeonLandblock(Location.LandblockHex, out DungeonLandblock landblock))
-                            globalPKDe += $" The kill occured at Dungeon {landblock.Name} in realm {RealmManager.GetRealm((ushort)HomeRealm, includeRulesets: true).Realm.Name}";
+                            globalPKDe += $" The kill occured at Dungeon {landblock.Name} in realm {realm}";
                         else if (!Location.Indoors)
-                            globalPKDe += $" The kill occured at {Location.GetMapCoordStr()} in realm {RealmManager.GetRealm((ushort)HomeRealm, includeRulesets: true).Realm.Name}";
+                            globalPKDe += $" The kill occured at {Location.GetMapCoordStr()} in realm {realm}";
                     }
 
                     globalPKDe += "\n[PKDe]";

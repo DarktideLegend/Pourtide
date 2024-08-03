@@ -9,6 +9,7 @@ using ACE.Entity;
 using ACE.Server.Factories;
 using ACE.Server.Realms;
 using ACE.Server.Managers;
+using ACE.Server.Features.Rifts;
 
 namespace ACE.Server.WorldObjects
 {
@@ -37,7 +38,10 @@ namespace ACE.Server.WorldObjects
                 WorldObject wo = null;
                 var biota = biotas.FirstOrDefault(b => b.Id == new ObjectGuid(link.Guid, parent.Guid.Instance ?? 0).Full);
                 if (biota == null)
+                {
                     wo = WorldObjectFactory.CreateWorldObject(DatabaseManager.World.GetCachedWeenie(link.WeenieClassId), new ObjectGuid(link.Guid, parent.Location.Instance));
+                    wo = MutationsManager.ProcessWorldObject(wo, CurrentLandblock?.RealmRuleset ?? parent.RealmRuleset);
+                }
                 else
                 {
                     wo = WorldObjectFactory.CreateWorldObject(biota);

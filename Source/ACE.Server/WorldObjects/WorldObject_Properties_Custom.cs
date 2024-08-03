@@ -78,5 +78,10 @@ namespace ACE.Server.WorldObjects
             get => GetProperty(PropertyInt.PlayerBountyTrackingCount) ?? 0;
             set { if (value == 0) RemoveProperty(PropertyInt.PlayerBountyTrackingCount); else SetProperty(PropertyInt.PlayerBountyTrackingCount, value); }
         }
+        public int MovementImpairmentAbilityCount
+        {
+            get => GetProperty(PropertyInt.MovementImpairmentAbilityCount) ?? 0;
+            set { if (value == 0) RemoveProperty(PropertyInt.MovementImpairmentAbilityCount); else SetProperty(PropertyInt.MovementImpairmentAbilityCount, value); }
+        }
     }
 }

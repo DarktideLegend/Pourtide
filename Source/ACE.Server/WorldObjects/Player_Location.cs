@@ -921,6 +921,9 @@ namespace ACE.Server.WorldObjects
             PlayerKillerStatus = pk ? PlayerKillerStatus.PK : PlayerKillerStatus.NPK;
             EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(this, PropertyInt.PlayerKillerStatus, (int)PlayerKillerStatus));
 
+            if (prevrealm.Realm.Id == HomeRealm)
+                Session.Network.EnqueueSend(new GameMessageSystemChat($"You are temporarily leaving your home realm.", ChatMessageType.System));
+
             if (newLocation.IsEphemeralRealm)
                 Session.Network.EnqueueSend(new GameMessageSystemChat($"Entering ephemeral instance. Type /realm-info to view realm properties.", ChatMessageType.System));
             else if (Location.IsEphemeralRealm && !newLocation.IsEphemeralRealm)
@@ -931,8 +934,6 @@ namespace ACE.Server.WorldObjects
                 {
                     if (newRealm == RealmManager.CurrentSeason && prevrealm.StandardRules.GetDefaultInstanceID(this, Location.AsLocalPosition()) == Account.AccountId)
                         Session.Network.EnqueueSend(new GameMessageSystemChat($"You have chosen {newRealm.Realm.Name} as your home realm.", ChatMessageType.System));
-                    else
-                        Session.Network.EnqueueSend(new GameMessageSystemChat($"You are temporarily leaving your home realm.", ChatMessageType.System));
                 }
                 else if (newRealm.Realm.Id == HomeRealm)
                     Session.Network.EnqueueSend(new GameMessageSystemChat($"Returning to home realm.", ChatMessageType.System));

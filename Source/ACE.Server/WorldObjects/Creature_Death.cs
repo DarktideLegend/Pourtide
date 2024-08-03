@@ -747,11 +747,11 @@ namespace ACE.Server.WorldObjects
 
                 if (RiftManager.TryGetActiveRift(Location.Instance, out Rift activeRift))
                 {
-                    var spellChainGem = RealmRuleset.LootGenerationFactory.CreateSpellChainMorphGem();
+                    /*var spellChainGem = RealmRuleset.LootGenerationFactory.CreateSpellChainMorphGem();
                     corpse.TryAddToInventory(spellChainGem);
 
                     var thornArmorGem = RealmRuleset.LootGenerationFactory.CreateThornArmorMorphGem();
-                    corpse.TryAddToInventory(thornArmorGem);
+                    corpse.TryAddToInventory(thornArmorGem);*/
 
                     var tier = WeenieClassId == 603001 ? 1 : WeenieClassId == 603002 ? 2 : 3;
                     var amount = WeenieClassId == 603001 ? 1 : WeenieClassId == 603002 ? 10 : 20;
@@ -854,6 +854,11 @@ namespace ACE.Server.WorldObjects
                         droppedItems.Add(bag);
                 }
 
+                if (CurrentLandblock.RealmHelpers.IsRiftIsland)
+                {
+                    AddMorphGems(corpse, dt);
+                }
+
             }
 
             // move wielded treasure over, which also should include Wielded objects not marked for destroy on death.
@@ -901,6 +906,62 @@ namespace ACE.Server.WorldObjects
             }
 
             return droppedItems;
+        }
+
+        private void AddMorphGems(Corpse corpse, TreasureDeath dt)
+        {
+            var droppedItems = new List<WorldObject>();
+
+            var slayerExtractor = RealmRuleset.LootGenerationFactory.CreateSlayerExtractorGem();
+
+            if (slayerExtractor != null)
+                droppedItems.Add(slayerExtractor);
+
+            var cantripExtractor = RealmRuleset.LootGenerationFactory.CreateCantripExtractorGem();
+
+            if (cantripExtractor != null)
+                droppedItems.Add(cantripExtractor);
+
+            var majorUpgrade = RealmRuleset.LootGenerationFactory.CreateCantripUpgradeGem(LootGenerationFactory.CantripUpgradeType.Major);
+
+            if (majorUpgrade != null)
+                droppedItems.Add(majorUpgrade);
+
+            var epicUpgrade = RealmRuleset.LootGenerationFactory.CreateCantripUpgradeGem(LootGenerationFactory.CantripUpgradeType.Epic);
+
+            if (epicUpgrade != null)
+                droppedItems.Add(epicUpgrade);
+
+            var legendaryUpgrade = RealmRuleset.LootGenerationFactory.CreateCantripUpgradeGem(LootGenerationFactory.CantripUpgradeType.Legendary);
+
+            if (legendaryUpgrade != null)
+                droppedItems.Add(legendaryUpgrade);
+
+            var spellChainGem = RealmRuleset.LootGenerationFactory.CreateSpellChainMorphGem(dt);
+
+            if (spellChainGem != null)
+                droppedItems.Add(spellChainGem);
+
+            var thornArmorGem = RealmRuleset.LootGenerationFactory.CreateThornArmorMorphGem();
+
+            if (thornArmorGem != null)
+                droppedItems.Add(thornArmorGem);
+
+            var slowWeaponGem = RealmRuleset.LootGenerationFactory.CreateSlowMorphGem(dt);
+
+            if (slowWeaponGem != null)
+                droppedItems.Add(slowWeaponGem);
+
+            var rootWeaponGem = RealmRuleset.LootGenerationFactory.CreateRootMorphGem(dt);
+
+            if (rootWeaponGem != null)
+                droppedItems.Add(rootWeaponGem);
+
+            foreach(var item in droppedItems)
+            {
+                if (corpse != null)
+                    corpse.TryAddToInventory(item);
+            }
         }
 
         /// <summary>

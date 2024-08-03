@@ -360,6 +360,8 @@ namespace ACE.Server.Entity
 
                 wo.Location = new InstancedPosition(Generator.Location);
 
+                wo = MutationsManager.ProcessWorldObject(wo, Generator.CurrentLandblock.RealmRuleset);
+
                 if (
                     Generator.CurrentLandblock.RealmHelpers.IsRift &&
                     RiftManager.TryGetActiveRift(Generator.Location.Instance, out Rift activeRift) &&

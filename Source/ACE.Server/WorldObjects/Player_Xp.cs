@@ -99,11 +99,11 @@ namespace ACE.Server.WorldObjects
             if (HasVitae && xpType != XpType.Allegiance)
                 UpdateXpVitae(amount);
 
-            // disable earning xp for realms that aren't the current season
-            if (HomeRealm != RealmManager.CurrentSeason.Realm.Id)
+            if (xpType != XpType.Admin && DailyXpRemaining <= 0 || amount <= 0)
                 return;
 
-            if (xpType != XpType.Admin && DailyXpRemaining <= 0 || amount <= 0)
+            // disable earning xp for non xp realms
+            if (xpType != XpType.Admin && !CurrentLandblock.RealmRuleset.GetProperty(RealmPropertyBool.CanEarnXp))
                 return;
 
             var currentQuestXp = QuestXp;

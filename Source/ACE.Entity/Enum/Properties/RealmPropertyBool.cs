@@ -96,6 +96,11 @@ will be moved to the parent realm.")]
         [Description("If enabled, housing is enabled in this realm")]
         [RealmPropertyBool(true)]
         HasHousing = 1004,
+
+
+        [Description("If enabled, players can earn xp in this realm")]
+        [RealmPropertyBool(false)]
+        CanEarnXp = 1005,
     }
 
     public static class RealmPropertyBoolExtensions

@@ -86,6 +86,15 @@ namespace ACE.Server.Managers
 
             return weenie;
         }
+
+        public static WorldObject ProcessWorldObject(WorldObject wo, AppliedRuleset ruleset)
+        {
+            if (RiftManager.RiftIslandRealmIds.Contains(ruleset.Realm.Id))
+                return RiftManager.ProcessRiftIslandObject(wo, ruleset);
+            else
+                return wo;
+        }
+
         public static int CantripRoll()
         {
             var cantripAmount = 1;

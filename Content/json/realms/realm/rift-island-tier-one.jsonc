@@ -1,0 +1,32 @@
+{
+  "name": "Rift Island Tier One",
+  "type": "Realm",
+  "parent": "Season Two",
+  "properties": {
+    "Description": "A realm for rift island tier one",
+    "Alias": "RI-1",
+    "CanBeHomeworld": false,
+    "IsNeutralZone": true,
+    "HideoutEnabled": false,
+    // cantrips
+    "MinorCantripDropRate": 1,
+    "MajorCantripDropRate": 0.25,
+    "EpicCantripDropRate": 0,
+    "LegendaryCantripDropRate": 0,
+    //
+    "HasGearRatingDrops": false,
+    "HasEquipmentSetDrops": false,
+    "MaxSpellChainRange": 20,
+    "ForgottenOreDropRate": 0.005,
+    // morph gems
+    "SlayerExtractorGemDropRate": 0.002,
+    "CantripExtractorGemDropRate": 0.0004,
+    "MajorUpgradeGemDropRate": 0.001,
+    "EpicUpgradeGemDropRate": 0.0001,
+    "LegendaryUpgradeGemDropRate": 0,
+    "SpellChainMorphGemDropRate": 0.002,
+    "ThornArmorMorphGemDropRate": 0.002,
+    "SlowWeaponMorphGemDropRate": 0.002,
+    "RootWeaponMorphGemDropRate": 0.002
+  }
+}

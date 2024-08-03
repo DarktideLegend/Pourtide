@@ -6,13 +6,13 @@ using RealmPropertyFloatAttribute = ACE.Entity.Enum.Properties.RealmPropertyPrim
 
 namespace ACE.Entity.Enum.Properties
 {
-    #pragma warning disable IDE0001
+#pragma warning disable IDE0001
     [RequiresPrimaryAttribute<RealmPropertyPrimaryMinMaxAttribute<double>, double>]
-    #pragma warning restore IDE0001
+#pragma warning restore IDE0001
     public enum RealmPropertyFloat : ushort
     {
         [RealmPropertyFloat(defaultValue: 0f, minValue: 0f, maxValue: 0f)]
-        Undef                          = 0,
+        Undef = 0,
 
         [Description("If you wish for players to glitch around less during powerslides, lower this value")]
         [RealmPropertyFloat(1f, 0.1f, 5f)]
@@ -181,7 +181,47 @@ namespace ACE.Entity.Enum.Properties
 
         [Description("Sets the max range of a spell chain target. Defaults to 20.0")]
         [RealmPropertyFloat("max_spell_chain_range", 20f, 0f, 300f)]
-        MaxSpellChainRange = 60004
+        MaxSpellChainRange = 60004,
+
+        [Description("Slayer Extractor Gem Drop Rate")]
+        [RealmPropertyFloat("slayer_extractor_gem_drop_rate", 0f, 0f, 1f)]
+        SlayerExtractorGemDropRate = 60005,
+
+        [Description("Cantrip Extractor Gem Drop Rate")]
+        [RealmPropertyFloat("cantrip_extractor_gem_drop_rate", 0f, 0f, 1f)]
+        CantripExtractorGemDropRate = 60006,
+
+        [Description("Major Upgrade Gem Drop Rate")]
+        [RealmPropertyFloat("major_upgrade_gem_drop_rate", 0f, 0f, 1f)]
+        MajorUpgradeGemDropRate = 60007,
+
+        [Description("Epic Upgrade Gem Drop Rate")]
+        [RealmPropertyFloat("epic_upgrade_gem_drop_rate", 0f, 0f, 1f)]
+        EpicUpgradeGemDropRate = 60008,
+
+        [Description("Legendary Upgrade Gem Drop Rate")]
+        [RealmPropertyFloat("legendary_upgrade_gem_drop_rate", 0f, 0f, 1f)]
+        LegendaryUpgradeGemDropRate = 60009,
+
+        [Description("Spell Chain Morph Gem Drop Rate")]
+        [RealmPropertyFloat("spell_chain_morph_gem_drop_rate", 0f, 0f, 1f)]
+        SpellChainMorphGemDropRate = 60010,
+
+        [Description("Thorn Armor Morph Gem Drop Rate")]
+        [RealmPropertyFloat("thorn_armor_morph_gem_drop_rate", 0f, 0f, 1f)]
+        ThornArmorMorphGemDropRate = 60011,
+
+        [Description("Slow Weapon Morph Gem Drop Rate")]
+        [RealmPropertyFloat("slow_weapon_morph_gem_drop_rate", 0f, 0f, 1f)]
+        SlowWeaponMorphGemDropRate = 60012,
+
+        [Description("Root Weapon Morph Gem Drop Rate")]
+        [RealmPropertyFloat("root_weapon_morph_gem_drop_rate", 0f, 0f, 1f)]
+        RootWeaponMorphGemDropRate = 60013,
+
+        [Description("Forgotten Ore Drop Rate")]
+        [RealmPropertyFloat("forgotten_ore_drop_rate", 0f, 0f, 1f)]
+        ForgottenOreDropRate = 60014
     }
 
     public static class RealmPropertyFloatExtensions

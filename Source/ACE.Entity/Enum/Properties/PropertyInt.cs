@@ -676,7 +676,10 @@ namespace ACE.Entity.Enum.Properties
         BountyCreationTimestamp                 = 60007,
 
         [ServerOnly]
-        PlayerBountyTrackingCount             = 60009,
+        PlayerBountyTrackingCount               = 60009,
+
+        [ServerOnly]
+        MovementImpairmentAbilityCount         = 60010,
     }
 
     public static class PropertyIntExtensions

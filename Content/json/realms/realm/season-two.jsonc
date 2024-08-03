@@ -6,6 +6,7 @@
     "Description": "The second season of Pourtide",
     "Alias": "S2",
     "CanBeHomeworld": true,
+    "CanEarnXp": true,
     "HideoutEnabled": false,
     "MinorCantripDropRate": 1,
     "MajorCantripDropRate": 0.005,

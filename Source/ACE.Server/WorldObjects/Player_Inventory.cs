@@ -3459,21 +3459,22 @@ namespace ACE.Server.WorldObjects
 
                 var coords = bountyPlayer.Location.GetMapCoordStr();
 
+                var realm = RealmManager.GetRealm(bountyPlayer.LastOutdoorPosition.RealmID, includeRulesets: true).Realm.Name;
                 if (RiftManager.TryGetActiveRift(bountyPlayer.Location.Instance, out Rift activeRift))
                 {
                     Session.Network.EnqueueSend(new GameMessageSystemChat($"\"Player {bountyPlayer.Name} was last seen at rift {activeRift.Name} - {activeRift.Coords}.\"", ChatMessageType.Tell));
                 }
                 else if (DungeonManager.TryGetDungeonLandblock(bountyPlayer.Location.LandblockHex, out DungeonLandblock landblock))
                 {
-                    Session.Network.EnqueueSend(new GameMessageSystemChat($"\"Player {bountyPlayer.Name} was last seen at dungeon {landblock.Name} - {landblock.Coords}.\"", ChatMessageType.Tell));
+                    Session.Network.EnqueueSend(new GameMessageSystemChat($"\"Player {bountyPlayer.Name} was last seen at dungeon {landblock.Name} - {landblock.Coords} - in realm {bountyPlayer.CurrentLandblock.RealmRuleset.Realm.Name}.\"", ChatMessageType.Tell));
                 }
                 else if (coords != null && coords.Length > 0)
                 {
-                    Session.Network.EnqueueSend(new GameMessageSystemChat($"\"Player {bountyPlayer.Name} was last seen at {bountyPlayer.Location.GetMapCoordStr()}.\"", ChatMessageType.Tell));
+                    Session.Network.EnqueueSend(new GameMessageSystemChat($"\"Player {bountyPlayer.Name} was last seen at {bountyPlayer.Location.GetMapCoordStr()} - in realm {bountyPlayer.CurrentLandblock.RealmRuleset.Realm.Name}.\"", ChatMessageType.Tell));
                 }
                 else if (bountyPlayer.LastOutdoorPosition != null)
                 {
-                    Session.Network.EnqueueSend(new GameMessageSystemChat($"\"Player {bountyPlayer.Name} is in an unknown dungeon landblock ({bountyPlayer.Location.LandblockHex}) and was last seen outdoors near {bountyPlayer.LastOutdoorPosition.GetMapCoordStr()}.\"", ChatMessageType.Tell));
+                    Session.Network.EnqueueSend(new GameMessageSystemChat($"\"Player {bountyPlayer.Name} is in an unknown dungeon landblock ({bountyPlayer.Location.LandblockHex}) and was last seen outdoors near {bountyPlayer.LastOutdoorPosition.GetMapCoordStr()} - in realm {realm}.\"", ChatMessageType.Tell));
                 }
                 else
                 {

@@ -16,6 +16,7 @@ using LandblockInstance = ACE.Database.Models.World.LandblockInstance;
 using ACE.Server.Realms;
 using ACE.Common.ACRealms;
 using ACE.Entity.Enum.Properties;
+using ACE.Server.Features.Rifts;
 
 namespace ACE.Server.Factories
 {
@@ -300,6 +301,8 @@ namespace ACE.Server.Factories
 
                 var pos = new InstancedPosition(instance.ObjCellId, instance.OriginX, instance.OriginY, instance.OriginZ, instance.AnglesX, instance.AnglesY, instance.AnglesZ, instance.AnglesW, iid);
                 var obj = CreateStaticObject(biotas, weenie, instance.Guid, iid, pos, ruleset, instance.LandblockInstanceLink, sourceObjects);
+                obj = MutationsManager.ProcessWorldObject(obj, ruleset);
+
                 if (obj != null)
                     results.Add(obj);
             }

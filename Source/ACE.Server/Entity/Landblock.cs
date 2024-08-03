@@ -729,9 +729,6 @@ namespace ACE.Server.Entity
                         if (DungeonManager.HasDungeonLandblock(currentLb))
                             log.Info($"Player {player.Name} has entered {DungeonManager.GetDungeonLandblock(currentLb).Name}");
 
-                        if (DungeonManager.HasHotspotDungeon(player.HomeRealm, currentLb))
-                            DungeonManager.AddDungeonPlayer(currentLb, player);
-
                         if (RiftManager.HasActiveRift(player.HomeRealm, currentLb))
                             RiftManager.AddRiftPlayer(currentLb, player);
                     }
@@ -762,9 +759,6 @@ namespace ACE.Server.Entity
 
                             if (DungeonManager.HasDungeon(currentLb))
                                 log.Info($"Player {player.Name} has left {DungeonManager.GetDungeonLandblock(currentLb).Name}");
-
-                            if (DungeonManager.HasHotspotDungeon(player.HomeRealm, currentLb))
-                                DungeonManager.RemoveDungeonPlayer( currentLb, player);
 
                             if (RiftManager.HasActiveRift(player.HomeRealm, currentLb))
                                 RiftManager.RemoveRiftPlayer(currentLb, player);
@@ -1528,10 +1522,13 @@ Please report this to the ACRealms developer.");
             }
         }
 
+
         public class RealmShortcuts
         {
             Landblock Landblock { get; }
             public RealmShortcuts(Landblock lb) { this.Landblock = lb; }
+
+            public static List<ushort> RiftIslands = new List<ushort>() { 300 };
 
             /// <summary>
             /// True if the landblock is intended for a duel (does not include the duel staging area).
@@ -1552,13 +1549,9 @@ Please report this to the ACRealms developer.");
                 }
             }
 
-            public bool IsRift
-            {
-                get
-                {
-                    return Landblock.InnerRealmInfo != null && Landblock.RealmRuleset.Realm.Id == 1016;
-                }
-            }
+            public bool IsRift => Landblock.InnerRealmInfo != null && Landblock.RealmRuleset.Realm.Id == 1016;
+
+            public bool IsRiftIsland => Landblock.RealmRuleset != null && RiftIslands.Contains(Landblock.RealmRuleset.Realm.Id);
         }
     }
 }

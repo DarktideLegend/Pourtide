@@ -176,12 +176,6 @@ namespace ACE.Server.WorldObjects
 
             if ( player.PKTimerActive && !PortalIgnoresPkAttackTimer)
             {
-                if (DungeonManager.TryGetDungeonLandblock(Location.LandblockHex, out var landblock))
-                {
-                    if (landblock.Name.Contains("Town Network"))
-                        return new ActivationResult(true);
-                }
-
                 return new ActivationResult(new GameEventWeenieError(player.Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
             }
 

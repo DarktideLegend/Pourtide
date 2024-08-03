@@ -1298,55 +1298,131 @@ namespace ACE.Server.Factories
             return (Gem)slayer;
         }
 
-        private Gem CreateSlayerExtractor()
+        public Gem CreateSlayerExtractorGem(bool force = false)
         {
-            return (Gem)WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.SlayerExtractorGem);
+            var roll = force ? -1 : ThreadSafeRandom.Next(0f, 1f);
+            var rate = Ruleset.GetProperty(RealmPropertyFloat.SlayerExtractorGemDropRate);
+            if (roll <= rate)
+                return (Gem)WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.SlayerExtractorGem);
+            else
+                return null;
         }
 
-        private Gem CreateCantripExtractorGem()
+        public Gem CreateCantripExtractorGem(bool force = false)
         {
-            return (Gem)WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.CantripExtractorGem);
+            var roll = force ? -1 : ThreadSafeRandom.Next(0f, 1f);
+            var rate = Ruleset.GetProperty(RealmPropertyFloat.CantripExtractorGemDropRate);
+            if (roll <= rate)
+                return (Gem)WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.CantripExtractorGem);
+            else
+                return null;
         }
 
-        private Gem CreateCantripUpgradeGem()
+        public enum CantripUpgradeType
         {
-            throw new NotImplementedException();
+            Major,
+            Epic,
+            Legendary
         }
 
-        public Gem CreateRootMorphGem()
+        public Gem CreateCantripUpgradeGem(CantripUpgradeType cantripUpgradeType, bool force = false)
         {
-            var spellRoot = WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.RootWeaponMorphGem);
-            spellRoot.ProcRootRate = 0.10f;
-            spellRoot.Name = $"Root Weapon Gem";
-            spellRoot.UpdateLongDescription();
-            return (Gem)spellRoot;
+            var roll = force ? -1 : ThreadSafeRandom.Next(0f, 1f);
+
+            RealmPropertyFloat prop = RealmPropertyFloat.MajorUpgradeGemDropRate;
+            switch (cantripUpgradeType)
+            {
+                case CantripUpgradeType.Major:
+                    break;
+                case CantripUpgradeType.Epic:
+                    prop = RealmPropertyFloat.EpicUpgradeGemDropRate; break;
+                case CantripUpgradeType.Legendary:
+                    prop = RealmPropertyFloat.LegendaryUpgradeGemDropRate; break;
+            }
+
+            var rate = Ruleset.GetProperty(prop);
+            if (roll <= rate)
+            {
+                uint upgrade = (uint)MorphGem.MajorUpgradeGem;
+                switch (cantripUpgradeType)
+                {
+                    case CantripUpgradeType.Major:
+                        break;
+                    case CantripUpgradeType.Epic:
+                        upgrade = (uint)MorphGem.EpicUpgradeGem; break;
+                    case CantripUpgradeType.Legendary:
+                        upgrade = (uint)MorphGem.LegendaryUpgradeGem; break;
+                }
+
+                return (Gem)WorldObjectFactory.CreateNewWorldObject(upgrade);
+            }
+            else
+                return null;
         }
 
-        public Gem CreateSpellChainMorphGem()
+        public Gem CreateRootMorphGem(TreasureDeath dt, bool force = false)
         {
-            var spellChain = WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.SpellChainMorphGem);
-            spellChain.ProcSpellChainRate = ThreadSafeRandom.Next(0.7f, 1.0f);
-            spellChain.ProcSpellRate = 0.25f;
-            spellChain.Name = $"Spell Chain Gem";
-            spellChain.UpdateLongDescription();
-            return (Gem)spellChain;
+            var roll = force ? -1 : ThreadSafeRandom.Next(0f, 1f);
+            var rate = Ruleset.GetProperty(RealmPropertyFloat.RootWeaponMorphGemDropRate);
+            if (roll <= rate)
+            {
+                var spellRoot = WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.RootWeaponMorphGem);
+                spellRoot.ProcRootRate = 0.10;
+                spellRoot.Name = $"Root Weapon Gem";
+                spellRoot.UpdateLongDescription();
+                return (Gem)spellRoot;
+            }
+            else
+                return null;
         }
 
-        public Gem CreateSlowWeaponMorphGem()
+        public Gem CreateSpellChainMorphGem(TreasureDeath dt, bool force = false)
         {
-            var spellSlow = WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.SlowWeaponMorphGem);
-            spellSlow.ProcSlowRate = 0.10f;
-            spellSlow.Name = $"Slow Weapon Gem";
-            spellSlow.UpdateLongDescription();
-            return (Gem)spellSlow;
+            var roll = force ? -1 : ThreadSafeRandom.Next(0f, 1f);
+            var rate = Ruleset.GetProperty(RealmPropertyFloat.SpellChainMorphGemDropRate);
+            if (roll <= rate)
+            {
+                var spellChain = WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.SpellChainMorphGem);
+                spellChain.ProcSpellChainRate = dt.Tier * 0.1;
+                spellChain.ProcSpellRate = 0.25;
+                spellChain.Name = $"Spell Chain Gem";
+                spellChain.UpdateLongDescription();
+                return (Gem)spellChain;
+            }
+            else
+                return null;
+
         }
 
-        public Gem CreateThornArmorMorphGem()
+        public Gem CreateSlowMorphGem(TreasureDeath dt, bool force = false)
         {
-            var thornGem = (Gem)WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.ThornArmorMorphGem);
-            thornGem.ReflectiveDamageMod = ThreadSafeRandom.Next(0.10f, 0.50f);
-            thornGem.LongDesc = $"Reflective Damage Mod: {thornGem.ReflectiveDamageMod.ToString("0.00")}";
-            return thornGem;
+            var roll = force ? -1 : ThreadSafeRandom.Next(0f, 1f);
+            var rate = Ruleset.GetProperty(RealmPropertyFloat.SlowWeaponMorphGemDropRate);
+            if (roll <= rate)
+            {
+                var spellSlow = WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.SlowWeaponMorphGem);
+                spellSlow.ProcSlowRate = 0.10;
+                spellSlow.Name = $"Slow Weapon Gem";
+                spellSlow.UpdateLongDescription();
+                return (Gem)spellSlow;
+            }
+            else
+                return null;
+        }
+
+        public Gem CreateThornArmorMorphGem(bool force = false)
+        {
+            var roll = force ? -1 : ThreadSafeRandom.Next(0f, 1f);
+            var rate = Ruleset.GetProperty(RealmPropertyFloat.ThornArmorMorphGemDropRate);
+            if (roll <= rate)
+            {
+                var thornGem = (Gem)WorldObjectFactory.CreateNewWorldObject((uint)MorphGem.ThornArmorMorphGem);
+                thornGem.ReflectiveDamageMod = ThreadSafeRandom.Next(0.10f, 0.50f);
+                thornGem.UpdateLongDescription();
+                return thornGem;
+            }
+            else
+                return null;
         }
 
         public static SpellId GetCustomWeaponSpellByDamageType(DamageType damageType)

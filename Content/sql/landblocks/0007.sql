@@ -165,10 +165,6 @@ VALUES (0x70007028, 42820, 0x00070124, 53.906, -39.953, -0.063, -0.707107, 0, 0,
 /* @teleloc 0x00070124 [53.905998 -39.952999 -0.063000] -0.707107 0.000000 0.000000 -0.707107 */
 
 INSERT INTO `landblock_instance` (`guid`, `weenie_Class_Id`, `obj_Cell_Id`, `origin_X`, `origin_Y`, `origin_Z`, `angles_W`, `angles_X`, `angles_Y`, `angles_Z`, `is_Link_Child`, `last_Modified`)
-VALUES (0x70007029, 42851, 0x00070126, 53.554, -99.995, -0.063, -0.707107, 0, 0, -0.707107, False, '2021-11-01 00:00:00'); /* Portal to Facility Hub */
-/* @teleloc 0x00070126 [53.554001 -99.995003 -0.063000] -0.707107 0.000000 0.000000 -0.707107 */
-
-INSERT INTO `landblock_instance` (`guid`, `weenie_Class_Id`, `obj_Cell_Id`, `origin_X`, `origin_Y`, `origin_Z`, `angles_W`, `angles_X`, `angles_Y`, `angles_Z`, `is_Link_Child`, `last_Modified`)
 VALUES (0x7000702A, 42825, 0x00070127, 53.501, -120.015, -0.063, -0.707107, 0, 0, -0.707107, False, '2021-11-01 00:00:00'); /* Portal to Bluespire */
 /* @teleloc 0x00070127 [53.500999 -120.014999 -0.063000] -0.707107 0.000000 0.000000 -0.707107 */
 
@@ -243,10 +239,6 @@ VALUES (0x7000703B, 42910, 0x00070131, 58.2848, -44.8477, 0.66, 0, 0, 0, -1, Fal
 INSERT INTO `landblock_instance` (`guid`, `weenie_Class_Id`, `obj_Cell_Id`, `origin_X`, `origin_Y`, `origin_Z`, `angles_W`, `angles_X`, `angles_Y`, `angles_Z`, `is_Link_Child`, `last_Modified`)
 VALUES (0x7000703C, 43016, 0x00070133, 55.1039, -70.0408, 3.068, 0.707107, 0, 0, -0.707107, False, '2021-11-01 00:00:00'); /* Gharu'ndim */
 /* @teleloc 0x00070133 [55.103901 -70.040802 3.068000] 0.707107 0.000000 0.000000 -0.707107 */
-
-INSERT INTO `landblock_instance` (`guid`, `weenie_Class_Id`, `obj_Cell_Id`, `origin_X`, `origin_Y`, `origin_Z`, `angles_W`, `angles_X`, `angles_Y`, `angles_Z`, `is_Link_Child`, `last_Modified`)
-VALUES (0x7000703D, 42771, 0x00070135, 55.109, -99.9275, 3.014, 0.707107, 0, 0, -0.707107, False, '2021-11-01 00:00:00'); /* Facility Hub */
-/* @teleloc 0x00070135 [55.109001 -99.927498 3.014000] 0.707107 0.000000 0.000000 -0.707107 */
 
 INSERT INTO `landblock_instance` (`guid`, `weenie_Class_Id`, `obj_Cell_Id`, `origin_X`, `origin_Y`, `origin_Z`, `angles_W`, `angles_X`, `angles_Y`, `angles_Z`, `is_Link_Child`, `last_Modified`)
 VALUES (0x7000703E, 42782, 0x00070136, 55.1102, -120.033, 3.014, 0.707107, 0, 0, -0.707107, False, '2021-11-01 00:00:00'); /* Bluespire */
@@ -705,5 +697,9 @@ VALUES (0x700070AF, 43004, 0x00070187, 146.565, -80.047, -0.063, 0.707107, 0, 0,
 /* @teleloc 0x00070187 [146.565002 -80.046997 -0.063000] 0.707107 0.000000 0.000000 -0.707107 */
 
 INSERT INTO `landblock_instance` (`guid`, `weenie_Class_Id`, `obj_Cell_Id`, `origin_X`, `origin_Y`, `origin_Z`, `angles_W`, `angles_X`, `angles_Y`, `angles_Z`, `is_Link_Child`, `last_Modified`)
-VALUES (0x700070B0, 30058, 0x0007014F, 70.13608, -176.9763, -0.063, 0.999911, 0, 0, 0.013345, False, '2024-07-27 15:02:27'); /* Augmentation Realm Main Level */
-/* @teleloc 0x0007014F [70.136078 -176.976303 -0.063000] 0.999911 0.000000 0.000000 0.013345 */
+VALUES (0x700070B0, 30058, 0x0007014F, 70.1361, -176.976, -0.063, 0.999911, 0, 0, 0.013345, False, '2024-07-27 15:02:27'); /* Augmentation Realm Main Level */
+/* @teleloc 0x0007014F [70.136101 -176.975998 -0.063000] 0.999911 0.000000 0.000000 0.013345 */
+
+INSERT INTO `landblock_instance` (`guid`, `weenie_Class_Id`, `obj_Cell_Id`, `origin_X`, `origin_Y`, `origin_Z`, `angles_W`, `angles_X`, `angles_Y`, `angles_Z`, `is_Link_Child`, `last_Modified`)
+VALUES (0x700070B1, 600009, 0x00070126, 53.0237, -100.0938, -0.063, 0.721366, 0, 0, -0.692554, False, '2024-08-01 22:52:19'); /* Rift Tier One Island Portal */
+/* @teleloc 0x00070126 [53.023701 -100.093803 -0.063000] 0.721366 0.000000 0.000000 -0.692554 */

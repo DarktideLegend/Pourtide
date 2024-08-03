@@ -414,7 +414,7 @@ namespace ACE.Server
             log.Info("Initializing EventManager...");
             EventManager.Initialize();
 
-            log.Info("Initializing XpManager...");
+            log.Info("Initializing DailyXpManager...");
             DailyXpManager.Initialize();
 
             log.Info("Initializing DungeonManager...");
