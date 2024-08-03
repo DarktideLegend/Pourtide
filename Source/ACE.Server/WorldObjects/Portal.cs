@@ -16,6 +16,8 @@ using ACE.Server.Features.Rifts;
 using System.Linq;
 using ACE.Server.Realms;
 using ACE.Entity.Enum.RealmProperties;
+using System.Collections.Generic;
+using ACE.Server.Features.HotDungeons.Managers;
 
 namespace ACE.Server.WorldObjects
 {
@@ -172,13 +174,22 @@ namespace ACE.Server.WorldObjects
 
             //player?.VerifyPkEnemyInVicinity();
 
-            if (player.PKTimerActive && !PortalIgnoresPkAttackTimer)
+            if ( player.PKTimerActive && !PortalIgnoresPkAttackTimer)
             {
+                if (DungeonManager.TryGetDungeonLandblock(Location.LandblockHex, out var landblock))
+                {
+                    if (landblock.Name.Contains("Town Network"))
+                        return new ActivationResult(true);
+                }
+
                 return new ActivationResult(new GameEventWeenieError(player.Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
             }
 
             if (!player.IgnorePortalRestrictions)
             {
+                if (player.Session.AccessLevel >= AccessLevel.Admin)
+                    return new ActivationResult(true);
+
                 if (player.Level < MinLevel)
                 {
                     // You are not powerful enough to interact with that portal!
@@ -282,6 +293,15 @@ namespace ACE.Server.WorldObjects
             return new ActivationResult(true);
         }
 
+        public static List<uint> RiftIslands = new List<uint>() { 600009 };
+
+        public static Dictionary<uint, ushort> RiftIslandRealmIdMap = new Dictionary<uint, ushort> ()
+        {
+            { 600009, 300 }
+        };
+
+        public bool IsRiftIsland => RiftIslands.Contains(WeenieClassId);
+
         public override void ActOnUse(WorldObject activator)
         {
             var player = activator as Player;
@@ -296,7 +316,14 @@ namespace ACE.Server.WorldObjects
 
             InstancedPosition portalDest = null;
 
-            if (WeenieClassId == 600005) // if Rift Entry Portal
+            if (IsRiftIsland)
+            {
+                var realmId = RiftIslandRealmIdMap[WeenieClassId];
+                var realm = RealmManager.GetRealm(realmId, includeRulesets: true);
+                var instance = realm.StandardRules.GetDefaultInstanceID(Destination);
+                portalDest = Destination.AsInstancedPosition(instance);
+
+            } else if (WeenieClassId == 600005) // if Rift Entry Portal
             {
                 var realm = player.HomeRealm;
                 var rifts = RiftManager.ActiveRifts[realm].Values.ToList();
