@@ -24,6 +24,7 @@ namespace ACE.Server.Features.Discord
         public static DateTime PrevLeaderboardXPCommandRequestTimestamp;
         public static DateTime PrevLeaderboardPvPKillsCommandRequestTimestamp;
         public static DateTime PrevLeaderboardPvPDeathsCommandRequestTimestamp;
+        public static DateTime PrevLeaderboardPvPDamageCommandRequestTimestamp;
         public static DateTime PrevRiftsCommandRequestTimestamp;
 
 
@@ -139,6 +140,21 @@ namespace ACE.Server.Features.Discord
                                 CustomCommands.HandleLeaderboardsDeaths(null, parameters);
                                 return Task.CompletedTask;
 
+                            case "leaderboards-damage":
+                            case "topdamage":
+                                if (DateTime.UtcNow - PrevLeaderboardPvPDamageCommandRequestTimestamp < TimeSpan.FromMinutes(1))
+                                {
+                                    SendMessage(message.Channel.Id, $"This command was used too recently. Please try again later.");
+                                    return Task.CompletedTask;
+                                }
+                                PrevLeaderboardPvPDamageCommandRequestTimestamp = DateTime.UtcNow;
+
+                                parameters = splitString.Skip(1).ToArray();
+                                parameters = parameters.AddToArray("discord");
+                                parameters = parameters.AddToArray(message.Channel.Id.ToString());
+
+                                CustomCommands.HandleLeaderboardsDamage(null, parameters);
+                                return Task.CompletedTask;
 
                             case "rifts":
                                 if (DateTime.UtcNow - PrevRiftsCommandRequestTimestamp < TimeSpan.FromMinutes(1))
