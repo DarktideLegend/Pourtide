@@ -930,11 +930,8 @@ namespace ACE.Server.WorldObjects
                 Session.Network.EnqueueSend(new GameMessageSystemChat($"Leaving instance and returning to realm {newRealm.Realm.Name}.", ChatMessageType.System));
             else
             {
-                if (prevrealm.Realm.Id != HomeRealm)
-                {
-                    if (newRealm == RealmManager.CurrentSeason && prevrealm.StandardRules.GetDefaultInstanceID(this, Location.AsLocalPosition()) == Account.AccountId)
-                        Session.Network.EnqueueSend(new GameMessageSystemChat($"You have chosen {newRealm.Realm.Name} as your home realm.", ChatMessageType.System));
-                }
+                if (newRealm == RealmManager.CurrentSeason && prevrealm.StandardRules.GetDefaultInstanceID(this, Location.AsLocalPosition()) == Account.AccountId)
+                    Session.Network.EnqueueSend(new GameMessageSystemChat($"You have chosen {newRealm.Realm.Name} as your home realm.", ChatMessageType.System));
                 else if (newRealm.Realm.Id == HomeRealm)
                     Session.Network.EnqueueSend(new GameMessageSystemChat($"Returning to home realm.", ChatMessageType.System));
                 else
