@@ -1350,7 +1350,7 @@ namespace ACE.Server.WorldObjects.Managers
                             if (emote.ObjCellId.Value > 0)
                             {
                                 var destination = new LocalPosition(emote.ObjCellId.Value, emote.OriginX.Value, emote.OriginY.Value, emote.OriginZ.Value, emote.AnglesX.Value, emote.AnglesY.Value, emote.AnglesZ.Value, emote.AnglesW.Value)
-                                    .AsInstancedPosition(player, PlayerInstanceSelectMode.SameIfSameLandblock, PlayerInstanceSelectMode.RealmDefaultInstanceID);
+                                    .AsInstancedPosition(player, PlayerInstanceSelectMode.SameIfSameLandblock, PlayerInstanceSelectMode.HomeRealm);
 
                                 destination = WorldObject.AdjustDungeon(destination);
                                 WorldManager.ThreadSafeTeleport(player, destination, false);
