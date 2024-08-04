@@ -385,6 +385,9 @@ namespace ACE.Server.WorldObjects
 
                 var equipped = player.GetEquippedMainHand();
 
+                if (equipped == null)
+                    return;
+
                 var itemCaster = equipped != null && !equipped.IsCaster ? equipped : creatureTarget;
 
                 if (equipped.ProcSlowRate > 0)
