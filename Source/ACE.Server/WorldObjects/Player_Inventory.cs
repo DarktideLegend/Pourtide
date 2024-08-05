@@ -3459,7 +3459,6 @@ namespace ACE.Server.WorldObjects
 
                 var coords = bountyPlayer.Location.GetMapCoordStr();
 
-                var realm = RealmManager.GetRealm(bountyPlayer.LastOutdoorPosition.RealmID, includeRulesets: true).Realm.Name;
                 if (RiftManager.TryGetActiveRift(bountyPlayer.Location.Instance, out Rift activeRift))
                 {
                     Session.Network.EnqueueSend(new GameMessageSystemChat($"\"Player {bountyPlayer.Name} was last seen at rift {activeRift.Name} - {activeRift.Coords}.\"", ChatMessageType.Tell));
@@ -3474,6 +3473,7 @@ namespace ACE.Server.WorldObjects
                 }
                 else if (bountyPlayer.LastOutdoorPosition != null)
                 {
+                    var realm = RealmManager.GetRealm(bountyPlayer.LastOutdoorPosition.RealmID, includeRulesets: true).Realm.Name;
                     Session.Network.EnqueueSend(new GameMessageSystemChat($"\"Player {bountyPlayer.Name} is in an unknown dungeon landblock ({bountyPlayer.Location.LandblockHex}) and was last seen outdoors near {bountyPlayer.LastOutdoorPosition.GetMapCoordStr()} - in realm {realm}.\"", ChatMessageType.Tell));
                 }
                 else
@@ -3485,6 +3485,7 @@ namespace ACE.Server.WorldObjects
                 Session.Network.EnqueueSend(new GameMessageSystemChat($"\"You currently have {--PlayerBountyTrackingCount} tracking uses remaining.\"", ChatMessageType.Tell));
             } catch (Exception ex)
             {
+                RefundBounty();
                 log.Error($"Error: tracking bounty: {ex}");
             }
         }
