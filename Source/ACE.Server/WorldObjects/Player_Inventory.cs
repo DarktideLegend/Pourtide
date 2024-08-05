@@ -3445,6 +3445,8 @@ namespace ACE.Server.WorldObjects
 
                 var bountyPlayer = PlayerManager.GetOnlinePlayer((uint)BountyGuid);
 
+                log.Info($"Tracking bounty on player {bountyPlayer.Name} for player {Name}");
+
                 if (bountyPlayer == null)
                 {
                     Session.Network.EnqueueSend(new GameMessageSystemChat($"\"There are currently no bounty players online at this time. You may repeat this command until a player is found.\"", ChatMessageType.Tell));
@@ -3485,8 +3487,8 @@ namespace ACE.Server.WorldObjects
                 Session.Network.EnqueueSend(new GameMessageSystemChat($"\"You currently have {--PlayerBountyTrackingCount} tracking uses remaining.\"", ChatMessageType.Tell));
             } catch (Exception ex)
             {
+                log.Error($"Error: tracking bounty for player {Name} refunding their bounty : {ex}");
                 RefundBounty();
-                log.Error($"Error: tracking bounty: {ex}");
             }
         }
 
@@ -3509,7 +3511,6 @@ namespace ACE.Server.WorldObjects
                 if (players.Count <= 0)
                 {
                     currentPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{collector.Name} tells you, \"There are currently no bounty players available at this time.\"", ChatMessageType.Tell));
-                    currentPlayer.RefundBounty();
                     return false;
                 };
 
@@ -3648,7 +3649,8 @@ namespace ACE.Server.WorldObjects
                         }
 
                         if (target.WeenieClassId == 3000381 && item.WeenieClassId == 2626)
-                            PurchaseBounty((Creature)target, this);
+                            if (!PurchaseBounty((Creature)target, this))
+                                RefundBounty();
 
                         if (target.WeenieClassId == 3000381 && item.WeenieClassId == 7377)
                         {
