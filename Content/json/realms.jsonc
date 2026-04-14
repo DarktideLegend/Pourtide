@@ -1,3 +1,6 @@
 // Changes to this file should be committed to your git repository fork to ensure it is properly versioned with your ruleset content
 // You do not want to lose this file!
-{ }
+{
+  "Modern Realm": 1,
+  "Modern Realm (PvP)": 2
+}
