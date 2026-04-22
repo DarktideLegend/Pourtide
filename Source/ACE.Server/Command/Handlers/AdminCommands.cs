@@ -4875,5 +4875,27 @@ namespace ACE.Server.Command.Handlers
             }
             LootSwap.UpdateTables(folder);
         }
+
+        [CommandHandler("forcepk", AccessLevel.Admin, CommandHandlerFlag.RequiresWorld, 0, "force an npk player to be pk")]
+        public static void HandleForcePk(ISession session, params string[] parameters)
+        {
+            var objectId = ObjectGuid.Invalid;
+
+            var target = session.Player.HealthQueryTarget;
+
+            if (target.HasValue)
+                objectId = new ObjectGuid(target.Value);
+
+            var wo = session.Player.CurrentLandblock?.GetObject(objectId);
+
+            if (wo is null)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Unable to locate what you have selected.", ChatMessageType.Broadcast));
+            }
+            else if (wo is Player player && player.IsNPK)
+            {
+                player.MinimumTimeSincePk = PropertyManager.GetDouble("pk_respite_timer").Item;
+            }
+        }
     }
 }
