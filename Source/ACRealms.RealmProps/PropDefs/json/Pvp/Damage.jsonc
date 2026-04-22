@@ -3,12 +3,21 @@
   "namespace": "Pvp.Damage",
   "description": "Properties related to player damage mods, affecting PvP only",
   "properties": {
-    "WindupMaxMove": {
+    "IgnoreMagicResistPvpScalar": {
       "type": "float",
-      "description": "The maximum distance a player may move during a spellcast without the cast being cancelled with 'Your movement disrupted spell casting!'",
-      "default": 6,
-      "min_value": 1,
-      "max_value": 250
+      "description": "Scales the effectiveness of IgnoreMagicResist (ie. hollow weapons) in pvp battles. 1.0 = full effectiveness / ignore all resistances from life enchantments (default), 0.5 = half effectiveness / use half resistances from life enchantments, 0.0 = no effectiveness / use full resistances from life enchantments",
+      "default_from_server_property": "ignore_magic_resist_pvp_scalar",
+      "default": 1,
+      "min_value": 0,
+      "max_value": 100
+    },
+    "IgnoreMagicArmorPvpScalar": {
+      "type": "float",
+      "description": "Scales the effectiveness of IgnoreMagicArmor (ie. hollow weapons) in pvp battles. 1.0 = full effectiveness / ignore all enchantments on armor (default), 0.5 = half effectiveness / use half enchantments from armor, 0.0 = no effectiveness / use full enchantments from armor",
+      "default_from_server_property": "ignore_magic_armor_pvp_scalar",
+      "default": 1,
+      "min_value": 0,
+      "max_value": 100
     },
     "CloakMaxDmgMitigation": {
       "type": "float",
